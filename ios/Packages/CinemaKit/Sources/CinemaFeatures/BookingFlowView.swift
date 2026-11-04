@@ -78,7 +78,7 @@ struct BookingStepsView: View {
                         Button { flow.goBack() } label: { Label("Back", systemImage: "chevron.backward") }
                     }
                 }
-                if flow.step == .tickets || flow.step == .review {
+                if flow.step == .tickets || flow.step == .food || flow.step == .review {
                     ToolbarItem(placement: .principal) { HoldCountdown(flow: flow) }
                 }
             }
@@ -100,13 +100,14 @@ struct BookingStepsView: View {
         switch flow.step {
         case .seats: SeatSelectionScreen(flow: flow)
         case .tickets: TicketTypesScreen(flow: flow)
+        case .food: FoodScreen(flow: flow)
         case .review: ReviewScreen(flow: flow)
         case .confirmed: ConfirmationScreen(flow: flow) { if let b = flow.booking { onFinish(.confirmed(b)) } }
         }
     }
 
     private var title: String {
-        switch flow.step { case .seats: "Choose Seats"; case .tickets: "Tickets"; case .review: "Review"; case .confirmed: "Booked" }
+        switch flow.step { case .seats: "Choose Seats"; case .tickets: "Tickets"; case .food: "Food & Drink"; case .review: "Review"; case .confirmed: "Booked" }
     }
 
     private var currentFailure: BookingFlowModel.Failure? { if case .failed(let f) = flow.phase { f } else { nil } }
@@ -191,11 +192,17 @@ struct SeatSelectionScreen: View {
     private var mapArea: some View {
         VStack(spacing: 0) {
             header
-            if mode == .map {
-                SeatMapContainer(model: selection, formatters: flow.formatters) { seat, result in
-                    if case .selected = result { Task { await app.analytics.record(.seatSelected, ["screeningId": flow.screening.id]) } }
-                }
-                SeatLegend(layout: selection.layout).padding(.vertical, 10)
+            if selection.availability.values.allSatisfy({ $0 != .available }) && selection.selectedSeatIds.isEmpty {
+                ContentUnavailableView("Sold out", systemImage: "ticket", description: Text("There are no seats left for this showing. Try another time."))
+            } else if mode == .map {
+                SeatMapContainer(model: selection, formatters: flow.formatters, onToggle: { seat, result in
+                    if case .selected = result {
+                        Task { await app.analytics.record(.seatSelected, ["screeningId": flow.screening.id, "category": seat.priceCategory]) }
+                    }
+                }, onZoom: { method in
+                    Task { await app.analytics.record(.seatMapZoomed, ["screeningId": flow.screening.id, "method": method]) }
+                })
+                SeatLegend(model: selection, formatters: flow.formatters).padding(.vertical, 10)
             } else {
                 SeatListView(model: selection, formatters: flow.formatters)
             }
@@ -215,6 +222,11 @@ struct SeatSelectionScreen: View {
 
     private var summary: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if let reason = selection.blockingReason, reason != selection.message?.text {
+                InfoBanner(.warning, reason)
+            } else if selection.message == nil, let warning = selection.validation.warnings.first(where: { $0.code == "orphan_seat" }) {
+                InfoBanner(.info, warning.message)
+            }
             if let m = selection.message {
                 InfoBanner(m.kind == .error ? .error : m.kind == .warning ? .warning : .info, m.text,
                            actionTitle: selection.conflicts.isEmpty ? nil : "Remove",
@@ -332,8 +344,11 @@ struct PriceBreakdown: View {
         ForEach(quote.lines, id: \.seatId) { l in
             line("\(l.ticketTypeName) · \(l.rowLabel)\(l.seatLabel)" + (l.supplementsMinor > 0 ? " (incl. \(formatters.money(l.supplementsMinor)) format)" : ""), l.priceMinor)
         }
+        ForEach(quote.concessions ?? [], id: \.self) { c in
+            line("\(c.quantity) × \(c.name)", c.lineTotalMinor)
+        }
         if quote.feesMinor > 0 { line(quote.feeLabel ?? "Fees", quote.feesMinor) }
-        if quote.discountMinor > 0 { line("Discount", -quote.discountMinor) }
+        if quote.discountMinor > 0 { line(quote.voucher.map { "Voucher \($0.code)" } ?? "Discount", -quote.discountMinor) }
         HStack {
             Text("Total").font(.headline)
             Spacer()
@@ -350,6 +365,157 @@ struct PriceBreakdown: View {
             Text(formatters.money(minor)).monospacedDigit().foregroundStyle(palette.textPrimary)
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+// MARK: - Food and drink
+
+struct FoodScreen: View {
+    @Bindable var flow: BookingFlowModel
+    @Environment(\.palette) private var palette
+    @State private var configuring: ConcessionProduct?
+
+    var body: some View {
+        List {
+            if let message = flow.basketMessage {
+                InfoBanner(.error, message).listRowBackground(Color.clear)
+            }
+            if let menu = flow.menu {
+                ForEach(menu.categories) { category in
+                    Section(category.name) {
+                        ForEach(category.items) { product in productRow(product) }
+                    }
+                }
+            } else {
+                LoadingView("Loading menu…").listRowBackground(Color.clear)
+            }
+            if !flow.basket.isEmpty {
+                Section("Your order") {
+                    ForEach(flow.basket) { item in basketRow(item) }
+                }
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(palette.background)
+        .sheet(item: $configuring) { product in
+            ProductOptionsSheet(product: product, formatters: flow.formatters) { item in
+                Task { await flow.addToBasket(item) }
+            }
+            .presentationDetents([.medium, .large])
+        }
+        .safeAreaInset(edge: .bottom) {
+            Button(flow.basket.isEmpty ? "Skip" : "Continue · \(flow.quote.map { flow.formatters.money($0.totalMinor) } ?? "")") { flow.continueToReview() }
+                .buttonStyle(.cinemaPrimary)
+                .padding(16)
+        }
+    }
+
+    private func productRow(_ p: ConcessionProduct) -> some View {
+        Button {
+            if p.modifierGroups.isEmpty { Task { await flow.addToBasket(BasketItem(productId: p.id)) } } else { configuring = p }
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(p.name).font(.headline).foregroundStyle(palette.textPrimary)
+                    if !p.bundleItems.isEmpty { Text(p.bundleItems.joined(separator: " · ")).font(.subheadline).foregroundStyle(palette.textSecondary) }
+                    Text(([p.dietary.joined(separator: ", ")] + (p.allergens.isEmpty ? [] : ["Contains: \(p.allergens.joined(separator: ", "))"])).filter { !$0.isEmpty }.joined(separator: " · "))
+                        .font(.footnote).foregroundStyle(palette.textMuted)
+                    if p.stockStatus == .low { Text("Low stock").font(.footnote.weight(.semibold)).foregroundStyle(palette.warning) }
+                }
+                Spacer()
+                VStack(alignment: .trailing) {
+                    Text(p.isAvailable ? flow.formatters.money(p.priceMinor) : "Sold out").font(.headline.monospacedDigit())
+                        .foregroundStyle(p.isAvailable ? palette.textPrimary : palette.textMuted)
+                    if p.isAvailable { Image(systemName: "plus.circle.fill").font(.title2).foregroundStyle(palette.actionPrimary).accessibilityHidden(true) }
+                }
+            }
+            .frame(minHeight: 44)
+        }
+        .disabled(!p.isAvailable)
+        .accessibilityHint(p.modifierGroups.isEmpty ? "Adds to your order" : "Choose options")
+    }
+
+    private func basketRow(_ item: BasketItem) -> some View {
+        let product = flow.product(for: item)
+        let options = product.map { p in p.modifierGroups.flatMap { g in g.options.filter { (item.modifiers[g.id] ?? []).contains($0.id) }.map(\.name) } } ?? []
+        return HStack {
+            VStack(alignment: .leading) {
+                Text(product?.name ?? "Item").foregroundStyle(palette.textPrimary)
+                if !options.isEmpty { Text(options.joined(separator: ", ")).font(.footnote).foregroundStyle(palette.textMuted) }
+            }
+            Spacer()
+            Stepper("Quantity \(item.quantity)", value: Binding(get: { item.quantity }, set: { q in Task { await flow.setQuantity(q, for: item.id) } }), in: 0...20)
+                .labelsHidden()
+            Text("\(item.quantity)").monospacedDigit().frame(minWidth: 20)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAdjustableAction { direction in
+            Task { await flow.setQuantity(item.quantity + (direction == .increment ? 1 : -1), for: item.id) }
+        }
+    }
+}
+
+/// Modifier choices with min/max validation before adding to the order.
+struct ProductOptionsSheet: View {
+    let product: ConcessionProduct
+    let formatters: Formatters
+    let onAdd: (BasketItem) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.palette) private var palette
+    @State private var choices: [String: [String]] = [:]
+    @State private var quantity = 1
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                ForEach(product.modifierGroups) { group in
+                    Section {
+                        ForEach(group.options) { option in
+                            let chosen = (choices[group.id] ?? []).contains(option.id)
+                            Button { toggle(option.id, in: group) } label: {
+                                HStack {
+                                    Image(systemName: group.isSingleChoice ? (chosen ? "largecircle.fill.circle" : "circle") : (chosen ? "checkmark.square.fill" : "square"))
+                                        .foregroundStyle(chosen ? palette.selected : palette.textMuted)
+                                    Text(option.name).foregroundStyle(palette.textPrimary)
+                                    Spacer()
+                                    if option.priceMinor > 0 { Text("+\(formatters.money(option.priceMinor))").foregroundStyle(palette.textSecondary) }
+                                }
+                            }
+                            .accessibilityAddTraits(chosen ? .isSelected : [])
+                        }
+                    } header: { Text(group.name) } footer: {
+                        Text(group.min == group.max ? "Choose \(group.min)" : "Choose up to \(group.max)")
+                    }
+                }
+                Section { Stepper("Quantity: \(quantity)", value: $quantity, in: 1...20) }
+            }
+            .navigationTitle(product.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+            .safeAreaInset(edge: .bottom) {
+                let problems = ModifierValidation.problems(product: product, modifiers: choices)
+                Button("Add · \(formatters.money(ModifierValidation.unitPrice(product: product, modifiers: choices) * quantity))") {
+                    onAdd(BasketItem(productId: product.id, quantity: quantity, modifiers: choices))
+                    dismiss()
+                }
+                .buttonStyle(.cinemaPrimary)
+                .disabled(!problems.isEmpty)
+                .accessibilityHint(problems.first ?? "")
+                .padding(16)
+            }
+        }
+        .onAppear {
+            // Preselect the first option of single-choice groups (e.g. Regular size).
+            for g in product.modifierGroups where g.isSingleChoice { choices[g.id] = [g.options[0].id] }
+        }
+    }
+
+    private func toggle(_ id: String, in group: ConcessionProduct.ModifierGroup) {
+        var current = choices[group.id] ?? []
+        if group.isSingleChoice { current = [id] }
+        else if let i = current.firstIndex(of: id) { current.remove(at: i) }
+        else if current.count < group.max { current.append(id) }
+        choices[group.id] = current
     }
 }
 
@@ -372,6 +538,17 @@ struct ReviewScreen: View {
                 LabeledContent("Screen", value: s.auditorium.name)
                 LabeledContent("Seats", value: flow.selection.selectionSummary)
             }
+            if flow.offersSeatDelivery {
+                Section("Food and drink") {
+                    Picker("Collection", selection: $flow.fulfilment) {
+                        Text("Collect from the counter").tag(Fulfilment.collect)
+                        Text("Deliver to my seat").tag(Fulfilment.seatDelivery)
+                    }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
+                }
+            }
+            VoucherSection(flow: flow)
             if let q = flow.quote { Section("Price") { PriceBreakdown(quote: q, formatters: flow.formatters) } }
             Section {
                 InfoBanner(.info, "Development build: payment is simulated and no money is taken. Apple Pay is enabled per operator once a payment provider is configured.")
@@ -397,6 +574,34 @@ struct ReviewScreen: View {
                 .disabled(flow.quote == nil)
                 .padding(16)
         }
+    }
+}
+
+struct VoucherSection: View {
+    @Bindable var flow: BookingFlowModel
+    @State private var code = ""
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        Section {
+            if let applied = flow.quote?.voucher {
+                HStack {
+                    Label("\(applied.code): \(applied.description)", systemImage: "tag.fill").foregroundStyle(palette.success)
+                    Spacer()
+                    Button("Remove") { Task { await flow.removeVoucher() } }
+                }
+            } else {
+                HStack {
+                    TextField("Voucher or promo code", text: $code)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                        .submitLabel(.done)
+                        .onSubmit { Task { await flow.applyVoucher(code) } }
+                    Button("Apply") { Task { await flow.applyVoucher(code) } }.disabled(code.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                if let message = flow.voucherMessage { Text(message).font(.footnote).foregroundStyle(palette.error) }
+            }
+        } header: { Text("Voucher") }
     }
 }
 

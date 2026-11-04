@@ -6,15 +6,18 @@
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { AuditoriumLayout, validateLayout } from '@cinema/contracts';
-import { curvedLayout, luxeLayout, standardLayout } from './layouts';
+import { curvedLayout, luxeLayout, premiereLayout, standardLayout } from './layouts';
 
 const outDir = join(__dirname, '../../../shared/fixtures/layouts');
 mkdirSync(outDir, { recursive: true });
+const previewDir = join(__dirname, '../../../ios/Packages/CinemaKit/Sources/CinemaCore/PreviewData');
+mkdirSync(previewDir, { recursive: true });
 
 const layouts: [string, AuditoriumLayout][] = [
   ['standard', standardLayout('layout-standard')],
   ['curved', curvedLayout('layout-curved')],
   ['luxe', luxeLayout('layout-luxe')],
+  ['premiere', premiereLayout('layout-premiere')],
 ];
 
 for (const [name, layout] of layouts) {
@@ -24,6 +27,8 @@ for (const [name, layout] of layouts) {
     process.exitCode = 1;
   }
   writeFileSync(join(outDir, `${name}.json`), JSON.stringify(layout, null, 2) + '\n');
+  // Same JSON bundled into CinemaCore for SwiftUI previews and the mock service.
+  writeFileSync(join(previewDir, `${name}.json`), JSON.stringify(layout, null, 2) + '\n');
   writeFileSync(join(outDir, `${name}.preview.svg`), toSvg(layout));
   console.log(`${name}: ${layout.seats.length} seats, ${issues.length} issues`);
 }
@@ -32,7 +37,7 @@ function toSvg(l: AuditoriumLayout): string {
   const W = 1000;
   const H = W / l.aspectRatio;
   const colour: Record<string, string> = {
-    standard: '#3A4660', premium: '#B8892E', recliner: '#6B4FA3', sofa: '#8E3B6B', wheelchair: '#2F6FD6', companion: '#1E9AA0',
+    standard: '#3A4660', premium: '#B8892E', recliner: '#6B4FA3', sofa: '#8E3B6B', luxePod: '#2F7D6B', vipBed: '#7A3E9D', wheelchair: '#2F6FD6', companion: '#1E9AA0',
   };
   const s = l.screen;
   const sx0 = (s.center.x - s.width / 2) * W;

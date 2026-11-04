@@ -17,15 +17,18 @@ public struct SeatMapView: View {
     @Environment(\.palette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiateWithoutColor
+    @Environment(\.colorScheme) private var colorScheme
+    var onZoom: (String) -> Void = { _ in }
 
     /// Camera at the start of the current gesture.
     @State private var gestureStart: SeatMapCamera?
     @State private var magnifyAnchor: CGPoint?
 
-    public init(model: SeatSelectionModel, formatters: Formatters, onToggle: @escaping (Seat, SeatSelectionModel.ToggleResult) -> Void = { _, _ in }) {
+    public init(model: SeatSelectionModel, formatters: Formatters, onToggle: @escaping (Seat, SeatSelectionModel.ToggleResult) -> Void = { _, _ in }, onZoom: @escaping (String) -> Void = { _ in }) {
         self.model = model
         self.formatters = formatters
         self.onToggle = onToggle
+        self.onZoom = onZoom
     }
 
     public var body: some View {
@@ -76,21 +79,21 @@ public struct SeatMapView: View {
 
     // MARK: Gestures
 
+    /// Taps go through `SeatTapInterpreter` (tested in CinemaCore): instant seat
+    /// toggles, tap-to-zoom at overview scale, double-tap on empty space to zoom.
     private func tapGesture(size: Vec2) -> some Gesture {
         SpatialTapGesture()
             .onEnded { value in
                 let point = Vec2(Double(value.location.x), Double(value.location.y))
-                let geometry = model.geometry
-                let camera = geometry.clamp(model.camera, size: size)
-                // At overview scale seats are smaller than a comfortable touch target:
-                // the first tap zooms into that area, the next tap selects precisely.
-                if geometry.seatPointSize(camera: camera, size: size) < 22 {
-                    let target = geometry.zoom(camera, by: 2.4, anchor: point, size: size)
-                    withAnimation(reduceMotion ? nil : .smooth(duration: 0.35)) { model.camera = target }
-                    return
+                let result = model.handleTap(at: point, size: size)
+                if let camera = result.camera {
+                    withAnimation(reduceMotion ? nil : .smooth(duration: 0.35)) { model.camera = camera }
+                    onZoom("tap")
                 }
-                guard let seat = geometry.hitTest(screenPoint: point, camera: camera, size: size) else { return }
-                toggle(seat)
+                if let toggle = result.toggle, let id = model.lastToggled?.id, let seat = model.seat(id) {
+                    onToggle(seat, toggle)
+                    if let message = model.message?.text { AccessibilityNotification.Announcement(message).post() }
+                }
             }
     }
 
@@ -102,7 +105,7 @@ public struct SeatMapView: View {
                 let anchor = Vec2(Double(value.startLocation.x), Double(value.startLocation.y))
                 model.camera = model.geometry.zoom(start, by: Double(value.magnification), anchor: anchor, size: size)
             }
-            .onEnded { _ in gestureStart = nil }
+            .onEnded { _ in gestureStart = nil; onZoom("pinch") }
     }
 
     private func dragGesture(size: Vec2) -> some Gesture {
@@ -131,7 +134,7 @@ public struct SeatMapView: View {
     }
 
     private var symbolNames: [String] {
-        ["checkmark", "xmark", "minus", "exclamationmark", "figure.roll", "person.2.fill", "eye.trianglebadge.exclamationmark"]
+        ["checkmark", "xmark", "minus", "exclamationmark", "eye.trianglebadge.exclamationmark"] + Array(SeatCategory.allowedIcons).sorted()
     }
 
     private var screenEdgeDescription: String {
@@ -193,11 +196,15 @@ public struct SeatMapView: View {
             c.translateBy(x: pt(Vec2(seat.x, seat.y)).x, y: pt(Vec2(seat.x, seat.y)).y)
             c.rotate(by: .degrees(seat.rotation))
             let rect = CGRect(x: -w / 2, y: -h / 2, width: w, height: h)
-            let shape = seatShape(rect: rect, category: p.category)
+            let shape = seatShape(rect: rect, presentation: p)
             let (fill, stroke, ink) = colours(for: p)
             c.fill(shape, with: .color(fill))
             if let stroke { c.stroke(shape, with: .color(stroke), lineWidth: max(1, w * 0.06)) }
-            if p.category == .premium || p.category == .recliner, p.state == .available {
+            if p.seatCategory.shape == .bed, p.state == .available || p.state == .selected {
+                // Pillow line across the head of the bed.
+                let pillow = CGRect(x: rect.minX + w * 0.12, y: rect.minY + h * 0.1, width: w * 0.76, height: max(2, h * 0.18))
+                c.fill(Path(roundedRect: pillow, cornerRadius: pillow.height / 2), with: .color(ink.opacity(0.35)))
+            } else if p.category == .premium || p.category == .recliner || p.category == .luxePod, p.state == .available {
                 // Premium band across the seat back: shape cue in addition to colour.
                 let band = CGRect(x: rect.minX + w * 0.15, y: rect.minY + h * 0.12, width: w * 0.7, height: max(1.5, h * 0.12))
                 c.fill(Path(roundedRect: band, cornerRadius: band.height / 2), with: .color(palette.seatPremium))
@@ -219,13 +226,23 @@ public struct SeatMapView: View {
         }
     }
 
-    private func seatShape(rect: CGRect, category: SeatPresentation.Category) -> Path {
-        switch category {
-        case .wheelchair:
+    /// Shape comes from the operator's category, so a new seat product (e.g. pods)
+    /// needs only backend configuration.
+    private func seatShape(rect: CGRect, presentation p: SeatPresentation) -> Path {
+        if p.category == .wheelchair { return Path(roundedRect: rect, cornerRadius: rect.height * 0.5) }
+        switch p.seatCategory.shape {
+        case .space:
             return Path(roundedRect: rect, cornerRadius: rect.height * 0.5)
+        case .pod:
+            // Rounded capsule with a hooded back.
+            var path = Path(roundedRect: rect.insetBy(dx: 0, dy: rect.height * 0.04), cornerSize: CGSize(width: rect.width * 0.45, height: rect.height * 0.45), style: .continuous)
+            path.addRoundedRect(in: CGRect(x: rect.minX + rect.width * 0.08, y: rect.minY, width: rect.width * 0.84, height: rect.height * 0.2), cornerSize: CGSize(width: 6, height: 6))
+            return path
+        case .bed:
+            return Path(roundedRect: rect, cornerSize: CGSize(width: rect.width * 0.12, height: rect.height * 0.18), style: .continuous)
         case .sofa, .recliner:
             return Path(roundedRect: rect, cornerRadius: rect.height * 0.32)
-        default:
+        case .seat:
             // Seat silhouette: rounded back with slightly squarer front edge.
             return Path(roundedRect: rect, cornerSize: CGSize(width: rect.width * 0.28, height: rect.height * 0.28), style: .continuous)
         }
@@ -242,9 +259,20 @@ public struct SeatMapView: View {
             switch p.category {
             case .wheelchair: return (palette.seatAccessible.opacity(0.22), palette.seatAccessible, palette.seatAccessible)
             case .companion: return (palette.seatCompanion.opacity(0.22), palette.seatCompanion, palette.seatCompanion)
-            case .premium, .recliner, .sofa: return (palette.seatAvailable, palette.seatPremium, palette.textPrimary)
-            case .standard: return (palette.seatAvailable, p.restricted ? palette.seatRestricted : palette.seatAvailableBorder, palette.textSecondary)
+            case .premium, .recliner, .sofa, .luxePod, .vipBed:
+                if let custom = categoryColours(p) { return (custom.fill, custom.accent, palette.textPrimary) }
+                return (palette.seatAvailable, palette.seatPremium, palette.textPrimary)
+            case .standard:
+                if let custom = categoryColours(p), !p.restricted { return (custom.fill, custom.accent, palette.textSecondary) }
+                return (palette.seatAvailable, p.restricted ? palette.seatRestricted : palette.seatAvailableBorder, palette.textSecondary)
             }
         }
+    }
+
+    /// Operator colours for a category (contrast-checked on the backend), for this appearance.
+    private func categoryColours(_ p: SeatPresentation) -> (fill: Color, accent: Color)? {
+        guard let c = p.seatCategory.colours else { return nil }
+        let a = colorScheme == .dark ? c.dark : c.light
+        return (Color(hex: a.fill), Color(hex: a.accent))
     }
 }

@@ -54,12 +54,18 @@ public struct Palette: Equatable {
 }
 
 private struct PaletteKey: EnvironmentKey { static let defaultValue = Palette.fallback }
+private struct HeadingWeightKey: EnvironmentKey { static let defaultValue: Font.Weight = .bold }
 private struct MediaBaseURLKey: EnvironmentKey { static let defaultValue = URL(string: "http://localhost:3000/")! }
 
 public extension EnvironmentValues {
     var palette: Palette {
         get { self[PaletteKey.self] }
         set { self[PaletteKey.self] = newValue }
+    }
+    /// Operator heading weight from tenant typography.
+    var headingWeight: Font.Weight {
+        get { self[HeadingWeightKey.self] }
+        set { self[HeadingWeightKey.self] = newValue }
     }
     /// Base URL used to resolve relative media URLs from the API.
     var mediaBaseURL: URL {
@@ -72,6 +78,7 @@ public extension EnvironmentValues {
 /// colour scheme and enforces the theme's appearance policy.
 public struct CinemaThemeModifier: ViewModifier {
     let theme: ResolvedTheme
+    var typography: Typography = .standard
     @Environment(\.colorScheme) private var systemScheme
 
     public func body(content: Content) -> some View {
@@ -85,9 +92,12 @@ public struct CinemaThemeModifier: ViewModifier {
             .environment(\.palette, palette)
             .tint(palette.actionPrimary)
             .preferredColorScheme(theme.appearancePolicy == .system ? nil : scheme)
+            // System fonts only: operators pick a design; Dynamic Type always applies.
+            .fontDesign(typography.design == .serif ? .serif : typography.design == .rounded ? .rounded : .default)
+            .environment(\.headingWeight, typography.headingWeight == .heavy ? .heavy : typography.headingWeight == .semibold ? .semibold : .bold)
     }
 }
 
 public extension View {
-    func cinemaTheme(_ theme: ResolvedTheme) -> some View { modifier(CinemaThemeModifier(theme: theme)) }
+    func cinemaTheme(_ theme: ResolvedTheme, typography: Typography = .standard) -> some View { modifier(CinemaThemeModifier(theme: theme, typography: typography)) }
 }

@@ -45,7 +45,17 @@ export const tenantConfigSchema = z.object({
     markUrl: z.string().nullable(),
     wordmark: z.string(),
     palette: brandPaletteSchema,
+    /** Optional launch/splash artwork shown while content loads (the static launch screen is build-time). */
+    splashUrl: z.string().nullable().default(null),
   }),
+  /**
+   * Typography within Apple's system fonts: operators choose a design and
+   * heading weight; Dynamic Type sizes are always honoured. Custom font files
+   * require a new App Store build.
+   */
+  typography: z
+    .object({ design: z.enum(['default', 'serif', 'rounded']), headingWeight: z.enum(['semibold', 'bold', 'heavy']) })
+    .default({ design: 'default', headingWeight: 'bold' }),
   theme: resolvedThemeSchema,
   availableThemes: z.array(z.enum(THEME_IDS)),
   /**

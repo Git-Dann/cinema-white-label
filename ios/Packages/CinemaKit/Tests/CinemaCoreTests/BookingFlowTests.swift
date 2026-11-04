@@ -28,12 +28,14 @@ final class FakeService: CinemaService, @unchecked Sendable {
         return SeatHold(id: "hold_\(holdKeys.count)", screeningId: screeningId, seatIds: seatIds, status: .ACTIVE, expiresAt: now.addingTimeInterval(480), serverTime: now, warnings: [])
     }
     func releaseHold(id: String) async throws {}
-    func quote(holdId: String, tickets: [TicketSelection]) async throws -> Quote {
+    func concessions(venueId: String) async throws -> ConcessionMenu { ConcessionMenu(features: VenueFeatures(), categories: []) }
+    func cancelBooking(id: String) async throws -> Booking { throw APIError(status: 404, code: .notFound, message: "") }
+    func quote(holdId: String, tickets: [TicketSelection], extras: BasketExtras) async throws -> Quote {
         let lines = tickets.map { Quote.Line(seatId: $0.seatId, rowLabel: "F", seatLabel: "1", ticketTypeId: $0.ticketTypeId, ticketTypeName: "Adult", priceCategory: "standard", baseMinor: 1250, supplementsMinor: 0, priceMinor: $0.ticketTypeId == "child" ? 899 : 1250) }
         let sub = lines.map(\.priceMinor).reduce(0, +)
         return Quote(currency: "GBP", lines: lines, subtotalMinor: sub, feesMinor: 95 * lines.count, discountMinor: 0, totalMinor: sub + 95 * lines.count, feeLabel: "Booking fee")
     }
-    func checkout(holdId: String, tickets: [TicketSelection], simulateDecline: Bool, idempotencyKey: String) async throws -> Booking {
+    func checkout(holdId: String, tickets: [TicketSelection], extras: BasketExtras, simulateDecline: Bool, idempotencyKey: String) async throws -> Booking {
         checkoutKeys.append(idempotencyKey)
         if unknownCheckoutFailure { unknownCheckoutFailure = false; throw URLError(.timedOut) }
         if !checkoutErrors.isEmpty { throw checkoutErrors.removeFirst() }

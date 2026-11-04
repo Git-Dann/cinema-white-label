@@ -18,6 +18,8 @@ export interface RuleViolation {
 export interface SeatRulePolicy {
   maxTickets: number;
   orphanSeatPolicy: 'allow' | 'warn' | 'block';
+  /** Defaults to 'warn'. */
+  companionPolicy?: 'none' | 'warn' | 'requireWheelchair';
 }
 
 export interface SeatRuleResult {
@@ -81,7 +83,18 @@ export function evaluateSeatRules(
   const wheelchair = selected.filter((id) => seatById.get(id)!.type === 'wheelchair');
   if (wheelchair.length) warnings.push({ code: 'wheelchair_space', message: 'This is a wheelchair space with no fixed seat.', seatIds: wheelchair });
   const companions = selected.filter((id) => seatById.get(id)!.type === 'companion');
-  if (companions.length) warnings.push({ code: 'companion_seat', message: 'Companion seats are next to a wheelchair space and may be reassigned for access needs.', seatIds: companions });
+  const companionPolicy = policy.companionPolicy ?? 'warn';
+  if (companions.length && companionPolicy === 'requireWheelchair') {
+    const orphaned = companions.filter((id) => {
+      const partners = seatById.get(id)!.companionFor;
+      return partners.length > 0 && !partners.some((p) => sel.has(p));
+    });
+    if (orphaned.length) {
+      errors.push({ code: 'companion_requires_wheelchair', message: 'Companion seats are booked together with the wheelchair space next to them.', seatIds: orphaned });
+    }
+  } else if (companions.length && companionPolicy === 'warn') {
+    warnings.push({ code: 'companion_seat', message: 'Companion seats are next to a wheelchair space and may be reassigned for access needs.', seatIds: companions });
+  }
   const restricted = selected.filter((id) => seatById.get(id)!.restrictedView);
   if (restricted.length) warnings.push({ code: 'restricted_view', message: seatById.get(restricted[0])!.restrictedView!, seatIds: restricted });
 

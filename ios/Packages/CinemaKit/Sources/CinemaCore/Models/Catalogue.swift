@@ -66,6 +66,8 @@ public struct Venue: Codable, Sendable, Hashable, Identifiable {
     public var screenCount: Int?
     public var isFavourite: Bool
     public var distanceKm: Double?
+    /// Location-level feature flags (food and drink, seat delivery).
+    public var features: VenueFeatures?
 
     /// Name without the operator prefix, e.g. "Leeds Riverside".
     public func shortName(operatorWordmark: String) -> String {
@@ -112,6 +114,9 @@ public struct ScreeningDetail: Codable, Sendable, Hashable, Identifiable {
     public var layoutVersion: LayoutVersionRef
     public var layout: AuditoriumLayout
     public var pricing: Pricing
+    /// Operator seat categories used by this layout (labels, icons, shapes, colours).
+    public var seatCategories: [SeatCategory]? = nil
+    public var seatRules: SeatRules? = nil
 
     public struct LayoutVersionRef: Codable, Sendable, Hashable { public var id: String; public var version: Int }
 }

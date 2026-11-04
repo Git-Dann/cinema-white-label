@@ -10,7 +10,7 @@ import Observation
 @MainActor
 @Observable
 public final class BookingFlowModel {
-    public enum Step: Hashable, Sendable { case seats, tickets, review, confirmed }
+    public enum Step: Hashable, Sendable { case seats, tickets, food, review, confirmed }
 
     public enum Phase: Equatable, Sendable {
         case idle
@@ -35,6 +35,22 @@ public final class BookingFlowModel {
     public private(set) var ticketTypes: [String: String] = [:]
     public private(set) var quote: Quote?
     public private(set) var booking: Booking?
+
+    // Food and drink, voucher and fulfilment (server-priced via the quote).
+    public private(set) var menu: ConcessionMenu?
+    public private(set) var basket: [BasketItem] = []
+    public private(set) var basketMessage: String?
+    public private(set) var voucherCode: String?
+    public private(set) var voucherMessage: String?
+    public var fulfilment: Fulfilment = .collect {
+        didSet { if fulfilment != oldValue { Task { await refreshQuote() } } }
+    }
+    /// True when this cinema sells food and drink through the app.
+    public var offersFood: Bool { menu.map { $0.features.concessions && !$0.isEmpty } ?? false }
+    public var offersSeatDelivery: Bool { (menu?.features.seatDelivery ?? false) && !basket.isEmpty }
+    public var extras: BasketExtras {
+        BasketExtras(concessions: basket, voucherCode: voucherCode, fulfilment: offersSeatDelivery ? fulfilment : .collect)
+    }
     /// serverTime - deviceTime when the hold was created; corrects device clock drift.
     private var serverClockOffset: TimeInterval = 0
     private var holdKey = UUID().uuidString
@@ -92,6 +108,7 @@ public final class BookingFlowModel {
             phase = .idle
             step = .tickets
             await refreshQuote()
+            if menu == nil { menu = try? await service.concessions(venueId: screening.venue.id) }
         } catch let e as APIError {
             await analytics?.record(.seatHoldFailed, ["code": e.rawCode, "screeningId": screening.id])
             switch e.code {
@@ -118,6 +135,7 @@ public final class BookingFlowModel {
 
     public func setTicketType(_ typeId: String, for seatId: String) async {
         ticketTypes[seatId] = typeId
+        Task { await analytics?.record(.ticketTypeChanged, ["screeningId": screening.id, "ticketType": pricing.ticketTypes.first { $0.id == typeId }?.code ?? typeId]) }
         await refreshQuote()
     }
 
@@ -128,17 +146,75 @@ public final class BookingFlowModel {
     public func refreshQuote() async {
         guard let hold else { return }
         do {
-            quote = try await service.quote(holdId: hold.id, tickets: tickets)
+            quote = try await service.quote(holdId: hold.id, tickets: tickets, extras: extras)
+            basketMessage = nil
             checkoutKey = UUID().uuidString // price may have changed; new attempt
         } catch let e as APIError {
-            handleHoldError(e)
+            switch e.rawCode {
+            case "voucher_invalid":
+                voucherMessage = e.message
+                voucherCode = nil
+                await refreshQuote()
+            case "concession_unavailable", "validation_failed" where step == .food:
+                basketMessage = e.message
+            default:
+                handleHoldError(e)
+            }
         } catch {}
     }
 
+    /// After tickets: food step if this cinema offers it, otherwise review.
     public func continueToReview() {
         guard quote != nil else { return }
+        if step == .tickets && offersFood {
+            step = .food
+            return
+        }
         step = .review
         Task { await analytics?.record(.checkoutStarted, ["screeningId": screening.id]) }
+    }
+
+    // MARK: Food and drink
+
+    public func addToBasket(_ item: BasketItem) async {
+        if let i = basket.firstIndex(where: { $0.productId == item.productId && $0.modifiers == item.modifiers }) {
+            basket[i].quantity += item.quantity
+        } else {
+            basket.append(item)
+        }
+        Task { await analytics?.record(.foodAdded, ["productId": item.productId, "quantity": String(item.quantity)]) }
+        await refreshQuote()
+    }
+
+    public func setQuantity(_ quantity: Int, for itemId: String) async {
+        guard let i = basket.firstIndex(where: { $0.id == itemId }) else { return }
+        if quantity <= 0 {
+            let removed = basket.remove(at: i)
+            Task { await analytics?.record(.foodRemoved, ["productId": removed.productId]) }
+        } else {
+            basket[i].quantity = min(quantity, 20)
+        }
+        await refreshQuote()
+    }
+
+    public func product(for item: BasketItem) -> ConcessionProduct? {
+        menu?.categories.flatMap(\.items).first { $0.id == item.productId }
+    }
+
+    // MARK: Vouchers
+
+    public func applyVoucher(_ code: String) async {
+        let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
+        voucherMessage = nil
+        voucherCode = trimmed.isEmpty ? nil : trimmed
+        await refreshQuote()
+        Task { await analytics?.record(.voucherApplied, ["result": voucherCode == nil ? "rejected" : "accepted"]) }
+    }
+
+    public func removeVoucher() async {
+        voucherCode = nil
+        voucherMessage = nil
+        await refreshQuote()
     }
 
     // MARK: Step 3: pay
@@ -151,13 +227,14 @@ public final class BookingFlowModel {
         }
         phase = .working("Confirming your booking…")
         do {
-            let b = try await service.checkout(holdId: hold.id, tickets: tickets, simulateDecline: simulateDecline, idempotencyKey: checkoutKey)
+            let b = try await service.checkout(holdId: hold.id, tickets: tickets, extras: extras, simulateDecline: simulateDecline, idempotencyKey: checkoutKey)
             booking = b
             phase = .idle
             step = .confirmed
             await analytics?.record(.paymentCompleted, ["screeningId": screening.id])
-            await analytics?.record(.bookingConfirmed, ["screeningId": screening.id, "seats": String(b.seats.count)])
+            await analytics?.record(.bookingConfirmed, ["screeningId": screening.id, "seats": String(b.seats.count), "foodItems": String(basket.reduce(0) { $0 + $1.quantity })])
         } catch let e as APIError {
+            await analytics?.record(.checkoutFailed, ["screeningId": screening.id, "code": e.rawCode])
             if e.code == .paymentDeclined {
                 checkoutKey = UUID().uuidString // a new attempt after a decline
                 phase = .failed(Failure(message: "Your payment was declined. No booking was made and your seats are still reserved.", recovery: .retry))
@@ -210,7 +287,8 @@ public final class BookingFlowModel {
     public func goBack() {
         switch step {
         case .tickets: step = .seats
-        case .review: step = .tickets
+        case .food: step = .tickets
+        case .review: step = offersFood ? .food : .tickets
         case .seats, .confirmed: break
         }
     }

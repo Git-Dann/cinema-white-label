@@ -7,17 +7,58 @@ import { CurrentTenant, TenantGuard } from '../common/tenant-context';
 import { ZodPipe } from '../common/zod.pipe';
 
 /**
- * Event names are an allow-list so the app cannot be used to collect arbitrary
- * data. Properties are limited to non-personal identifiers (UK GDPR data
- * minimisation): no names, emails, precise location or payment details.
+ * Typed event schema. Each event declares the properties it may carry; any
+ * other property is dropped. Values are identifiers, codes and counts only,
+ * never personal data (UK GDPR data minimisation). The Swift mirror is
+ * `AnalyticsEventName` / `AnalyticsEvent` in CinemaCore.
  */
-export const ANALYTICS_EVENTS = [
-  'app_opened', 'cinema_selected', 'cinema_favourited', 'film_viewed', 'screening_viewed', 'seat_selector_opened',
-  'seat_selected', 'seat_changed', 'seat_hold_failed', 'booking_abandoned', 'checkout_started', 'payment_completed',
-  'booking_confirmed', 'wallet_pass_requested', 'wallet_pass_issued', 'food_order_created', 'membership_viewed', 'theme_load_failed',
-] as const;
+const id = z.string().max(64);
+const code = z.string().max(40);
+const count = z.coerce.number().int().min(0).max(10_000);
+export const EVENT_SCHEMAS = {
+  app_opened: {},
+  cinema_selected: { venueId: id },
+  cinema_favourited: { venueId: id },
+  film_impression: { filmId: id, list: code, position: count },
+  film_viewed: { filmId: id },
+  screening_viewed: { screeningId: id },
+  screening_selected: { screeningId: id, filmId: id, venueId: id },
+  seat_selector_opened: { screeningId: id },
+  seat_map_zoomed: { screeningId: id, method: code },
+  seat_selected: { screeningId: id, category: code },
+  seat_changed: { screeningId: id },
+  seat_hold_failed: { screeningId: id, code },
+  ticket_type_changed: { screeningId: id, ticketType: code },
+  food_added: { productId: id, quantity: count },
+  food_removed: { productId: id },
+  voucher_applied: { result: code },
+  booking_abandoned: { screeningId: id, step: code },
+  checkout_started: { screeningId: id },
+  checkout_failed: { screeningId: id, code },
+  payment_completed: { screeningId: id },
+  booking_confirmed: { screeningId: id, seats: count, foodItems: count },
+  booking_cancelled: { bookingId: id },
+  wallet_pass_requested: { bookingId: id },
+  wallet_pass_issued: { bookingId: id },
+  food_order_created: { bookingId: id, items: count },
+  membership_viewed: {},
+  membership_engaged: { action: code },
+  theme_load_failed: { reason: z.string().max(120) },
+} as const satisfies Record<string, Record<string, z.ZodTypeAny>>;
 
-const FORBIDDEN_KEYS = /email|name|phone|address|lat|lng|latitude|longitude|card|token/i;
+export type AnalyticsEventName = keyof typeof EVENT_SCHEMAS;
+export const ANALYTICS_EVENTS = Object.keys(EVENT_SCHEMAS) as [AnalyticsEventName, ...AnalyticsEventName[]];
+
+/** Keeps only declared, valid properties for an event. */
+export function sanitiseProperties(name: AnalyticsEventName, props: Record<string, unknown>): Record<string, string | number> {
+  const schema = EVENT_SCHEMAS[name] as Record<string, z.ZodTypeAny>;
+  const out: Record<string, string | number> = {};
+  for (const [k, v] of Object.entries(schema)) {
+    const r = v.safeParse(props[k]);
+    if (r.success && r.data !== undefined) out[k] = r.data as string | number;
+  }
+  return out;
+}
 
 const batch = z.object({
   events: z
@@ -46,7 +87,7 @@ export class AnalyticsController {
       name: e.name,
       sessionId: e.sessionId ?? null,
       occurredAt: new Date(e.occurredAt),
-      properties: Object.fromEntries(Object.entries(e.properties).filter(([k]) => !FORBIDDEN_KEYS.test(k))),
+      properties: sanitiseProperties(e.name, e.properties),
     }));
     await this.prisma.analyticsEvent.createMany({ data: rows });
     return { accepted: rows.length };

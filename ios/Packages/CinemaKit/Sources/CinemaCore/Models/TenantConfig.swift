@@ -12,6 +12,7 @@ public struct TenantConfig: Codable, Sendable, Hashable {
     public var tenant: TenantIdentity
     public var branding: Branding
     public var theme: ResolvedTheme
+    public var typography: Typography
     public var availableThemes: [ThemeID]
     public var alternateThemes: [ResolvedTheme]
     public var features: FeatureFlags
@@ -28,6 +29,7 @@ public struct TenantConfig: Codable, Sendable, Hashable {
         tenant = try c.decode(TenantIdentity.self, forKey: .tenant)
         branding = try c.decode(Branding.self, forKey: .branding)
         theme = try c.decode(ResolvedTheme.self, forKey: .theme)
+        typography = try c.decodeIfPresent(Typography.self, forKey: .typography) ?? .standard
         // Unknown theme ids from a newer backend are ignored rather than failing the whole config.
         availableThemes = (try c.decode([String].self, forKey: .availableThemes)).compactMap(ThemeID.init(rawValue:))
         alternateThemes = try c.decodeIfPresent([ResolvedTheme].self, forKey: .alternateThemes) ?? []
@@ -53,6 +55,7 @@ public struct TenantConfig: Codable, Sendable, Hashable {
         public var markUrl: String?
         public var wordmark: String
         public var palette: BrandPalette
+        public var splashUrl: String?
     }
 
     public struct BrandPalette: Codable, Sendable, Hashable {

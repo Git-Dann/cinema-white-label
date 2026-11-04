@@ -83,6 +83,7 @@ export class HoldsService {
       const rules = evaluateSeatRules(layout, seatIds, await this.unavailableSet(tx, screeningId, previous?.id ?? null, now), {
         maxTickets: tenant.maxTicketsPerBooking,
         orphanSeatPolicy: tenant.orphanSeatPolicy as 'allow' | 'warn' | 'block',
+        companionPolicy: tenant.companionPolicy as 'none' | 'warn' | 'requireWheelchair',
       });
       if (rules.errors.length) throw Errors.seatRules(rules.errors);
 

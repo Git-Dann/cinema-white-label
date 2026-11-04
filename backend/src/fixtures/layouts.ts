@@ -189,3 +189,52 @@ export function luxeLayout(id: string): AuditoriumLayout {
     features: [{ id: 'entrance', kind: 'entrance', label: 'Entrance', x: 0.86, y: 1 / aspect - 0.055, width: 0.12, height: 0.035 }],
   };
 }
+
+/** Screen 4: premiere auditorium with Luxe pods and VIP double beds sold as pairs. */
+export function premiereLayout(id: string): AuditoriumLayout {
+  const aspect = 1.3;
+  const seatSize = 0.06;
+  const seats: Seat[] = [];
+  const rows: AuditoriumLayout['rows'] = [];
+  // Rows A-C: individual Luxe pods with side tables (wide gaps).
+  for (let r = 0; r < 3; r++) {
+    const rowId = rowLetters[r];
+    rows.push({ id: rowId, sectionId: 'pods', label: rowId, order: r });
+    let specs: RowSeatSpec[] = [];
+    for (let i = 1; i <= 6; i++) {
+      specs.push({ label: String(i), span: 1.25 });
+      if (i === 3) specs.push({ label: null, span: 0.8 });
+    }
+    if (r === 0) {
+      specs = [
+        { label: 'W1', type: 'wheelchair', accessibility: ['wheelchair'], span: 1.3, priceCategory: 'luxe-pod' },
+        { label: 'C1', type: 'companion', companionFor: [`${rowId}-W1`], span: 1.25, priceCategory: 'luxe-pod' },
+        ...specs.slice(1),
+      ];
+    }
+    seats.push(...buildRow({ rowId, sectionId: 'pods', y: 0.22 + r * 0.11, seatSize, gap: 0.03, seats: specs, defaultType: 'luxePod', defaultPriceCategory: 'luxe-pod' }));
+  }
+  // Rows D-E: VIP beds, two places per bed sold together.
+  for (let r = 3; r < 5; r++) {
+    const rowId = rowLetters[r];
+    rows.push({ id: rowId, sectionId: 'beds', label: rowId, order: r });
+    const specs: RowSeatSpec[] = [];
+    for (let b = 1; b <= 3; b++) {
+      const g = `${rowId}-bed${b}`;
+      specs.push({ label: String(b * 2 - 1), groupId: g, span: 1.2 }, { label: String(b * 2), groupId: g, span: 1.2 });
+      if (b < 3) specs.push({ label: null, span: 0.9 });
+    }
+    seats.push(...buildRow({ rowId, sectionId: 'beds', y: 0.26 + r * 0.115, seatSize: seatSize * 1.05, gap: 0.006, seats: specs, defaultType: 'vipBed', defaultPriceCategory: 'vip-bed' }));
+  }
+  return {
+    id,
+    version: 1,
+    name: 'Screen 4 · Premiere',
+    aspectRatio: aspect,
+    screen: { center: { x: 0.5, y: 0.08 }, width: 0.7, curvature: 0.05, edge: 'top', label: 'SCREEN' },
+    sections: [{ id: 'pods', name: 'Luxe Pods', order: 0 }, { id: 'beds', name: 'VIP Beds', order: 1 }],
+    rows,
+    seats,
+    features: [{ id: 'entrance', kind: 'entrance', label: 'Entrance', x: 0.86, y: 1 / aspect - 0.06, width: 0.12, height: 0.035 }],
+  };
+}

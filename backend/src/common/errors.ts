@@ -26,6 +26,10 @@ export const Errors = {
   idempotencyMismatch: () =>
     new DomainError(HttpStatus.UNPROCESSABLE_ENTITY, 'idempotency_mismatch', 'Idempotency-Key was reused with a different request'),
   idempotencyRequired: () => new DomainError(HttpStatus.BAD_REQUEST, 'idempotency_required', 'Idempotency-Key header is required'),
+  voucherInvalid: (reason: string) => new DomainError(HttpStatus.UNPROCESSABLE_ENTITY, 'voucher_invalid', reason),
+  concessionUnavailable: (message: string, productIds: string[]) =>
+    new DomainError(HttpStatus.UNPROCESSABLE_ENTITY, 'concession_unavailable', message, { productIds }),
+  cancellationNotAllowed: (message: string) => new DomainError(HttpStatus.CONFLICT, 'cancellation_not_allowed', message),
   publishBlocked: (issues: unknown[]) =>
     new DomainError(HttpStatus.UNPROCESSABLE_ENTITY, 'publish_blocked', 'Configuration failed validation and cannot be published', { issues }),
 };

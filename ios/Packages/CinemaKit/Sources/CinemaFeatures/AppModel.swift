@@ -41,6 +41,7 @@ public final class AppModel {
     public var favouriteVenues: [Venue] { venues.filter(\.isFavourite) }
 
     public func start() async {
+        await analytics.setEnabled(UserDefaults.standard.object(forKey: "analyticsEnabled") as? Bool ?? true)
         await analytics.record(.appOpened)
         async let config: Void = refreshConfig()
         async let content: Void = loadContent()

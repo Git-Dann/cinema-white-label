@@ -8,11 +8,13 @@ public struct SeatPresentation: Sendable, Hashable {
         case available, selected, heldByOthers, sold, blocked, conflict
     }
     public enum Category: String, Sendable, Hashable {
-        case standard, premium, recliner, sofa, wheelchair, companion
+        case standard, premium, recliner, sofa, luxePod, vipBed, wheelchair, companion
     }
 
     public let state: State
     public let category: Category
+    /// Operator category (label, icon, shape, colours) for this seat.
+    public let seatCategory: SeatCategory
     public let restricted: Bool
     public let easyAccess: Bool
 
@@ -29,13 +31,14 @@ public struct SeatPresentation: Sendable, Hashable {
             switch category {
             case .wheelchair: return "figure.roll"
             case .companion: return "person.2.fill"
-            default: return restricted ? "eye.trianglebadge.exclamationmark" : nil
+            default: return restricted ? "eye.trianglebadge.exclamationmark" : seatCategory.safeIcon
             }
         }
     }
 
-    public init(seat: Seat, availability: SeatAvailability?, isSelected: Bool, isConflict: Bool) {
+    public init(seat: Seat, availability: SeatAvailability?, isSelected: Bool, isConflict: Bool, seatCategory: SeatCategory? = nil) {
         category = Category(rawValue: seat.type.rawValue) ?? .standard
+        self.seatCategory = seatCategory ?? .fallback(for: seat.priceCategory, kind: seat.type)
         restricted = seat.restrictedView != nil
         easyAccess = seat.accessibility.contains(.easyAccess)
         if isConflict { state = .conflict }
@@ -55,7 +58,11 @@ public enum SeatAccessibility {
     /// e.g. "Row F, Seat 8, standard, available, £12.50."
     public static func label(seat: Seat, rowLabel: String, presentation: SeatPresentation, price: String?) -> String {
         var parts = ["Row \(rowLabel)", seat.type == .wheelchair ? "Wheelchair space \(seat.label.replacingOccurrences(of: "W", with: ""))" : "Seat \(seat.label)"]
-        parts.append(categoryName(presentation.category))
+        // Wheelchair and companion describe access; otherwise use the operator's category label.
+        switch presentation.category {
+        case .wheelchair, .companion, .sofa, .vipBed: parts.append(categoryName(presentation.category))
+        default: parts.append(presentation.seatCategory.label.lowercased())
+        }
         parts.append(stateName(presentation.state))
         if let price, presentation.isSelectable { parts.append(price) }
         if let r = seat.restrictedView { parts.append(r) }
@@ -78,6 +85,8 @@ public enum SeatAccessibility {
         case .premium: return "premium"
         case .recliner: return "recliner"
         case .sofa: return "sofa seat, sold in pairs"
+        case .luxePod: return "luxe pod"
+        case .vipBed: return "VIP bed, sold in pairs"
         case .wheelchair: return "wheelchair space"
         case .companion: return "companion seat"
         }

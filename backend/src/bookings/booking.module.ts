@@ -13,6 +13,7 @@ import { AvailabilityEvents } from '../screenings/availability.events';
 import { ScreeningsService } from '../screenings/screenings.service';
 import { DemoWalletPassIssuer, WALLET_ISSUER } from '../wallet/wallet.issuer';
 import { BookingsService } from './bookings.service';
+import { CommerceService, concessionSelectionSchema } from '../commerce/commerce.service';
 
 const dateRe = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -20,7 +21,7 @@ const dateRe = /^\d{4}-\d{2}-\d{2}$/;
 @Controller('v1/t/:tenant')
 @UseGuards(TenantGuard)
 export class ScreeningsController {
-  constructor(private readonly screenings: ScreeningsService, private readonly events: AvailabilityEvents) {}
+  constructor(private readonly screenings: ScreeningsService, private readonly events: AvailabilityEvents, private readonly commerce: CommerceService) {}
 
   @Get('screenings')
   @ApiQuery({ name: 'venueId', required: false })
@@ -34,6 +35,11 @@ export class ScreeningsController {
   @Get('venues/:venueId/dates')
   dates(@CurrentTenant() t: Tenant, @Param('venueId') venueId: string, @Query('filmId') filmId?: string) {
     return this.screenings.dates(t.id, venueId, filmId);
+  }
+
+  @Get('venues/:venueId/concessions')
+  concessions(@CurrentTenant() t: Tenant, @Param('venueId') venueId: string) {
+    return this.commerce.menu(t.id, venueId);
   }
 
   @Get('screenings/:id')
@@ -63,10 +69,16 @@ export class ScreeningsController {
 
 const holdBody = z.object({ screeningId: z.string().min(1), seatIds: z.array(z.string().min(1)).min(1).max(50) });
 const ticketsSchema = z.array(z.object({ seatId: z.string(), ticketTypeId: z.string() })).min(1).max(50);
-const quoteBody = z.object({ holdId: z.string(), tickets: ticketsSchema });
+const extras = {
+  concessions: z.array(concessionSelectionSchema).max(30).default([]),
+  voucherCode: z.string().max(40).optional(),
+  fulfilment: z.enum(['collect', 'seatDelivery']).default('collect'),
+};
+const quoteBody = z.object({ holdId: z.string(), tickets: ticketsSchema, ...extras });
 const checkoutBody = z.object({
   holdId: z.string(),
   tickets: ticketsSchema,
+  ...extras,
   payment: z.object({ type: z.literal('simulated'), outcome: z.enum(['approve', 'decline']).optional() }),
 });
 
@@ -98,7 +110,7 @@ export class BookingController {
   @Post('quotes')
   @HttpCode(200)
   quote(@CurrentTenant() t: Tenant, @CustomerId() customerId: string, @Body(new ZodPipe(quoteBody)) body: z.infer<typeof quoteBody>) {
-    return this.bookings.quote(t, customerId, body.holdId, body.tickets);
+    return this.bookings.quote(t, customerId, body.holdId, body.tickets, body);
   }
 
   @Post('checkout')
@@ -118,6 +130,12 @@ export class BookingController {
     return this.bookings.get(t.id, customerId, id);
   }
 
+  @Post('bookings/:id/cancel')
+  @HttpCode(200)
+  cancel(@CurrentTenant() t: Tenant, @CustomerId() customerId: string, @Param('id') id: string) {
+    return this.bookings.cancel(t, customerId, id);
+  }
+
   @Post('bookings/:id/wallet-pass')
   @HttpCode(200)
   wallet(@CurrentTenant() t: Tenant, @CustomerId() customerId: string, @Param('id') id: string) {
@@ -132,6 +150,7 @@ export class BookingController {
     HoldsService,
     PricingService,
     BookingsService,
+    CommerceService,
     AvailabilityEvents,
     { provide: PAYMENT_PROVIDER, useClass: SimulatedPaymentProvider },
     { provide: WALLET_ISSUER, useClass: DemoWalletPassIssuer },

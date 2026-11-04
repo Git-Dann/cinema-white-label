@@ -1,10 +1,11 @@
 import { Film, MediaAsset, Trailer } from '@prisma/client';
+import { publicMediaUrl } from '../media/storage';
 
 export const RENDITION_WIDTHS = [160, 342, 500, 780, 1280, 1600] as const;
 
 export interface ImageRef {
   id: string;
-  /** Relative URL; append ?w=<rendition> to request a sized rendition. */
+  /** Relative (or CDN-absolute) URL; append &w=<rendition> for a sized rendition. */
   url: string;
   width: number;
   height: number;
@@ -19,7 +20,7 @@ export function imageRef(a: MediaAsset | undefined | null): ImageRef | null {
   if (!a) return null;
   return {
     id: a.id,
-    url: `/v1/media/${a.id}?v=${a.updatedAt.getTime()}`,
+    url: publicMediaUrl(a.id, a.updatedAt.getTime()),
     width: a.width,
     height: a.height,
     aspectRatio: Math.round((a.width / a.height) * 1000) / 1000,

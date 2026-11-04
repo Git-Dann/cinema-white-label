@@ -32,6 +32,12 @@ public final class SeatSelectionModel {
         public let seatIds: [String]
     }
 
+    /// Operator seat categories keyed by price category id.
+    public let categories: [String: SeatCategory]
+    public let rulesEngine: SeatRulesEngine
+    /// Tap interpretation state (double-tap detection) for the map.
+    public var tapInterpreter = SeatTapInterpreter()
+
     private let seatsById: [String: Seat]
     private let rowLabels: [String: String]
     private let groups: [String: [String]]
@@ -39,7 +45,10 @@ public final class SeatSelectionModel {
     public init(screening: ScreeningDetail, availability: AvailabilitySnapshot, maxTickets: Int) {
         self.screening = screening
         self.geometry = SeatMapGeometry(layout: screening.layout)
-        self.maxTickets = maxTickets
+        let rules = screening.seatRules ?? SeatRules(maxTickets: maxTickets)
+        self.maxTickets = min(maxTickets, rules.maxTickets)
+        self.rulesEngine = SeatRulesEngine(layout: screening.layout, rules: SeatRules(maxTickets: min(maxTickets, rules.maxTickets), orphanSeatPolicy: rules.orphanSeatPolicy, companionPolicy: rules.companionPolicy))
+        self.categories = Dictionary((screening.seatCategories ?? []).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         self.availability = availability.seats
         self.availabilityVersion = availability.version
         self.camera = SeatMapGeometry(layout: screening.layout).fitCamera
@@ -65,7 +74,7 @@ public final class SeatSelectionModel {
         let sel = selectedSeatIds.contains(seat.id)
         // A seat in our own selection that shows as held is our hold, not a conflict.
         let avail = sel && availability[seat.id] == .held ? .available : availability[seat.id]
-        return SeatPresentation(seat: seat, availability: avail, isSelected: sel, isConflict: conflicts.contains(seat.id))
+        return SeatPresentation(seat: seat, availability: avail, isSelected: sel, isConflict: conflicts.contains(seat.id), seatCategory: category(for: seat))
     }
 
     /// Price in minor units for the default ticket type, used for estimates and labels.
@@ -81,7 +90,32 @@ public final class SeatSelectionModel {
         selectedSeats.compactMap { estimatedPrice(for: $0) }.reduce(0, +) + screening.pricing.bookingFeePerTicketMinor * selectedSeatIds.count
     }
 
-    public var canContinue: Bool { !selectedSeatIds.isEmpty && conflicts.isEmpty }
+    public func category(for seat: Seat) -> SeatCategory { categories[seat.priceCategory] ?? .fallback(for: seat.priceCategory, kind: seat.type) }
+
+    /// Categories present in this auditorium, in operator order (for the legend).
+    public var categoriesInLayout: [SeatCategory] {
+        var seen = Set<String>()
+        return layout.seats.compactMap { s in seen.insert(s.priceCategory).inserted ? category(for: s) : nil }.sorted { $0.sortOrder < $1.sortOrder }
+    }
+
+    /// Seats this customer cannot take right now.
+    public var unavailableSeatIds: Set<String> {
+        Set(availability.compactMap { id, state in state == .available || selectedSeatIds.contains(id) ? nil : id })
+    }
+
+    /// Live rule evaluation of the current selection (instant feedback; server re-checks).
+    public var validation: SeatRulesEngine.Result {
+        rulesEngine.evaluate(selected: selectedSeatIds, unavailable: unavailableSeatIds)
+    }
+
+    /// Why Continue is disabled, if it is.
+    public var blockingReason: String? {
+        if selectedSeatIds.isEmpty { return nil }
+        if !conflicts.isEmpty { return message?.text ?? "Some seats are no longer available." }
+        return validation.errors.first?.message
+    }
+
+    public var canContinue: Bool { !selectedSeatIds.isEmpty && conflicts.isEmpty && validation.isValid }
 
     /// "F8, F9"
     public var selectionSummary: String {
@@ -109,7 +143,7 @@ public final class SeatSelectionModel {
             selectedSeatIds.removeAll { members.contains($0) }
             conflicts.subtract(members)
             lastToggled = (seatId, now)
-            message = members.count > 1 ? Message(kind: .info, text: "Sofa removed from your selection.", seatIds: members) : nil
+            message = members.count > 1 ? Message(kind: .info, text: "Both places removed from your selection.", seatIds: members) : nil
             return .deselected(members)
         }
 
@@ -121,7 +155,7 @@ public final class SeatSelectionModel {
         }
         let unavailableMember = members.first { $0 != seatId && presentation(for: seatsById[$0]!).state != .available }
         if let other = unavailableMember, let s = seatsById[other] {
-            let text = "This sofa can't be booked because \(rowLabel(for: s))\(s.label) is already taken."
+            let text = "These seats are sold together and \(rowLabel(for: s))\(s.label) is already taken."
             message = Message(kind: .error, text: text, seatIds: members)
             return .rejected(text)
         }
@@ -134,10 +168,13 @@ public final class SeatSelectionModel {
         selectedSeatIds.append(contentsOf: members.filter { !selectedSeatIds.contains($0) })
         lastToggled = (seatId, now)
         if members.count > 1 {
-            message = Message(kind: .info, text: "Sofa seats are sold in pairs, so both seats are selected.", seatIds: members)
+            let what = seat.type == .vipBed ? "VIP beds are" : "Sofa seats are"
+            message = Message(kind: .info, text: "\(what) sold in pairs, so both places are selected.", seatIds: members)
         } else if seat.type == .wheelchair {
             message = Message(kind: .info, text: "This is a wheelchair space with no fixed seat.", seatIds: members)
-        } else if seat.type == .companion {
+        } else if seat.type == .companion, rulesEngine.rules.companionPolicy == .requireWheelchair {
+            message = Message(kind: .warning, text: "Companion seats are booked together with the wheelchair space next to them.", seatIds: members)
+        } else if seat.type == .companion, rulesEngine.rules.companionPolicy == .warn {
             message = Message(kind: .info, text: "Companion seat next to a wheelchair space.", seatIds: members)
         } else if let r = seat.restrictedView {
             message = Message(kind: .warning, text: "\(r).", seatIds: members)
@@ -201,6 +238,18 @@ public final class SeatSelectionModel {
     }
 
     // MARK: Accessible structure
+
+    /// Handles a tap on the map; returns the camera the view should animate to, if any.
+    public func handleTap(at point: Vec2, size: Vec2, now: Date = Date()) -> (toggle: ToggleResult?, camera: SeatMapCamera?) {
+        let cam = geometry.clamp(camera, size: size)
+        switch tapInterpreter.interpret(point: point, at: now, geometry: geometry, camera: cam, size: size) {
+        case .toggle(let id): return (toggle(id, now: now), nil)
+        case .zoomIn(let anchor): return (nil, geometry.zoom(cam, by: 2, anchor: anchor, size: size))
+        case .focusArea(let anchor): return (nil, geometry.zoom(cam, by: 2.4, anchor: anchor, size: size))
+        case .resetZoom: return (nil, geometry.fitCamera)
+        case .none: return (nil, nil)
+        }
+    }
 
     public struct RowGroup: Sendable, Identifiable {
         public let id: String

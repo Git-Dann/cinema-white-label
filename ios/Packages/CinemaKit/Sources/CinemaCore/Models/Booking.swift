@@ -42,6 +42,24 @@ public struct Quote: Codable, Sendable, Hashable {
     public var discountMinor: Int
     public var totalMinor: Int
     public var feeLabel: String?
+    public var concessions: [ConcessionLine]? = nil
+    public var concessionsMinor: Int? = nil
+    public var voucher: AppliedVoucher? = nil
+    public var fulfilment: Fulfilment? = nil
+
+    public struct AppliedVoucher: Codable, Sendable, Hashable { public var code: String; public var description: String; public var discountMinor: Int }
+}
+
+public enum Fulfilment: String, Codable, Sendable, Hashable { case collect, seatDelivery }
+
+public struct ConcessionLine: Codable, Sendable, Hashable {
+    public struct Modifier: Codable, Sendable, Hashable { public var groupId: String; public var optionIds: [String]; public var label: String; public var priceMinor: Int }
+    public var productId: String
+    public var name: String
+    public var quantity: Int
+    public var unitPriceMinor: Int
+    public var modifiers: [Modifier]
+    public var lineTotalMinor: Int
 }
 
 public struct Booking: Codable, Sendable, Hashable, Identifiable {
@@ -51,7 +69,12 @@ public struct Booking: Codable, Sendable, Hashable, Identifiable {
     public struct VenueInfo: Codable, Sendable, Hashable { public var id: String; public var name: String; public var timeZone: String; public var address: Venue.Address; public var coordinate: Venue.Coordinate }
     public struct AuditoriumInfo: Codable, Sendable, Hashable { public var id: String; public var name: String; public var screenNumber: Int }
     public struct SeatInfo: Codable, Sendable, Hashable { public var seatId: String; public var rowLabel: String; public var seatLabel: String; public var ticketTypeId: String; public var priceMinor: Int }
-    public struct Totals: Codable, Sendable, Hashable { public var currency: String; public var subtotalMinor: Int; public var feesMinor: Int; public var discountMinor: Int; public var totalMinor: Int }
+    public struct Totals: Codable, Sendable, Hashable {
+        public var currency: String; public var subtotalMinor: Int; public var feesMinor: Int; public var discountMinor: Int; public var totalMinor: Int
+        public var concessionsMinor: Int?; public var voucherCode: String?
+    }
+    public struct FoodItem: Codable, Sendable, Hashable { public var name: String; public var quantity: Int; public var modifiers: [String]; public var lineTotalMinor: Int }
+    public struct Cancellation: Codable, Sendable, Hashable { public var cancelledAt: Date?; public var cancellableUntil: Date; public var canCancel: Bool; public var refundedMinor: Int }
     public struct PaymentInfo: Codable, Sendable, Hashable { public var provider: String; public var status: String; public var isSimulated: Bool }
     public struct Admission: Codable, Sendable, Hashable { public var barcode: String; public var format: String }
     public struct WalletInfo: Codable, Sendable, Hashable { public var available: Bool; public var status: String? }
@@ -70,6 +93,9 @@ public struct Booking: Codable, Sendable, Hashable, Identifiable {
     public var payment: PaymentInfo?
     public var admission: Admission?
     public var wallet: WalletInfo
+    public var concessions: [FoodItem]?
+    public var fulfilment: Fulfilment?
+    public var cancellation: Cancellation?
 
     public var seatSummary: String { seats.map { "\($0.rowLabel)\($0.seatLabel)" }.joined(separator: ", ") }
     public func isUpcoming(now: Date) -> Bool { status == .CONFIRMED && screening.endsAt > now }

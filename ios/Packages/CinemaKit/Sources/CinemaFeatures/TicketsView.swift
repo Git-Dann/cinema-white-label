@@ -64,6 +64,10 @@ struct TicketDetailView: View {
     @Environment(\.palette) private var palette
     @State private var wallet: WalletState = .idle
     @State private var showingCalendar = false
+    @State private var confirmingCancel = false
+    @State private var cancelError: String?
+    @State private var current: Booking?
+    private var shown: Booking { current ?? booking }
 
     enum WalletState: Equatable { case idle, requesting, demo(String), ready(Data), failed(String) }
 
@@ -81,9 +85,11 @@ struct TicketDetailView: View {
                         .accessibilityLabel("Booking reference \(booking.reference.map(String.init).joined(separator: " "))")
                 }
                 details
+                if let food = booking.concessions, !food.isEmpty { foodSection(food) }
                 walletSection
                 Button { showingCalendar = true } label: { Label("Add to Calendar", systemImage: "calendar.badge.plus") }
                     .buttonStyle(.cinemaGlass)
+                cancelSection
                 if booking.payment?.isSimulated == true {
                     InfoBanner(.info, "Development booking: paid with a simulated payment. No money was taken.")
                 }
@@ -95,6 +101,56 @@ struct TicketDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingCalendar) {
             CalendarEventSheet(booking: booking, formatters: app.formatters).ignoresSafeArea()
+        }
+    }
+
+    private func foodSection(_ food: [Booking.FoodItem]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(booking.fulfilment == .seatDelivery ? "Food delivered to your seat" : "Collect food at the counter", systemImage: "takeoutbag.and.cup.and.straw.fill")
+                .font(.headline).foregroundStyle(palette.textPrimary)
+            ForEach(food, id: \.self) { f in
+                HStack {
+                    Text("\(f.quantity) × \(f.name)" + (f.modifiers.isEmpty ? "" : " (\(f.modifiers.joined(separator: ", ")))")).foregroundStyle(palette.textSecondary)
+                    Spacer()
+                    Text(app.formatters.money(f.lineTotalMinor)).monospacedDigit().foregroundStyle(palette.textPrimary)
+                }
+                .accessibilityElement(children: .combine)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(palette.surface, in: RoundedRectangle(cornerRadius: palette.cornerRadius.medium, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var cancelSection: some View {
+        if let c = shown.cancellation {
+            if shown.status == .REFUNDED {
+                InfoBanner(.success, "Cancelled. \(app.formatters.money(c.refundedMinor)) refunded to your original payment method.")
+            } else if c.canCancel {
+                Button(role: .destructive) { confirmingCancel = true } label: { Label("Cancel booking", systemImage: "xmark.circle") }
+                    .buttonStyle(.cinemaGlass)
+                    .confirmationDialog("Cancel this booking?", isPresented: $confirmingCancel, titleVisibility: .visible) {
+                        Button("Cancel booking and refund \(app.formatters.money(shown.totals.totalMinor))", role: .destructive) { Task { await cancel() } }
+                        Button("Keep booking", role: .cancel) {}
+                    } message: {
+                        Text("Your seats will be released and the full amount refunded.")
+                    }
+                Text("You can cancel until \(app.formatters.time(c.cancellableUntil, timeZone: booking.venue.timeZone)) on \(app.formatters.shortDate(c.cancellableUntil, timeZone: booking.venue.timeZone)).")
+                    .font(.footnote).foregroundStyle(palette.textMuted)
+            }
+            if let cancelError { InfoBanner(.error, cancelError) }
+        }
+    }
+
+    private func cancel() async {
+        do {
+            try await app.tickets.cancel(booking, using: app.service)
+            current = app.tickets.bookings.first { $0.id == booking.id }
+            await app.analytics.record(.bookingCancelled, ["bookingId": booking.id])
+            AccessibilityNotification.Announcement("Booking cancelled and refunded").post()
+        } catch {
+            cancelError = (error as? APIError)?.message ?? "Couldn't cancel this booking."
         }
     }
 

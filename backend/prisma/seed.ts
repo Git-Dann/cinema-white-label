@@ -18,7 +18,9 @@ import { hashPassword } from '../src/common/tokens';
 import { MEDIA_ROOTS } from '../src/media/media.module';
 import { ConfigService, TenantDraft } from '../src/tenants/config.service';
 import { FILMS } from '../src/fixtures/films';
-import { curvedLayout, luxeLayout, standardLayout } from '../src/fixtures/layouts';
+import { curvedLayout, luxeLayout, premiereLayout, standardLayout } from '../src/fixtures/layouts';
+import { CONCESSIONS, VOUCHERS } from '../src/fixtures/commerce';
+import { DEFAULT_SEAT_CATEGORIES } from '@cinema/contracts';
 import { TENANTS } from '../src/fixtures/tenants';
 
 process.loadEnvFile?.(join(__dirname, '../.env'));
@@ -39,7 +41,7 @@ async function dominantColour(file: string): Promise<string> {
   return `#${[d.r, d.g, d.b].map((x) => x.toString(16).padStart(2, '0')).join('')}`.toUpperCase();
 }
 
-const LAYOUT_BUILDERS = { standard: standardLayout, curved: curvedLayout, luxe: luxeLayout };
+const LAYOUT_BUILDERS = { standard: standardLayout, curved: curvedLayout, luxe: luxeLayout, premiere: premiereLayout };
 
 async function main() {
   const now = new Date();
@@ -60,7 +62,7 @@ async function main() {
   for (const t of TENANTS) {
     console.log(`Seeding ${t.name}…`);
     const tenant = await prisma.tenant.create({
-      data: { slug: t.slug, name: t.name, bookingFeeMinor: t.bookingFeeMinor, maxTicketsPerBooking: 10, holdDurationSeconds: 480, orphanSeatPolicy: 'warn' },
+      data: { slug: t.slug, name: t.name, bookingFeeMinor: t.bookingFeeMinor, maxTicketsPerBooking: 10, holdDurationSeconds: 480, orphanSeatPolicy: 'warn', companionPolicy: t.companionPolicy, cancellationCutoffMinutes: 60 },
     });
     const palette = await prisma.brandPalette.create({
       data: { tenantId: tenant.id, name: t.palette.name, accentLight: t.palette.accent.light, accentDark: t.palette.accent.dark, secondaryLight: t.palette.secondary.light, secondaryDark: t.palette.secondary.dark, approved: true },
@@ -89,7 +91,9 @@ async function main() {
       logoLightAssetId: logoLight.id,
       logoDarkAssetId: logoDark.id,
       markAssetId: null,
-      features: { memberships: false, concessions: false, wallet: true, applePay: false, liveActivities: false, guestCheckout: true },
+      splashAssetId: null,
+      typography: t.slug === 'kestrel' ? { design: 'serif', headingWeight: 'bold' } : { design: 'default', headingWeight: 'heavy' },
+      features: { memberships: false, concessions: true, wallet: true, applePay: false, liveActivities: false, guestCheckout: true },
       home: [
         { id: 'featured', kind: 'featured', title: 'Featured', subtitle: 'Big screen picks this week' },
         { id: 'upcoming', kind: 'upcomingBookings', title: 'Your Tickets' },
@@ -107,6 +111,26 @@ async function main() {
     await prisma.adminUser.create({
       data: { email: `editor@${t.slug}.example`, name: `${t.name} Editor`, role: 'CONTENT_EDITOR', tenantId: tenant.id, passwordHash: hashPassword('editor-dev-password') },
     });
+
+    // Seat categories (Kestrel uses its own premium colours to show operator theming).
+    for (const c of DEFAULT_SEAT_CATEGORIES) {
+      const colours = t.slug === 'kestrel' && c.id === 'premium'
+        ? { light: { fill: '#F6EBD9', accent: '#8A6A12' }, dark: { fill: '#2A2116', accent: '#D4AF37' } }
+        : c.colours;
+      await prisma.seatCategory.create({
+        data: { tenantId: tenant.id, code: c.id, label: c.label, description: c.description, shape: c.shape, icon: c.icon, colours: colours ?? Prisma.JsonNull, sortOrder: c.sortOrder },
+      });
+    }
+    for (const [i, c] of CONCESSIONS.entries()) {
+      await prisma.concessionProduct.create({
+        data: {
+          tenantId: tenant.id, sku: c.sku, name: c.name, category: c.category, priceMinor: c.priceMinor, allergens: c.allergens, dietary: c.dietary,
+          calories: c.calories, stockStatus: (c as { stockStatus?: string }).stockStatus ?? 'inStock', modifierGroups: c.modifierGroups as Prisma.InputJsonValue,
+          bundleItems: (c as { bundleItems?: string[] }).bundleItems ?? [], sortOrder: i,
+        },
+      });
+    }
+    for (const v of VOUCHERS) await prisma.voucher.create({ data: { tenantId: tenant.id, ...v } });
 
     // Pricing
     const ticketMeta: Record<string, { name: string; description: string; requiresProof: boolean; sortOrder: number }> = {
@@ -157,11 +181,11 @@ async function main() {
     let screeningCount = 0;
     for (const [vi, v] of t.venues.entries()) {
       const venue = await prisma.venue.create({
-        data: { tenantId: tenant.id, slug: v.slug, name: v.name, addressLine1: v.addressLine1, city: v.city, postcode: v.postcode, latitude: v.latitude, longitude: v.longitude, facilities: v.facilities, phone: null },
+        data: { tenantId: tenant.id, slug: v.slug, name: v.name, addressLine1: v.addressLine1, city: v.city, postcode: v.postcode, latitude: v.latitude, longitude: v.longitude, facilities: v.facilities, phone: null, features: v.features ?? {} },
       });
       for (const [ai, kind] of v.layouts.entries()) {
         const layout: AuditoriumLayout = LAYOUT_BUILDERS[kind](`${v.slug}-screen-${ai + 1}`);
-        layout.name = kind === 'luxe' ? `Screen ${ai + 1} · Luxe` : `Screen ${ai + 1}`;
+        layout.name = kind === 'luxe' ? `Screen ${ai + 1} · Luxe` : kind === 'premiere' ? `Screen ${ai + 1} · Premiere` : `Screen ${ai + 1}`;
         const issues = validateLayout(layout);
         if (issues.length) throw new Error(`Invalid layout ${layout.id}: ${issues[0].message}`);
         const aud = await prisma.auditorium.create({ data: { tenantId: tenant.id, venueId: venue.id, name: layout.name, screenNumber: ai + 1 } });
@@ -178,7 +202,7 @@ async function main() {
             const fx = FILMS.find((x) => x.slug === film.slug)!;
             const isBigScreen = kind === 'curved';
             let formats = film.formats.find((f) => (isBigScreen ? f.includes('IMAX') || f.includes('Dolby Atmos') : f.length === 1 && f[0] === '2D')) ?? ['2D'];
-            if (kind === 'luxe') formats = ['2D'];
+            if (kind === 'luxe' || kind === 'premiere') formats = ['2D'];
             const attributes = formats.filter((f) => ['Audio Described', 'Subtitled', 'Relaxed'].includes(f));
             formats = formats.filter((f) => !attributes.includes(f));
             const screening = await prisma.screening.create({
@@ -208,7 +232,9 @@ async function main() {
     const snapshot = await config.current(tenant.id);
     const dir = join(__dirname, '../../shared/fixtures/tenant-config');
     mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, `${t.slug}.json`), JSON.stringify({ ...snapshot, publishedAt: '2026-01-01T00:00:00.000Z' }, null, 2) + '\n');
+    const json = JSON.stringify({ ...snapshot, publishedAt: '2026-01-01T00:00:00.000Z' }, null, 2) + '\n';
+    writeFileSync(join(dir, `${t.slug}.json`), json);
+    writeFileSync(join(__dirname, `../../ios/Packages/CinemaKit/Sources/CinemaCore/PreviewData/tenant-config-${t.slug}.json`), json);
     console.log(`  Published config v${release.version}`);
   }
 

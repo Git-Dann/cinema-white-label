@@ -92,11 +92,15 @@ export class ScreeningsService {
     if (!s) throw Errors.notFound('Screening');
     const counts = await this.availableCounts([s.id]);
     const layout = s.layoutVersion.geometry as unknown as AuditoriumLayout;
+    const used = new Set(layout.seats.map((x) => x.priceCategory));
+    const categories = await this.prisma.seatCategory.findMany({ where: { tenantId: tenant.id, code: { in: [...used] } }, orderBy: { sortOrder: 'asc' } });
     return {
       ...this.summary(s as unknown as ScreeningRow, counts.get(s.id) ?? 0),
       layoutVersion: { id: s.layoutVersion.id, version: s.layoutVersion.version },
       layout,
       pricing: await this.pricing.ticketTypesFor(tenant, s, layout),
+      seatCategories: categories.map((c) => ({ id: c.code, label: c.label, description: c.description, shape: c.shape, icon: c.icon, colours: c.colours ?? null, sortOrder: c.sortOrder })),
+      seatRules: { maxTickets: tenant.maxTicketsPerBooking, orphanSeatPolicy: tenant.orphanSeatPolicy, companionPolicy: tenant.companionPolicy },
     };
   }
 

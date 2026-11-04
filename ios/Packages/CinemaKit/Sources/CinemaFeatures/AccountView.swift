@@ -37,6 +37,14 @@ struct AccountView: View {
                 if app.favouriteVenues.isEmpty { Text("Tap the star next to a cinema to add it here.").foregroundStyle(palette.textMuted) }
                 ForEach(app.favouriteVenues) { Text($0.name) }
             }
+            Section {
+                Toggle("Share anonymous usage data", isOn: Binding(
+                    get: { UserDefaults.standard.object(forKey: "analyticsEnabled") as? Bool ?? true },
+                    set: { v in UserDefaults.standard.set(v, forKey: "analyticsEnabled"); Task { await app.analytics.setEnabled(v) } }
+                ))
+            } header: { Text("Privacy") } footer: {
+                Text("Helps \(app.config.tenant.name) improve the app. No names, contact details or precise location are collected.")
+            }
             Section("Help") {
                 Link(destination: URL(string: "mailto:\(app.config.support.email)")!) { Label(app.config.support.email, systemImage: "envelope") }
                 if let phone = app.config.support.phone, let url = URL(string: "tel:\(phone.replacingOccurrences(of: " ", with: ""))") {

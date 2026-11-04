@@ -39,7 +39,14 @@ struct FilmDetailView: View {
                     .accessibilityLabel("Share film")
             }
         }
-        .task { await app.analytics.record(.filmViewed, ["filmId": film.id]) }
+        .task {
+            await app.analytics.record(.filmViewed, ["filmId": film.id])
+        }
+        .onAppear {
+            // Warm the hero, poster and trailer stills before they scroll into view.
+            let urls = [film.backdrop?.url(forPixelWidth: 1280, base: app.mediaBaseURL), film.poster?.url(forPixelWidth: 780, base: app.mediaBaseURL)].compactMap { $0 }
+            Task { await ImagePipeline.shared.prefetch(urls) }
+        }
         .fullScreenCover(item: $playing) { t in
             // Playback starts only when the customer asks; never autoplay on entry.
             VideoPlayer(player: AVPlayer(url: t.url)).ignoresSafeArea()

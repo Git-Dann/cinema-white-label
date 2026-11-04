@@ -12,7 +12,11 @@ import { z } from 'zod';
  * concern (see availability endpoints) and never stored in a layout.
  */
 
-export const SEAT_TYPES = ['standard', 'premium', 'recliner', 'sofa', 'wheelchair', 'companion'] as const;
+/**
+ * Structural seat kinds (how a seat is built and used). Commercial categories
+ * (label, price, colours, icon) are configured separately per operator; see seating.ts.
+ */
+export const SEAT_TYPES = ['standard', 'premium', 'recliner', 'sofa', 'luxePod', 'vipBed', 'wheelchair', 'companion'] as const;
 export const ACCESS_FEATURES = ['wheelchair', 'easyAccess', 'transfer', 'hearingLoop'] as const;
 export const FEATURE_KINDS = ['aisle', 'walkway', 'entrance', 'exit', 'stairs', 'accessibleSpace', 'boundary', 'label'] as const;
 

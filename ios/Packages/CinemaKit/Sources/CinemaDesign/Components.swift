@@ -9,6 +9,7 @@ public struct SectionHeader<Destination: View>: View {
     let subtitle: String?
     let destination: Destination?
     @Environment(\.palette) private var palette
+    @Environment(\.headingWeight) private var headingWeight
 
     public init(_ title: String, subtitle: String? = nil, @ViewBuilder destination: () -> Destination) {
         self.title = title; self.subtitle = subtitle; self.destination = destination()
@@ -35,7 +36,7 @@ public struct SectionHeader<Destination: View>: View {
 
     private func titleRow(chevron: Bool) -> some View {
         HStack(spacing: 6) {
-            Text(title).font(.title2.weight(.bold)).foregroundStyle(palette.textPrimary)
+            Text(title).font(.title2.weight(headingWeight)).foregroundStyle(palette.textPrimary)
             if chevron { Image(systemName: "chevron.right").font(.title3.weight(.semibold)).foregroundStyle(palette.textMuted) }
         }
     }
@@ -64,7 +65,7 @@ public struct PosterCard: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ArtworkImage(film.poster)
+            ArtworkImage(film.poster, fallbackTitle: film.title)
                 .aspectRatio(2 / 3, contentMode: .fit)
                 .frame(width: size.width)
                 .clipShape(RoundedRectangle(cornerRadius: palette.cornerRadius.medium, style: .continuous))
@@ -91,7 +92,7 @@ public struct FeaturedFilmCard: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            ArtworkImage(film.poster)
+            ArtworkImage(film.poster, fallbackTitle: film.title)
                 .aspectRatio(2 / 3, contentMode: .fit)
                 .frame(width: width)
                 .clipShape(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous))

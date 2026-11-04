@@ -12,6 +12,7 @@ import { PAYMENT_PROVIDER, PaymentProvider } from '../payments/payment.provider'
 import { PricingService, TicketSelection } from '../pricing/pricing.service';
 import { AvailabilityEvents } from '../screenings/availability.events';
 import { WALLET_ISSUER, WalletPassIssuer } from '../wallet/wallet.issuer';
+import { CommerceService, ConcessionLine, ConcessionSelection, venueFeatures } from '../commerce/commerce.service';
 
 const REF_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function bookingReference(): string {
@@ -19,7 +20,13 @@ function bookingReference(): string {
   return Array.from(b.subarray(0, 7), (x) => REF_ALPHABET[x % REF_ALPHABET.length]).join('');
 }
 
-export interface CheckoutInput {
+export interface BasketExtras {
+  concessions?: ConcessionSelection[];
+  voucherCode?: string;
+  fulfilment?: 'collect' | 'seatDelivery';
+}
+
+export interface CheckoutInput extends BasketExtras {
   holdId: string;
   tickets: TicketSelection[];
   payment: { type: 'simulated'; outcome?: 'approve' | 'decline' };
@@ -30,6 +37,9 @@ const bookingInclude = {
   tickets: true,
   payments: true,
   walletPass: true,
+  concessions: true,
+  refunds: true,
+  tenant: { select: { cancellationCutoffMinutes: true } },
   screening: { include: { film: { include: { assets: true } }, venue: true, auditorium: true } },
 } satisfies Prisma.BookingInclude;
 type BookingWithAll = Prisma.BookingGetPayload<{ include: typeof bookingInclude }>;
@@ -52,21 +62,51 @@ export class BookingsService {
     private readonly events: AvailabilityEvents,
     @Inject(PAYMENT_PROVIDER) private readonly payments: PaymentProvider,
     @Inject(WALLET_ISSUER) private readonly wallet: WalletPassIssuer,
+    private readonly commerce: CommerceService,
   ) {}
 
   private async loadHoldContext(tenant: Tenant, customerId: string, holdId: string) {
     const hold = await this.prisma.seatHold.findFirst({
       where: { id: holdId, tenantId: tenant.id, customerId },
-      include: { screening: { include: { film: true, layoutVersion: true } }, booking: true },
+      include: { screening: { include: { film: true, layoutVersion: true, venue: true } }, booking: true },
     });
     if (!hold) throw Errors.notFound('Reservation');
     return { hold, layout: hold.screening.layoutVersion.geometry as unknown as AuditoriumLayout };
   }
 
-  async quote(tenant: Tenant, customerId: string, holdId: string, tickets: TicketSelection[]) {
+  async quote(tenant: Tenant, customerId: string, holdId: string, tickets: TicketSelection[], extras: BasketExtras = {}) {
     const { hold, layout } = await this.loadHoldContext(tenant, customerId, holdId);
     this.assertTicketsMatchHold(hold.seatIds, tickets);
-    return this.pricing.quote(tenant, hold.screening, layout, tickets);
+    return this.fullQuote(tenant, hold.screening, layout, tickets, extras);
+  }
+
+  /** Tickets + food and drink + voucher + fees, all priced on the server. */
+  private async fullQuote(
+    tenant: Tenant,
+    screening: Parameters<PricingService['quote']>[1] & { venue: import('@prisma/client').Venue },
+    layout: AuditoriumLayout,
+    tickets: TicketSelection[],
+    extras: BasketExtras,
+  ) {
+    const base = await this.pricing.quote(tenant, screening, layout, tickets);
+    const concessions: ConcessionLine[] = await this.commerce.priceConcessions(tenant.id, screening.venue, extras.concessions ?? []);
+    const concessionsMinor = concessions.reduce((a, l) => a + l.lineTotalMinor, 0);
+    const fulfilment = extras.fulfilment ?? 'collect';
+    if (fulfilment === 'seatDelivery' && (!venueFeatures(screening.venue).seatDelivery || concessions.length === 0)) {
+      throw Errors.validation('Seat delivery is not available for this order');
+    }
+    const voucher = extras.voucherCode ? await this.commerce.voucherDiscount(tenant, extras.voucherCode, base.subtotalMinor, concessionsMinor) : null;
+    const discountMinor = voucher?.discountMinor ?? 0;
+    return {
+      ...base,
+      concessions,
+      concessionsMinor,
+      fulfilment,
+      voucher: voucher ? { code: voucher.code, description: voucher.description, discountMinor } : null,
+      discountMinor,
+      totalMinor: base.subtotalMinor + concessionsMinor + base.feesMinor - discountMinor,
+      voucherId: voucher?.id ?? null,
+    };
   }
 
   private assertTicketsMatchHold(held: string[], tickets: TicketSelection[]) {
@@ -85,7 +125,7 @@ export class BookingsService {
       throw Errors.validation('Simulated payments are disabled in production');
     }
 
-    const quote = await this.pricing.quote(tenant, hold.screening, layout, input.tickets);
+    const quote = await this.fullQuote(tenant, hold.screening, layout, input.tickets, input);
 
     // 1. Pending booking (reused on retry after a decline).
     const booking =
@@ -93,11 +133,18 @@ export class BookingsService {
       (await this.prisma.booking.create({
         data: {
           tenantId: tenant.id, reference: bookingReference(), customerId, screeningId: hold.screeningId, holdId: hold.id, status: 'PENDING_PAYMENT',
-          subtotalMinor: quote.subtotalMinor, feesMinor: quote.feesMinor, discountMinor: quote.discountMinor, totalMinor: quote.totalMinor, currency: quote.currency,
+          subtotalMinor: quote.subtotalMinor, concessionsMinor: quote.concessionsMinor, feesMinor: quote.feesMinor, discountMinor: quote.discountMinor, totalMinor: quote.totalMinor, currency: quote.currency,
+          voucherCode: quote.voucher?.code ?? null, fulfilment: quote.fulfilment,
         },
       }));
     if (booking.status === 'CONFIRMED') return this.get(tenant.id, customerId, booking.id);
-    await this.prisma.booking.update({ where: { id: booking.id }, data: { subtotalMinor: quote.subtotalMinor, feesMinor: quote.feesMinor, totalMinor: quote.totalMinor } });
+    await this.prisma.booking.update({
+      where: { id: booking.id },
+      data: {
+        subtotalMinor: quote.subtotalMinor, concessionsMinor: quote.concessionsMinor, feesMinor: quote.feesMinor, discountMinor: quote.discountMinor,
+        totalMinor: quote.totalMinor, voucherCode: quote.voucher?.code ?? null, fulfilment: quote.fulfilment,
+      },
+    });
 
     // 2. Payment, idempotent per booking + amount.
     const attempt = await this.prisma.payment.count({ where: { bookingId: booking.id } });
@@ -131,6 +178,16 @@ export class BookingsService {
         await tx.bookingSeat.createMany({
           data: quote.lines.map((l) => ({ bookingId: booking.id, screeningId: hold.screeningId, seatId: l.seatId, rowLabel: l.rowLabel, seatLabel: l.seatLabel, ticketTypeId: l.ticketTypeId, priceMinor: l.priceMinor })),
         });
+        if (quote.concessions.length) {
+          await tx.bookingConcession.createMany({
+            data: quote.concessions.map((c) => ({ bookingId: booking.id, productId: c.productId, name: c.name, quantity: c.quantity, unitPriceMinor: c.unitPriceMinor, modifiers: c.modifiers, lineTotalMinor: c.lineTotalMinor })),
+          });
+        }
+        if (quote.voucherId) {
+          // Atomic redemption: fails if the last use was taken concurrently.
+          const n = await tx.$executeRaw`UPDATE "Voucher" SET "redemptions" = "redemptions" + 1 WHERE "id" = ${quote.voucherId} AND ("maxRedemptions" IS NULL OR "redemptions" < "maxRedemptions")`;
+          if (n !== 1) throw Errors.voucherInvalid('This code has already been fully used');
+        }
         await tx.seatHold.update({ where: { id: hold.id }, data: { status: 'CONVERTED' } });
         await tx.booking.update({ where: { id: booking.id }, data: { status: 'CONFIRMED', confirmedAt: this.clock.now() } });
         await tx.admissionTicket.create({ data: { bookingId: booking.id, barcode: signAdmission(`CIN1.${booking.reference}.${booking.id}`) } });
@@ -180,11 +237,51 @@ export class BookingsService {
       venue: { id: s.venue.id, name: s.venue.name, timeZone: s.venue.timeZone, address: { line1: s.venue.addressLine1, city: s.venue.city, postcode: s.venue.postcode }, coordinate: { latitude: s.venue.latitude, longitude: s.venue.longitude } },
       auditorium: { id: s.auditorium.id, name: s.auditorium.name, screenNumber: s.auditorium.screenNumber },
       seats: b.seats.map((x) => ({ seatId: x.seatId, rowLabel: x.rowLabel, seatLabel: x.seatLabel, ticketTypeId: x.ticketTypeId, priceMinor: x.priceMinor })),
-      totals: { currency: b.currency, subtotalMinor: b.subtotalMinor, feesMinor: b.feesMinor, discountMinor: b.discountMinor, totalMinor: b.totalMinor },
+      totals: { currency: b.currency, subtotalMinor: b.subtotalMinor, concessionsMinor: b.concessionsMinor, feesMinor: b.feesMinor, discountMinor: b.discountMinor, totalMinor: b.totalMinor, voucherCode: b.voucherCode },
+      concessions: b.concessions.map((c) => ({ name: c.name, quantity: c.quantity, modifiers: (c.modifiers as { label: string }[]).map((m) => m.label), lineTotalMinor: c.lineTotalMinor })),
+      fulfilment: b.fulfilment,
+      cancellation: {
+        cancelledAt: b.cancelledAt?.toISOString() ?? null,
+        cancellableUntil: new Date(s.startsAt.getTime() - b.tenant.cancellationCutoffMinutes * 60000).toISOString(),
+        canCancel: b.status === 'CONFIRMED' && now.getTime() < s.startsAt.getTime() - b.tenant.cancellationCutoffMinutes * 60000,
+        refundedMinor: b.refunds.reduce((a, r) => a + r.amountMinor, 0),
+      },
       payment: payment ? { provider: payment.provider, status: payment.status, isSimulated: payment.provider === 'simulated' } : null,
       admission: b.tickets[0] ? { barcode: b.tickets[0].barcode, format: 'qr' as const } : null,
       wallet: { available: this.wallet.signing, status: b.walletPass?.status ?? null },
     };
+  }
+
+  /**
+   * Customer cancellation within the operator's cutoff. Refunds the captured
+   * payment first; only then are seats released and the booking marked refunded.
+   */
+  async cancel(tenant: Tenant, customerId: string, bookingId: string) {
+    const b = await this.prisma.booking.findFirst({ where: { id: bookingId, tenantId: tenant.id, customerId }, include: { payments: true, screening: true } });
+    if (!b) throw Errors.notFound('Booking');
+    if (b.status === 'REFUNDED' || b.status === 'CANCELLED') return this.get(tenant.id, customerId, b.id);
+    if (b.status !== 'CONFIRMED') throw Errors.cancellationNotAllowed('This booking cannot be cancelled');
+    const cutoff = b.screening.startsAt.getTime() - tenant.cancellationCutoffMinutes * 60000;
+    if (this.clock.now().getTime() >= cutoff) {
+      throw Errors.cancellationNotAllowed(`Bookings can be cancelled up to ${tenant.cancellationCutoffMinutes} minutes before the film starts`);
+    }
+    const captured = b.payments.find((p) => p.status === 'CAPTURED');
+    if (captured) await this.payments.voidOrRefund(captured.providerRef, b.totalMinor);
+    const seatIds = await this.prisma.$transaction(async (tx) => {
+      const seats = await tx.bookingSeat.findMany({ where: { bookingId: b.id, active: true } });
+      await tx.bookingSeat.updateMany({ where: { bookingId: b.id }, data: { active: false } });
+      await tx.screeningSeat.updateMany({ where: { screeningId: b.screeningId, bookingId: b.id, state: 'SOLD' }, data: { state: 'AVAILABLE', bookingId: null, holdId: null, version: { increment: 1 } } });
+      await tx.booking.update({ where: { id: b.id }, data: { status: 'REFUNDED', cancelledAt: this.clock.now() } });
+      await tx.admissionTicket.updateMany({ where: { bookingId: b.id }, data: { status: 'VOID' } });
+      await tx.walletPass.updateMany({ where: { bookingId: b.id }, data: { status: 'VOIDED' } });
+      if (captured) {
+        await tx.payment.update({ where: { id: captured.id }, data: { status: 'REFUNDED' } });
+        await tx.refund.create({ data: { bookingId: b.id, paymentRef: captured.providerRef, amountMinor: b.totalMinor, reason: 'customer_cancellation' } });
+      }
+      return seats.map((x) => x.seatId);
+    });
+    this.events.publish({ screeningId: b.screeningId, changes: seatIds.map((seatId) => ({ seatId, state: 'available' as const })) });
+    return this.get(tenant.id, customerId, b.id);
   }
 
   async requestWalletPass(tenant: Tenant, customerId: string, bookingId: string) {

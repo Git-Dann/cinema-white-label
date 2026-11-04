@@ -9,6 +9,7 @@ import { Clock } from '../common/clock';
 import { Errors } from '../common/errors';
 import { PrismaService } from '../common/prisma.service';
 import { RENDITION_WIDTHS } from '../catalogue/film-dto';
+import { LocalMediaStorage, MediaStorage } from './storage';
 
 /** Where fixture artwork and uploads live. In production this is object storage + CDN. */
 export const MEDIA_ROOTS = {
@@ -17,13 +18,7 @@ export const MEDIA_ROOTS = {
   cache: resolve(__dirname, '../../.media-cache'),
 };
 
-export function mediaPath(storageKey: string): string {
-  const [root, ...rest] = storageKey.split('/');
-  const base = root === 'fixture' ? MEDIA_ROOTS.fixture : MEDIA_ROOTS.upload;
-  const p = resolve(base, rest.join('/'));
-  if (!p.startsWith(base)) throw Errors.forbidden();
-  return p;
-}
+export const mediaStorage: MediaStorage = new LocalMediaStorage({ fixture: MEDIA_ROOTS.fixture, upload: MEDIA_ROOTS.upload });
 
 /**
  * Image delivery: serves sized renditions (never upscaled, never stretched),
@@ -52,7 +47,7 @@ export class MediaController {
     if (existsSync(cacheFile)) {
       body = await readFile(cacheFile);
     } else {
-      const src = await readFile(mediaPath(asset.storageKey));
+      const src = await mediaStorage.read(asset.storageKey);
       const pipeline = sharp(src).resize({ width, withoutEnlargement: true });
       body = isPng ? await pipeline.png().toBuffer() : await pipeline.jpeg({ quality: 82, progressive: true, mozjpeg: true }).toBuffer();
       await writeFile(cacheFile, body);

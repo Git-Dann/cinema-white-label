@@ -2,6 +2,7 @@ import { Controller, Delete, Get, HttpCode, Module, Param, Put, Query, UseGuards
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Tenant, Venue } from '@prisma/client';
 import { Errors } from '../common/errors';
+import { venueFeatures } from '../commerce/commerce.service';
 import { PrismaService } from '../common/prisma.service';
 import { CurrentTenant, CustomerGuard, CustomerId, OptionalCustomerGuard, TenantGuard } from '../common/tenant-context';
 
@@ -23,6 +24,7 @@ export function venueDto(v: Venue & { auditoriums?: { id: string }[] }, extra: {
     timeZone: v.timeZone,
     phone: v.phone,
     facilities: v.facilities,
+    features: venueFeatures(v),
     screenCount: v.auditoriums?.length ?? null,
     isFavourite: extra.isFavourite ?? false,
     distanceKm: extra.distanceKm ?? null,

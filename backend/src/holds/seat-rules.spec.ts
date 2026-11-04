@@ -53,3 +53,16 @@ describe('seat rules', () => {
     expect(r.warnings.find((w) => w.code === 'orphan_seat')).toBeUndefined();
   });
 });
+
+describe('companion policy', () => {
+  const standard = standardLayout('s');
+  it('can require the paired wheelchair space', () => {
+    const p = { maxTickets: 10, orphanSeatPolicy: 'allow' as const, companionPolicy: 'requireWheelchair' as const };
+    expect(evaluateSeatRules(standard, ['A-1'], new Set(), p).errors[0].code).toBe('companion_requires_wheelchair');
+    expect(evaluateSeatRules(standard, ['A-W1', 'A-1'], new Set(), p).errors).toEqual([]);
+  });
+  it('stays silent when policy is none', () => {
+    const r = evaluateSeatRules(standard, ['A-1'], new Set(), { maxTickets: 10, orphanSeatPolicy: 'allow', companionPolicy: 'none' });
+    expect(r.warnings.find((w) => w.code === 'companion_seat')).toBeUndefined();
+  });
+});

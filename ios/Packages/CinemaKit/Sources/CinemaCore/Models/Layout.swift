@@ -57,8 +57,13 @@ public struct AuditoriumLayout: Codable, Sendable, Hashable {
 }
 
 public struct Seat: Codable, Sendable, Hashable, Identifiable {
+    /// Structural kind. Commercial presentation (label, icon, colours, price) comes from `SeatCategory`.
     public enum Kind: String, Codable, Sendable, CaseIterable {
-        case standard, premium, recliner, sofa, wheelchair, companion
+        case standard, premium, recliner, sofa, luxePod, vipBed, wheelchair, companion
+        /// Unknown kinds from a newer backend render as standard seats rather than failing.
+        public init(from decoder: any Decoder) throws {
+            self = Kind(rawValue: try decoder.singleValueContainer().decode(String.self)) ?? .standard
+        }
     }
     public enum AccessFeature: String, Codable, Sendable { case wheelchair, easyAccess, transfer, hearingLoop, unknown
         public init(from decoder: any Decoder) throws { self = AccessFeature(rawValue: try decoder.singleValueContainer().decode(String.self)) ?? .unknown }

@@ -14,11 +14,24 @@ public protocol CinemaService: Sendable {
     func availability(screeningId: String) async throws -> AvailabilitySnapshot
     func createHold(screeningId: String, seatIds: [String], idempotencyKey: String) async throws -> SeatHold
     func releaseHold(id: String) async throws
-    func quote(holdId: String, tickets: [TicketSelection]) async throws -> Quote
-    func checkout(holdId: String, tickets: [TicketSelection], simulateDecline: Bool, idempotencyKey: String) async throws -> Booking
+    func concessions(venueId: String) async throws -> ConcessionMenu
+    func quote(holdId: String, tickets: [TicketSelection], extras: BasketExtras) async throws -> Quote
+    func checkout(holdId: String, tickets: [TicketSelection], extras: BasketExtras, simulateDecline: Bool, idempotencyKey: String) async throws -> Booking
     func bookings() async throws -> [Booking]
+    func cancelBooking(id: String) async throws -> Booking
     func requestWalletPass(bookingId: String) async throws -> WalletPassResponse
     func track(_ events: [AnalyticsEvent]) async throws
+}
+
+/// Food, voucher and fulfilment choices sent with quotes and checkout.
+public struct BasketExtras: Codable, Sendable, Hashable {
+    public var concessions: [BasketItem]
+    public var voucherCode: String?
+    public var fulfilment: Fulfilment
+    public init(concessions: [BasketItem] = [], voucherCode: String? = nil, fulfilment: Fulfilment = .collect) {
+        self.concessions = concessions; self.voucherCode = voucherCode; self.fulfilment = fulfilment
+    }
+    public static let none = BasketExtras()
 }
 
 public struct LiveCinemaService: CinemaService {
@@ -74,19 +87,26 @@ public struct LiveCinemaService: CinemaService {
         _ = try await client.send("DELETE", "/holds/\(id)", authenticated: true, as: EmptyResponse.self)
     }
 
-    public func quote(holdId: String, tickets: [TicketSelection]) async throws -> Quote {
-        struct Body: Encodable, Sendable { var holdId: String; var tickets: [TicketSelection] }
-        return try await client.send("POST", "/quotes", body: Body(holdId: holdId, tickets: tickets), authenticated: true, as: Quote.self).value!
+    public func concessions(venueId: String) async throws -> ConcessionMenu { try await client.get("/venues/\(venueId)/concessions") }
+
+    public func quote(holdId: String, tickets: [TicketSelection], extras: BasketExtras) async throws -> Quote {
+        struct Body: Encodable, Sendable { var holdId: String; var tickets: [TicketSelection]; var concessions: [BasketItem]; var voucherCode: String?; var fulfilment: Fulfilment }
+        let body = Body(holdId: holdId, tickets: tickets, concessions: extras.concessions, voucherCode: extras.voucherCode, fulfilment: extras.fulfilment)
+        return try await client.send("POST", "/quotes", body: body, authenticated: true, as: Quote.self).value!
     }
 
-    public func checkout(holdId: String, tickets: [TicketSelection], simulateDecline: Bool, idempotencyKey: String) async throws -> Booking {
+    public func checkout(holdId: String, tickets: [TicketSelection], extras: BasketExtras, simulateDecline: Bool, idempotencyKey: String) async throws -> Booking {
         struct Payment: Encodable, Sendable { var type = "simulated"; var outcome: String }
-        struct Body: Encodable, Sendable { var holdId: String; var tickets: [TicketSelection]; var payment: Payment }
-        let body = Body(holdId: holdId, tickets: tickets, payment: Payment(outcome: simulateDecline ? "decline" : "approve"))
+        struct Body: Encodable, Sendable { var holdId: String; var tickets: [TicketSelection]; var concessions: [BasketItem]; var voucherCode: String?; var fulfilment: Fulfilment; var payment: Payment }
+        let body = Body(holdId: holdId, tickets: tickets, concessions: extras.concessions, voucherCode: extras.voucherCode, fulfilment: extras.fulfilment, payment: Payment(outcome: simulateDecline ? "decline" : "approve"))
         return try await client.send("POST", "/checkout", body: body, authenticated: true, idempotencyKey: idempotencyKey, as: Booking.self).value!
     }
 
     public func bookings() async throws -> [Booking] { try await client.get("/me/bookings", authenticated: true) }
+
+    public func cancelBooking(id: String) async throws -> Booking {
+        try await client.send("POST", "/bookings/\(id)/cancel", body: EmptyResponse(), authenticated: true, as: Booking.self).value!
+    }
 
     public func requestWalletPass(bookingId: String) async throws -> WalletPassResponse {
         try await client.send("POST", "/bookings/\(bookingId)/wallet-pass", body: EmptyResponse(), authenticated: true, as: WalletPassResponse.self).value!

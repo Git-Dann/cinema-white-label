@@ -30,6 +30,10 @@ model Tenant {
   holdDurationSeconds  Int    @default(480)
   /// "allow" | "warn" | "block" — single empty seats left between selections.
   orphanSeatPolicy     String @default("warn")
+  /// "none" | "warn" | "requireWheelchair"
+  companionPolicy      String @default("warn")
+  /// Customers may cancel up to this many minutes before the screening.
+  cancellationCutoffMinutes Int @default(60)
 
   settings        TenantSettings?
   palettes        BrandPalette[]
@@ -47,6 +51,26 @@ model Tenant {
   mediaAssets     MediaAsset[]
   membershipPlans MembershipPlan[]
   concessionProducts ConcessionProduct[]
+  seatCategories  SeatCategory[]
+  vouchers        Voucher[]
+}
+
+/// Operator-configurable seat category: label, shape, icon and colours.
+/// `code` matches Seat.priceCategory in layouts and PriceRule.priceCategory.
+model SeatCategory {
+  id          String  @id @default(cuid())
+  tenantId    String
+  tenant      Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  code        String
+  label       String
+  description String?
+  shape       String
+  icon        String?
+  /// { light: { fill, accent }, dark: { fill, accent } } or null for theme tokens.
+  colours     Json?
+  sortOrder   Int     @default(0)
+
+  @@unique([tenantId, code])
 }
 
 /// Editable draft configuration. Publishing snapshots it into a ConfigRelease.
@@ -150,6 +174,8 @@ model Venue {
   timeZone     String   @default("Europe/London")
   phone        String?
   facilities   String[]
+  /// Location-level overrides of tenant feature flags, e.g. { "concessions": true, "seatDelivery": false }.
+  features     Json     @default("{}")
   createdAt    DateTime @default(now())
 
   auditoriums Auditorium[]
@@ -476,8 +502,14 @@ model Booking {
   hold          SeatHold      @relation(fields: [holdId], references: [id])
   status        BookingStatus
   subtotalMinor Int
+  /// Food and drink subtotal (included in totalMinor).
+  concessionsMinor Int        @default(0)
   feesMinor     Int
   discountMinor Int           @default(0)
+  voucherCode   String?
+  /// "collect" | "seatDelivery"
+  fulfilment    String        @default("collect")
+  cancelledAt   DateTime?
   totalMinor    Int
   currency      String
   createdAt     DateTime      @default(now())
@@ -487,6 +519,53 @@ model Booking {
   payments   Payment[]
   tickets    AdmissionTicket[]
   walletPass WalletPass?
+  concessions BookingConcession[]
+  refunds    Refund[]
+}
+
+model BookingConcession {
+  id             String  @id @default(cuid())
+  bookingId      String
+  booking        Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  productId      String
+  name           String
+  quantity       Int
+  unitPriceMinor Int
+  /// [{ groupId, optionIds, label, priceMinor }]
+  modifiers      Json    @default("[]")
+  lineTotalMinor Int
+}
+
+model Refund {
+  id          String   @id @default(cuid())
+  bookingId   String
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  paymentRef  String
+  amountMinor Int
+  reason      String
+  createdAt   DateTime @default(now())
+}
+
+/// Discount codes. Redemptions are counted inside the booking transaction.
+model Voucher {
+  id             String    @id @default(cuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  code           String
+  description    String
+  /// "percentOff" | "amountOff"
+  kind           String
+  value          Int
+  /// "tickets" | "concessions" | "all"
+  appliesTo      String    @default("all")
+  minSpendMinor  Int       @default(0)
+  validFrom      DateTime?
+  validTo        DateTime?
+  maxRedemptions Int?
+  redemptions    Int       @default(0)
+  active         Boolean   @default(true)
+
+  @@unique([tenantId, code])
 }
 
 /// Sold seat. A partial unique index (see migration) guarantees a seat can only
@@ -595,15 +674,61 @@ model MembershipPlan {
 }
 
 model ConcessionProduct {
-  id          String  @id @default(cuid())
-  tenantId    String
-  tenant      Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  venueId     String?
-  name        String
-  category    String
-  priceMinor  Int
-  allergens   String[]
-  available   Boolean @default(true)
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  /// Null = available at every venue.
+  venueId       String?
+  sku           String
+  name          String
+  description   String?
+  category      String
+  priceMinor    Int
+  allergens     String[]
+  dietary       String[]
+  calories      Int?
+  /// "inStock" | "low" | "out"
+  stockStatus   String   @default("inStock")
+  available     Boolean  @default(true)
+  /// [{ id, name, min, max, options: [{ id, name, priceMinor }] }]
+  modifierGroups Json    @default("[]")
+  /// Bundle components shown to the customer, e.g. ["Large popcorn", "2 × regular drink"].
+  bundleItems   String[]
+  imageAssetId  String?
+  sortOrder     Int      @default(0)
+
+  @@unique([tenantId, sku])
+}
+
+/// Phase 3: loyalty points ledger (internal; no external scheme integrated).
+model LoyaltyAccount {
+  id         String   @id @default(cuid())
+  tenantId   String
+  customerId String   @unique
+  points     Int      @default(0)
+  tier       String   @default("standard")
+  updatedAt  DateTime @updatedAt
+}
+
+model LoyaltyLedgerEntry {
+  id         String   @id @default(cuid())
+  accountId  String
+  points     Int
+  reason     String
+  bookingId  String?
+  createdAt  DateTime @default(now())
+}
+
+/// Phase 3: stored-value gift cards. Modelled only; issuing stored value has
+/// regulatory and accounting implications that need operator sign-off.
+model GiftCard {
+  id           String    @id @default(cuid())
+  tenantId     String
+  codeHash     String    @unique
+  balanceMinor Int
+  currency     String
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
 }
 
 model NotificationRegistration {

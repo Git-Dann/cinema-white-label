@@ -322,6 +322,29 @@
         ]
       }
     },
+    "/v1/t/{tenant}/venues/{venueId}/concessions": {
+      "get": {
+        "operationId": "ScreeningsController_concessions",
+        "parameters": [
+          {
+            "name": "venueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Screenings"
+        ]
+      }
+    },
     "/v1/t/{tenant}/screenings/{id}": {
       "get": {
         "operationId": "ScreeningsController_detail",
@@ -558,6 +581,34 @@
     "/v1/t/{tenant}/bookings/{id}": {
       "get": {
         "operationId": "BookingController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Booking"
+        ]
+      }
+    },
+    "/v1/t/{tenant}/bookings/{id}/cancel": {
+      "post": {
+        "operationId": "BookingController_cancel",
         "parameters": [
           {
             "name": "id",

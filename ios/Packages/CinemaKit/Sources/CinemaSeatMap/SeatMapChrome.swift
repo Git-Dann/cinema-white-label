@@ -8,16 +8,17 @@ public struct SeatMapContainer: View {
     @Bindable var model: SeatSelectionModel
     let formatters: Formatters
     let onToggle: (Seat, SeatSelectionModel.ToggleResult) -> Void
+    var onZoom: (String) -> Void = { _ in }
     @Environment(\.palette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var size: CGSize = .zero
 
-    public init(model: SeatSelectionModel, formatters: Formatters, onToggle: @escaping (Seat, SeatSelectionModel.ToggleResult) -> Void = { _, _ in }) {
-        self.model = model; self.formatters = formatters; self.onToggle = onToggle
+    public init(model: SeatSelectionModel, formatters: Formatters, onToggle: @escaping (Seat, SeatSelectionModel.ToggleResult) -> Void = { _, _ in }, onZoom: @escaping (String) -> Void = { _ in }) {
+        self.model = model; self.formatters = formatters; self.onToggle = onToggle; self.onZoom = onZoom
     }
 
     public var body: some View {
-        SeatMapView(model: model, formatters: formatters, onToggle: onToggle)
+        SeatMapView(model: model, formatters: formatters, onToggle: onToggle, onZoom: onZoom)
             .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
             .overlay(alignment: .topLeading) {
                 if !model.geometry.isOverview(model.camera) {
@@ -98,22 +99,27 @@ struct MiniMap: View {
     }
 }
 
-/// Seat key. Uses the same presentation rules as the map.
+/// Seat key built from the operator's categories plus seat states, using the
+/// same presentation rules as the map so they never disagree.
 public struct SeatLegend: View {
-    let layout: AuditoriumLayout
+    let model: SeatSelectionModel
+    let formatters: Formatters
     @Environment(\.palette) private var palette
+    @Environment(\.colorScheme) private var colorScheme
 
-    public init(layout: AuditoriumLayout) { self.layout = layout }
+    public init(model: SeatSelectionModel, formatters: Formatters) { self.model = model; self.formatters = formatters }
 
     public var body: some View {
-        let kinds = Set(layout.seats.map(\.type))
+        let kinds = Set(model.layout.seats.map(\.type))
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 16) {
-                item(fill: palette.seatAvailable, stroke: palette.seatAvailableBorder, symbol: nil, "Available")
                 item(fill: palette.seatSelected, stroke: nil, symbol: "checkmark", ink: palette.seatSelectedText, "Selected")
                 item(fill: palette.seatSold, stroke: nil, symbol: "xmark", ink: palette.textMuted, "Taken")
-                if kinds.contains(.premium) || kinds.contains(.recliner) || kinds.contains(.sofa) {
-                    item(fill: palette.seatAvailable, stroke: palette.seatPremium, symbol: nil, kinds.contains(.recliner) ? "Recliner" : "Premium")
+                ForEach(model.categoriesInLayout) { c in
+                    let colours = c.colours.map { colorScheme == .dark ? $0.dark : $0.light }
+                    item(fill: colours.map { Color(hex: $0.fill) } ?? palette.seatAvailable,
+                         stroke: colours.map { Color(hex: $0.accent) } ?? (c.id == "standard" ? palette.seatAvailableBorder : palette.seatPremium),
+                         symbol: c.safeIcon, ink: palette.textSecondary, label(for: c))
                 }
                 if kinds.contains(.wheelchair) {
                     item(fill: palette.seatAccessible.opacity(0.22), stroke: palette.seatAccessible, symbol: "figure.roll", ink: palette.seatAccessible, "Wheelchair space")
@@ -121,7 +127,7 @@ public struct SeatLegend: View {
                 if kinds.contains(.companion) {
                     item(fill: palette.seatCompanion.opacity(0.22), stroke: palette.seatCompanion, symbol: "person.2.fill", ink: palette.seatCompanion, "Companion")
                 }
-                if layout.seats.contains(where: { $0.restrictedView != nil }) {
+                if model.layout.seats.contains(where: { $0.restrictedView != nil }) {
                     item(fill: palette.seatAvailable, stroke: palette.seatRestricted, symbol: "eye.trianglebadge.exclamationmark", ink: palette.seatRestricted, "Restricted view")
                 }
             }
@@ -129,6 +135,12 @@ public struct SeatLegend: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Seat key")
+    }
+
+    /// "Luxe Pod · £24.95" using the default ticket type.
+    private func label(for c: SeatCategory) -> String {
+        guard let t = model.screening.pricing.defaultTicketType, let p = model.screening.pricing.price(for: t, category: c.id) else { return c.label }
+        return "\(c.label) · \(formatters.money(p))"
     }
 
     private func item(fill: Color, stroke: Color?, symbol: String?, ink: Color = .clear, _ label: String) -> some View {
@@ -199,7 +211,7 @@ public struct SeatListView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(seat.type == .wheelchair ? "Wheelchair space" : "Seat \(seat.label)").foregroundStyle(palette.textPrimary)
-                    Text([SeatAccessibility.categoryName(p.category).capitalized, seat.restrictedView].compactMap { $0 }.joined(separator: " · "))
+                    Text([p.seatCategory.label, seat.restrictedView].compactMap { $0 }.joined(separator: " · "))
                         .font(.footnote).foregroundStyle(palette.textMuted)
                 }
                 Spacer()

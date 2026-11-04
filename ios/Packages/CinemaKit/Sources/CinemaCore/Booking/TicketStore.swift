@@ -40,6 +40,12 @@ public final class TicketStore {
         }
     }
 
+    /// Cancels within the operator's cutoff; the server refunds and frees the seats.
+    public func cancel(_ booking: Booking, using service: any CinemaService) async throws {
+        let updated = try await service.cancelBooking(id: booking.id)
+        insert(updated)
+    }
+
     /// Inserts a just-confirmed booking immediately, before the next refresh.
     public func insert(_ booking: Booking) {
         bookings.removeAll { $0.id == booking.id }

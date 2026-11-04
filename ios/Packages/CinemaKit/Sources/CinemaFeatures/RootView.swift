@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreSpotlight
 import CinemaCore
 import CinemaDesign
 
@@ -48,14 +49,23 @@ public struct RootView: View {
             }
             .environment(app)
             .environment(\.mediaBaseURL, app.mediaBaseURL)
-            .cinemaTheme(app.configStore.activeTheme(increasedContrast: contrast == .increased))
+            .cinemaTheme(app.configStore.activeTheme(increasedContrast: contrast == .increased), typography: app.config.typography)
         }
-        .cinemaTheme(app.configStore.activeTheme(increasedContrast: contrast == .increased))
+        .cinemaTheme(app.configStore.activeTheme(increasedContrast: contrast == .increased), typography: app.config.typography)
         .task { await app.start() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await app.refreshConfig() } }
         }
         .onOpenURL { url in handleDeepLink(url) }
+        .onContinueUserActivity(CSSearchableItemActionType) { SpotlightIndexer.handle($0) }
+        .onChange(of: AppNavigator.shared.requested) { _, destination in
+            guard let destination else { return }
+            tab = switch destination { case .home: .home; case .films: .films; case .cinemas: .cinemas; case .tickets: .tickets; case .account: .account }
+            AppNavigator.shared.requested = nil
+        }
+        .onChange(of: app.tickets.bookings) { _, _ in
+            SpotlightIndexer.index(upcoming: app.tickets.upcoming(), favourites: app.favouriteVenues, formatters: app.formatters)
+        }
     }
 
     /// cinema://tickets, cinema://film/<id>

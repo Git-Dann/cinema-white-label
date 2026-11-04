@@ -90,3 +90,18 @@ describe('layout validation', () => {
     expect(seats[0].rotation).toBeCloseTo(-seats[2].rotation, 4);
   });
 });
+
+import { DEFAULT_SEAT_CATEGORIES, validateSeatCategories, seatCategorySchema } from './seating';
+describe('seat categories', () => {
+  const theme = resolveTheme('midnight', { id: 'p', name: 'p', accent: { light: '#0F766E', dark: '#2DD4BF' }, secondary: { light: '#9A6700', dark: '#F5C451' } });
+  it('defaults are valid', () => {
+    for (const c of DEFAULT_SEAT_CATEGORIES) expect(seatCategorySchema.parse(c)).toBeTruthy();
+    expect(validateSeatCategories(DEFAULT_SEAT_CATEGORIES, theme)).toEqual([]);
+  });
+  it('rejects low-contrast accents and duplicates', () => {
+    const bad = [{ ...DEFAULT_SEAT_CATEGORIES[1], colours: { light: { fill: '#FFFFFF', accent: '#EEEEEE' }, dark: { fill: '#000000', accent: '#111111' } } }, DEFAULT_SEAT_CATEGORIES[1]];
+    const issues = validateSeatCategories(bad, theme);
+    expect(issues.some((i) => i.message.includes('needs 3:1'))).toBe(true);
+    expect(issues.some((i) => i.message.includes('Duplicate'))).toBe(true);
+  });
+});

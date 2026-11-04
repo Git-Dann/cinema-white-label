@@ -7,6 +7,7 @@ import PackageDescription
 var targets: [Target] = [
     .target(
         name: "CinemaCore",
+        resources: [.copy("PreviewData")],
         swiftSettings: [.enableUpcomingFeature("ExistentialAny")]
     ),
     .testTarget(

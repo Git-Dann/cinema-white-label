@@ -18,6 +18,13 @@ public actor ImagePipeline {
         cache.totalCostLimit = 96 << 20
     }
 
+    /// Warms the cache ahead of a transition (film detail, booking confirmation).
+    public func prefetch(_ urls: [URL]) {
+        for url in urls where cache.object(forKey: url as NSURL) == nil && inFlight[url] == nil {
+            Task { _ = await image(for: url) }
+        }
+    }
+
     public func image(for url: URL) async -> UIImage? {
         if let hit = cache.object(forKey: url as NSURL) { return hit }
         if let task = inFlight[url] { return await task.value }
@@ -45,10 +52,13 @@ public struct ArtworkImage: View {
     @Environment(\.displayScale) private var displayScale
     @Environment(\.palette) private var palette
     @State private var image: UIImage?
+    @State private var failed = false
+    let fallbackTitle: String?
 
-    public init(_ ref: ImageRef?, accessibilityLabel: String? = nil) {
+    public init(_ ref: ImageRef?, accessibilityLabel: String? = nil, fallbackTitle: String? = nil) {
         self.ref = ref
         self.accessibilityLabel = accessibilityLabel
+        self.fallbackTitle = fallbackTitle
     }
 
     public var body: some View {
@@ -67,7 +77,7 @@ public struct ArtworkImage: View {
             .task(id: ref?.url) {
                 guard let ref, let url = ref.url(forPixelWidth: geo.size.width * displayScale, base: base) else { return }
                 let loaded = await ImagePipeline.shared.image(for: url)
-                withAnimation(.easeOut(duration: 0.2)) { image = loaded }
+                withAnimation(.easeOut(duration: 0.2)) { image = loaded; failed = loaded == nil }
             }
         }
         .accessibilityElement()
@@ -75,8 +85,20 @@ public struct ArtworkImage: View {
         .accessibilityHidden(accessibilityLabel == nil)
     }
 
+    /// Dominant-colour placeholder while loading; a local typographic fallback when
+    /// artwork is missing, expired or failed (never a broken image).
     private var placeholder: some View {
-        Rectangle().fill(ref?.dominantColor.map { Color(hex: $0) } ?? palette.surfaceElevated)
+        ZStack {
+            Rectangle().fill(LinearGradient(colors: [ref?.dominantColor.map { Color(hex: $0) } ?? palette.surfaceElevated, palette.surface], startPoint: .top, endPoint: .bottom))
+            if (ref == nil || failed), let fallbackTitle {
+                VStack(spacing: 6) {
+                    Image(systemName: "film").font(.title2)
+                    Text(fallbackTitle).font(.footnote.weight(.semibold)).multilineTextAlignment(.center).lineLimit(3)
+                }
+                .foregroundStyle(palette.textMuted)
+                .padding(8)
+            }
+        }
     }
 
     /// Converts a focal point into a frame alignment so aspect-fill crops around it.
