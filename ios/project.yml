@@ -1,0 +1,68 @@
+# Generate the Xcode project with: brew install xcodegen && xcodegen generate
+name: Cinema
+options:
+  deploymentTarget:
+    iOS: "27.0"
+  createIntermediateGroups: true
+packages:
+  CinemaKit:
+    path: Packages/CinemaKit
+configs:
+  Northlight Debug: debug
+  Northlight Release: release
+  Kestrel Debug: debug
+  Kestrel Release: release
+configFiles:
+  Northlight Debug: Config/Northlight.xcconfig
+  Northlight Release: Config/Northlight.xcconfig
+  Kestrel Debug: Config/Kestrel.xcconfig
+  Kestrel Release: Config/Kestrel.xcconfig
+targets:
+  CinemaApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+      - path: Resources
+      - path: ../shared/fixtures/tenant-config/northlight.json
+        buildPhase: resources
+        name: tenant-config-northlight.json
+      - path: ../shared/fixtures/tenant-config/kestrel.json
+        buildPhase: resources
+        name: tenant-config-kestrel.json
+    info:
+      path: App/Info.plist
+    dependencies:
+      - package: CinemaKit
+        product: CinemaFeatures
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: NO
+        ENABLE_PREVIEWS: YES
+  CinemaAppUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: CinemaApp
+schemes:
+  Northlight:
+    build:
+      targets:
+        CinemaApp: all
+    run:
+      config: Northlight Debug
+    test:
+      config: Northlight Debug
+      targets: [CinemaAppUITests]
+      gatherCoverageData: true
+    archive:
+      config: Northlight Release
+  Kestrel:
+    build:
+      targets:
+        CinemaApp: all
+    run:
+      config: Kestrel Debug
+    archive:
+      config: Kestrel Release

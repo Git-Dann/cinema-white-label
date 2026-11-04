@@ -1,0 +1,617 @@
+// Cinema platform domain model.
+// Money is always stored in minor units (pence). Timestamps are UTC; customer
+// facing times are rendered in the venue's time zone.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Tenancy, branding and configuration
+// ---------------------------------------------------------------------------
+
+model Tenant {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  locale    String   @default("en-GB")
+  currency  String   @default("GBP")
+  timeZone  String   @default("Europe/London")
+  createdAt DateTime @default(now())
+
+  // Commercial rules (backend-evaluated, not part of the published theme config).
+  bookingFeeMinor      Int    @default(0)
+  maxTicketsPerBooking Int    @default(10)
+  holdDurationSeconds  Int    @default(480)
+  /// "allow" | "warn" | "block" — single empty seats left between selections.
+  orphanSeatPolicy     String @default("warn")
+
+  settings        TenantSettings?
+  palettes        BrandPalette[]
+  releases        ConfigRelease[]
+  venues          Venue[]
+  films           Film[]
+  screenings      Screening[]
+  ticketTypes     TicketType[]
+  priceRules      PriceRule[]
+  formatSupplements FormatSupplement[]
+  customers       Customer[]
+  bookings        Booking[]
+  holds           SeatHold[]
+  adminUsers      AdminUser[]
+  mediaAssets     MediaAsset[]
+  membershipPlans MembershipPlan[]
+  concessionProducts ConcessionProduct[]
+}
+
+/// Editable draft configuration. Publishing snapshots it into a ConfigRelease.
+model TenantSettings {
+  tenantId String @id
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  /// Draft config: theme, palette, features, home sections, support, legal, booking.
+  draft     Json
+  updatedAt DateTime @updatedAt
+}
+
+/// An approved brand palette. Only approved palettes can be published.
+model BrandPalette {
+  id             String   @id @default(cuid())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name           String
+  accentLight    String
+  accentDark     String
+  secondaryLight String
+  secondaryDark  String
+  approved       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+enum ReleaseStatus {
+  SCHEDULED
+  PUBLISHED
+  SUPERSEDED
+  CANCELLED
+}
+
+/// Immutable, validated tenant configuration snapshot served to apps.
+model ConfigRelease {
+  id           String        @id @default(cuid())
+  tenantId     String
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  version      Int
+  status       ReleaseStatus
+  snapshot     Json
+  note         String?
+  scheduledFor DateTime?
+  publishedAt  DateTime?
+  createdById  String?
+  createdAt    DateTime      @default(now())
+
+  @@unique([tenantId, version])
+  @@index([tenantId, status])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  tenantId   String?
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  data       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+}
+
+enum AdminRole {
+  PLATFORM_ADMIN
+  OPERATOR_ADMIN
+  VENUE_MANAGER
+  CONTENT_EDITOR
+  REPORTING
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         AdminRole
+  /// Null only for platform administrators.
+  tenantId     String?
+  tenant       Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Venues and auditoriums
+// ---------------------------------------------------------------------------
+
+model Venue {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  slug         String
+  name         String
+  addressLine1 String
+  city         String
+  postcode     String
+  latitude     Float
+  longitude    Float
+  timeZone     String   @default("Europe/London")
+  phone        String?
+  facilities   String[]
+  createdAt    DateTime @default(now())
+
+  auditoriums Auditorium[]
+  screenings  Screening[]
+  favourites  FavouriteVenue[]
+
+  @@unique([tenantId, slug])
+}
+
+model Auditorium {
+  id           String   @id @default(cuid())
+  tenantId     String
+  venueId      String
+  venue        Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  name         String
+  screenNumber Int
+
+  layouts    AuditoriumLayoutVersion[]
+  screenings Screening[]
+
+  @@unique([venueId, screenNumber])
+}
+
+enum LayoutStatus {
+  DRAFT
+  PUBLISHED
+  RETIRED
+}
+
+/// Versioned physical seat geometry. Published versions are immutable.
+model AuditoriumLayoutVersion {
+  id           String       @id @default(cuid())
+  auditoriumId String
+  auditorium   Auditorium   @relation(fields: [auditoriumId], references: [id], onDelete: Cascade)
+  version      Int
+  status       LayoutStatus
+  geometry     Json
+  seatCount    Int
+  publishedAt  DateTime?
+  createdAt    DateTime     @default(now())
+
+  screenings Screening[]
+
+  @@unique([auditoriumId, version])
+}
+
+// ---------------------------------------------------------------------------
+// Films and media
+// ---------------------------------------------------------------------------
+
+model Film {
+  id             String    @id @default(cuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  slug           String
+  title          String
+  tagline        String?
+  synopsis       String
+  releaseDate    DateTime  @db.Date
+  runtimeMinutes Int
+  certificate    String
+  genres         String[]
+  director       String?
+  cast           String[]
+  originalLanguage String  @default("en")
+  /// Field-level provenance: { fieldName: providerId }.
+  provenance     Json      @default("{}")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  externalIds FilmExternalId[]
+  assets      MediaAsset[]
+  trailers    Trailer[]
+  screenings  Screening[]
+
+  @@unique([tenantId, slug])
+}
+
+model FilmExternalId {
+  id         String @id @default(cuid())
+  tenantId   String
+  filmId     String
+  film       Film   @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  provider   String
+  externalId String
+
+  @@unique([tenantId, provider, externalId])
+}
+
+enum AssetKind {
+  POSTER
+  BACKDROP
+  HERO
+  THUMBNAIL
+  BANNER
+  TRAILER_THUMBNAIL
+  LOGO
+}
+
+model MediaAsset {
+  id                String    @id @default(cuid())
+  tenantId          String
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  filmId            String?
+  film              Film?     @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  kind              AssetKind
+  provider          String
+  sourceRef         String
+  licenceRef        String?
+  attribution       String?
+  usageRestrictions String?
+  expiresAt         DateTime?
+  language          String?
+  territory         String?
+  width             Int
+  height            Int
+  mimeType          String
+  /// Path relative to the media root, or object storage key in production.
+  storageKey        String
+  /// Focal point (0-1) used for responsive cropping.
+  focalX            Float     @default(0.5)
+  focalY            Float     @default(0.5)
+  dominantColor     String?
+  approvedContexts  String[]
+  isPreferred       Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([filmId, kind])
+}
+
+model Trailer {
+  id              String  @id @default(cuid())
+  filmId          String
+  film            Film    @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  title           String
+  kind            String  @default("trailer")
+  /// HLS or MP4 URL from a licensed source. Null in development fixtures.
+  url             String?
+  durationSeconds Int?
+  provider        String
+  sortOrder       Int     @default(0)
+}
+
+// ---------------------------------------------------------------------------
+// Screenings, inventory and holds
+// ---------------------------------------------------------------------------
+
+enum ScreeningStatus {
+  SCHEDULED
+  CANCELLED
+}
+
+model Screening {
+  id              String                  @id @default(cuid())
+  tenantId        String
+  tenant          Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId         String
+  venue           Venue                   @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  auditoriumId    String
+  auditorium      Auditorium              @relation(fields: [auditoriumId], references: [id], onDelete: Cascade)
+  layoutVersionId String
+  layoutVersion   AuditoriumLayoutVersion @relation(fields: [layoutVersionId], references: [id])
+  filmId          String
+  film            Film                    @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  startsAt        DateTime
+  endsAt          DateTime
+  /// e.g. ["2D"], ["IMAX", "3D"], ["Dolby Atmos"].
+  formats         String[]
+  /// e.g. ["Subtitled", "Audio Described", "Relaxed"].
+  attributes      String[]
+  status          ScreeningStatus         @default(SCHEDULED)
+  createdAt       DateTime                @default(now())
+
+  seats    ScreeningSeat[]
+  holds    SeatHold[]
+  bookings Booking[]
+
+  @@index([tenantId, venueId, startsAt])
+  @@index([filmId, startsAt])
+}
+
+enum SeatState {
+  AVAILABLE
+  HELD
+  SOLD
+  BLOCKED
+}
+
+/// Live commercial state of one seat for one screening. Authoritative.
+model ScreeningSeat {
+  screeningId String
+  screening   Screening @relation(fields: [screeningId], references: [id], onDelete: Cascade)
+  seatId      String
+  state       SeatState @default(AVAILABLE)
+  holdId      String?
+  heldUntil   DateTime?
+  bookingId   String?
+  version     Int       @default(0)
+  updatedAt   DateTime  @updatedAt
+
+  @@id([screeningId, seatId])
+  @@index([holdId])
+}
+
+enum HoldStatus {
+  ACTIVE
+  CONVERTED
+  RELEASED
+  EXPIRED
+}
+
+model SeatHold {
+  id          String     @id @default(cuid())
+  tenantId    String
+  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  screeningId String
+  screening   Screening  @relation(fields: [screeningId], references: [id], onDelete: Cascade)
+  customerId  String
+  customer    Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  status      HoldStatus @default(ACTIVE)
+  seatIds     String[]
+  expiresAt   DateTime
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  booking Booking?
+
+  @@index([status, expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// Pricing
+// ---------------------------------------------------------------------------
+
+model TicketType {
+  id            String  @id @default(cuid())
+  tenantId      String
+  tenant        Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  code          String
+  name          String
+  description   String?
+  requiresProof Boolean @default(false)
+  sortOrder     Int     @default(0)
+
+  priceRules PriceRule[]
+
+  @@unique([tenantId, code])
+}
+
+/// Base price for a ticket type in a seat price category.
+model PriceRule {
+  id            String     @id @default(cuid())
+  tenantId      String
+  tenant        Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ticketTypeId  String
+  ticketType    TicketType @relation(fields: [ticketTypeId], references: [id], onDelete: Cascade)
+  priceCategory String
+  amountMinor   Int
+
+  @@unique([ticketTypeId, priceCategory])
+}
+
+model FormatSupplement {
+  id          String @id @default(cuid())
+  tenantId    String
+  tenant      Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  format      String
+  amountMinor Int
+
+  @@unique([tenantId, format])
+}
+
+// ---------------------------------------------------------------------------
+// Customers, bookings, payments, tickets
+// ---------------------------------------------------------------------------
+
+enum CustomerKind {
+  GUEST
+  REGISTERED
+}
+
+model Customer {
+  id          String       @id @default(cuid())
+  tenantId    String
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  kind        CustomerKind @default(GUEST)
+  email       String?
+  displayName String?
+  createdAt   DateTime     @default(now())
+
+  holds      SeatHold[]
+  bookings   Booking[]
+  favourites FavouriteVenue[]
+}
+
+model FavouriteVenue {
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  venueId    String
+  venue      Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@id([customerId, venueId])
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  CANCELLED
+  REFUNDED
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  tenantId      String
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  reference     String        @unique
+  customerId    String
+  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  screeningId   String
+  screening     Screening     @relation(fields: [screeningId], references: [id], onDelete: Cascade)
+  holdId        String        @unique
+  hold          SeatHold      @relation(fields: [holdId], references: [id])
+  status        BookingStatus
+  subtotalMinor Int
+  feesMinor     Int
+  discountMinor Int           @default(0)
+  totalMinor    Int
+  currency      String
+  createdAt     DateTime      @default(now())
+  confirmedAt   DateTime?
+
+  seats      BookingSeat[]
+  payments   Payment[]
+  tickets    AdmissionTicket[]
+  walletPass WalletPass?
+}
+
+/// Sold seat. A partial unique index (see migration) guarantees a seat can only
+/// be actively sold once per screening, independent of application logic.
+model BookingSeat {
+  id           String     @id @default(cuid())
+  bookingId    String
+  booking      Booking    @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  screeningId  String
+  seatId       String
+  rowLabel     String
+  seatLabel    String
+  ticketTypeId String
+  priceMinor   Int
+  active       Boolean    @default(true)
+}
+
+enum PaymentStatus {
+  AUTHORISED
+  CAPTURED
+  DECLINED
+  REFUNDED
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  tenantId       String
+  bookingId      String
+  booking        Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  provider       String
+  providerRef    String
+  status         PaymentStatus
+  amountMinor    Int
+  currency       String
+  failureReason  String?
+  createdAt      DateTime      @default(now())
+
+  @@unique([provider, providerRef])
+}
+
+model AdmissionTicket {
+  id        String   @id @default(cuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  /// Signed admission payload encoded in the QR code.
+  barcode   String   @unique
+  status    String   @default("VALID")
+  createdAt DateTime @default(now())
+}
+
+enum WalletPassStatus {
+  DEMO_UNSIGNED
+  ISSUED
+  VOIDED
+}
+
+model WalletPass {
+  id                 String           @id @default(cuid())
+  bookingId          String           @unique
+  booking            Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  passTypeIdentifier String
+  serialNumber       String           @unique
+  authenticationToken String
+  status             WalletPassStatus
+  updatedAt          DateTime         @updatedAt
+}
+
+model IdempotencyRecord {
+  id             String   @id @default(cuid())
+  tenantId       String
+  scope          String
+  key            String
+  requestHash    String
+  responseStatus Int
+  responseBody   Json
+  createdAt      DateTime @default(now())
+
+  @@unique([tenantId, scope, key])
+}
+
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  tenantId   String
+  name       String
+  sessionId  String?
+  properties Json     @default("{}")
+  occurredAt DateTime
+  receivedAt DateTime @default(now())
+
+  @@index([tenantId, name, occurredAt])
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3 domains (modelled now so boundaries are explicit; not yet exposed)
+// ---------------------------------------------------------------------------
+
+model MembershipPlan {
+  id          String  @id @default(cuid())
+  tenantId    String
+  tenant      Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  /// e.g. { "monthlyFreeTickets": 4, "foodDiscountPercent": 10 }
+  entitlements Json
+  priceMinor  Int
+  interval    String
+}
+
+model ConcessionProduct {
+  id          String  @id @default(cuid())
+  tenantId    String
+  tenant      Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId     String?
+  name        String
+  category    String
+  priceMinor  Int
+  allergens   String[]
+  available   Boolean @default(true)
+}
+
+model NotificationRegistration {
+  id         String   @id @default(cuid())
+  tenantId   String
+  customerId String
+  apnsToken  String
+  createdAt  DateTime @default(now())
+
+  @@unique([tenantId, apnsToken])
+}

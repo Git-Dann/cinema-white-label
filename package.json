@@ -1,0 +1,22 @@
+{
+  "name": "cinema-platform",
+  "private": true,
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "build:contracts": "pnpm --filter @cinema/contracts build",
+    "test": "pnpm -r test",
+    "dev:backend": "pnpm --filter @cinema/backend dev",
+    "dev:admin": "pnpm --filter @cinema/admin dev"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "sharp",
+      "esbuild",
+      "@nestjs/core",
+      "unrs-resolver"
+    ]
+  }
+}

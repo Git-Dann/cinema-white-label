@@ -1,0 +1,6 @@
+#include "Base.xcconfig"
+// Build-time identity for the fictional Kestrel Picturehouse app.
+PRODUCT_BUNDLE_IDENTIFIER = com.example.kestrel.cinema
+PRODUCT_NAME = Kestrel
+TENANT_SLUG = kestrel
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon-Kestrel

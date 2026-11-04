@@ -1,0 +1,42 @@
+# Task list
+
+Prioritised. Phase numbers follow the master specification.
+
+## Verify first (blocked in the build environment)
+1. **Build the iOS app in Xcode and fix compile errors.** SwiftUI targets (`CinemaDesign`, `CinemaSeatMap`, `CinemaFeatures`, app target) were written without a compiler; only `CinemaCore` is compiled and tested. Expect small API fixes (Liquid Glass modifiers, `Tab`, `MagnifyGesture`, `MKMapItem(location:address:)`).
+2. Run on iPhone 18 Pro Max, a compact iPhone and iPhone Duo (folded, unfolded, resizing). Capture screenshots and compare with the design references in `docs/design-references.md`.
+3. VoiceOver, Dynamic Type (AX5), Switch Control and Increase Contrast pass over the seat map and list alternative.
+4. Run `CinemaAppUITests` against the local backend.
+5. Profile the seat map with the 226-seat curved layout; target 120 fps pan/zoom on ProMotion.
+
+## Phase 1 gaps
+- [ ] Seat map: double-tap to zoom, keyboard focus navigation between seats, Dynamic Type for row labels.
+- [ ] Availability stream through Redis pub/sub when running more than one API instance.
+- [ ] Customer-facing copy review and localisation catalogue (en-GB first).
+- [ ] CI pipeline (contracts, backend with Postgres service, `swift test` on Linux, xcodebuild on macOS runner).
+
+## Phase 2 – content and administration
+- [ ] Film provider ingestion job (operator feed + licensed provider adapters, review queue UI).
+- [ ] Media library with rights metadata editing and expiry enforcement in admin.
+- [ ] Auditorium layout editor (geometry, sections, accessibility, preview, publish versions).
+- [ ] Screening and price management in admin.
+- [ ] Home section editor, support/legal editor.
+- [ ] Admin: httpOnly cookie sessions instead of localStorage tokens; palette delete/reject; actor names in audit.
+
+## Phase 3 – Apple and commercial services
+- [ ] Apple Pay via a PSP sandbox (merchant ID, payment processing certificate).
+- [ ] Signed Wallet passes + PassKit web service (needs Pass Type ID certificate).
+- [ ] Live Activities and Dynamic Island for upcoming screenings and food collection.
+- [ ] Widgets, App Intents/App Shortcuts, Spotlight indexing.
+- [ ] Sign in with Apple and passkeys; account registration.
+- [ ] Memberships and concessions (models exist, not exposed).
+- [ ] Real booking inventory adapters per operator.
+
+## Phase 4 – platform operations
+- [ ] Multi-tenant release configurations, monitoring, analytics dashboards, promotions, production deployment.
+
+## Done
+- [x] Contracts: themes, contrast validation, tenant config, layout geometry + validation (22 tests).
+- [x] Backend: tenants/config releases, films/providers, media renditions, venues, screenings, holds, pricing, checkout, Wallet boundary, analytics, admin API (35 tests).
+- [x] CinemaCore: models, API client, config store, seat geometry/hit-testing, selection, booking flow, ticket cache (41 tests).
+- [x] Admin portal: branding, live preview, publish/rollback, venues, films (Playwright-verified).
