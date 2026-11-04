@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.next/
+*.log
+.env
+.env.local
+coverage/
+backend/.media-cache/
+# Xcode / SwiftPM
+ios/**/.build/
+ios/**/.swiftpm/
+ios/*.xcodeproj/
+ios/**/xcuserdata/
+DerivedData/
+.DS_Store
+backend/.media/
+*.tsbuildinfo
+next-env.d.ts
