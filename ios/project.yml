@@ -10,11 +10,13 @@ packages:
 configs:
   Northlight Debug: debug
   Northlight Release: release
+  Northlight Demo: release
   Kestrel Debug: debug
   Kestrel Release: release
 configFiles:
   Northlight Debug: Config/Northlight.xcconfig
   Northlight Release: Config/Northlight.xcconfig
+  Northlight Demo: Config/Northlight-Demo.xcconfig
   Kestrel Debug: Config/Kestrel.xcconfig
   Kestrel Release: Config/Kestrel.xcconfig
 targets:
@@ -37,6 +39,10 @@ targets:
           - CFBundleURLSchemes: [cinema-$(TENANT_SLUG)]
         TenantSlug: $(TENANT_SLUG)
         APIBaseURL: $(API_BASE_URL)
+        # YES in the Northlight Demo configuration: offline fictional data, no backend needed (TestFlight demos).
+        DemoMode: $(DEMO_MODE)
+        # Only standard HTTPS/TLS is used, which is exempt; saves the export compliance question on every upload.
+        ITSAppUsesNonExemptEncryption: false
         AppGroup: group.$(APP_BUNDLE_ID)
         NSSupportsLiveActivities: true
         NSLocationWhenInUseUsageDescription: Your location is used only to show cinemas near you. You can also search by town or postcode.
@@ -128,6 +134,9 @@ schemes:
       config: Northlight Debug
       commandLineArguments:
         "-mock-data": true
+    # Archive this scheme for TestFlight: a release build that always runs on demo data.
+    archive:
+      config: Northlight Demo
   Kestrel:
     build:
       targets:

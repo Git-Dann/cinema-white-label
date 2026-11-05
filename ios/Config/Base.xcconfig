@@ -6,6 +6,8 @@ MARKETING_VERSION = 0.1.0
 CURRENT_PROJECT_VERSION = 1
 // Development API. Override per configuration for staging/production.
 API_BASE_URL = http:/$()/localhost:3000/
+// YES builds run on bundled fictional data with no backend (see Northlight-Demo.xcconfig).
+DEMO_MODE = NO
 
 // ---------------------------------------------------------------------------
 // Signing (set once). CI builds unsigned and ignores these.

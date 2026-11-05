@@ -22,7 +22,10 @@ struct CinemaApp: App {
         }
 
         let arguments = ProcessInfo.processInfo.arguments
-        let mockMode = arguments.contains("-mock-data")
+        // Demo builds (Info.plist DemoMode = YES) and the -mock-data argument both use offline demo data.
+        let demoBuild = (Bundle.main.object(forInfoDictionaryKey: "DemoMode") as? String)?.uppercased() == "YES"
+            || (Bundle.main.object(forInfoDictionaryKey: "DemoMode") as? Bool) == true
+        let mockMode = demoBuild || arguments.contains("-mock-data")
         var support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let service: any CinemaService
         if mockMode {
