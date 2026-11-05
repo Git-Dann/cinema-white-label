@@ -211,7 +211,7 @@ jobs:
           print(sorted(os.listdir(d)))
           PY
           # Live Activity diagnostics from the simulator (start, skip and failure reasons).
-          xcrun simctl spawn "$SIM_UDID" log show --last 30m --style compact \
+          xcrun simctl spawn "$SIM_UDID" log show --last 30m --style compact --info --debug \
             --predicate 'subsystem == "cinema.liveactivity"' > shots/liveactivity.log 2>&1 || true
           tail -20 shots/liveactivity.log || true
           grep -E "error:" xcodebuild-test.log | sed 's#.*/ios/##' | sort -u | head -40 || true

@@ -15,6 +15,7 @@ const NAV = [
   { href: '/food', label: 'Food & drink' },
   { href: '/vouchers', label: 'Vouchers' },
   { href: '/promotions', label: 'Promotions' },
+  { href: '/loyalty', label: 'Loyalty & memberships' },
   { href: '/films', label: 'Films' },
 ];
 

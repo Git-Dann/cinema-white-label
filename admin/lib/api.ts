@@ -414,3 +414,38 @@ export interface Promotion {
   /** Whether customers can see it right now (operator-wide promotions only; null when cinema-specific). */
   showing: boolean | null;
 }
+
+export interface LoyaltyProgram {
+  name: string;
+  enabled: boolean;
+  earnPointsPerPound: number;
+  redeemPointsPerPound: number;
+  minRedeemPoints: number;
+}
+
+export interface LoyaltyResponse {
+  /** null when the operator has not set up a points scheme. */
+  program: LoyaltyProgram | null;
+  stats: { accounts: number; pointsOutstanding: number };
+}
+
+export interface MembershipEntitlements {
+  ticketDiscountPercent: number;
+  foodDiscountPercent: number;
+  bookingFeeWaived: boolean;
+  /** 1 to 5, in steps of 0.5. */
+  pointsMultiplier: number;
+}
+
+export interface MembershipPlan {
+  id: string;
+  name: string;
+  description: string;
+  priceMinor: number;
+  interval: 'month' | 'year';
+  entitlements: MembershipEntitlements;
+  active: boolean;
+  sortOrder: number;
+  /** Customers whose paid period has not ended. */
+  activeMembers: number;
+}
