@@ -109,11 +109,8 @@ jobs:
         run: |
           XCODE=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
           sudo xcode-select -s "$XCODE"
-          SDK=$(xcrun --sdk iphonesimulator --show-sdk-version)
-          # The project targets iOS 27. Simulators on the runner may be older, so
-          # this job alone builds against the newest available SDK to run the app.
-          echo "DEPLOYMENT_TARGET=$SDK" >> "$GITHUB_ENV"
-          UDID=$(xcrun simctl list devices available -j | python3 -c "
+          # Pick the newest iPhone simulator; print "<udid> <runtime version>".
+          read UDID RUNTIME < <(xcrun simctl list devices available -j | python3 -c "
           import json,sys
           d=json.load(sys.stdin)['devices']
           ios=[(k,v) for k,v in d.items() if 'iOS' in k]
@@ -122,11 +119,23 @@ jobs:
               phones=[x for x in devs if 'iPhone' in x['name']]
               pref=[x for x in phones if 'Pro Max' in x['name']] or [x for x in phones if 'Pro' in x['name']] or phones
               if pref:
-                  print(pref[-1]['udid']); break
+                  print(pref[-1]['udid'], '.'.join(runtime.split('iOS-')[-1].split('-')[:2])); break
           ")
           echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+          echo "DEPLOYMENT_TARGET=$RUNTIME" >> "$GITHUB_ENV"
           xcrun simctl list devices available | grep "$UDID"
-          echo "Simulator SDK $SDK, device $UDID" >> "$GITHUB_STEP_SUMMARY"
+          echo "Simulator $UDID running iOS $RUNTIME" >> "$GITHUB_STEP_SUMMARY"
+
+      # The project targets iOS 27. Xcode only offers simulators whose iOS version
+      # meets the deployment target, so this job (only) lowers it to the
+      # simulator's version. The committed project is unchanged.
+      - name: Match deployment target to the simulator (this job only)
+        working-directory: ios
+        run: |
+          sed -i '' "s/IPHONEOS_DEPLOYMENT_TARGET = 27.0/IPHONEOS_DEPLOYMENT_TARGET = $DEPLOYMENT_TARGET/" Config/Base.xcconfig
+          sed -i '' "s/iOS: \"27.0\"/iOS: \"$DEPLOYMENT_TARGET\"/" project.yml
+          sed -i '' "s/.iOS(\"27.0\")/.iOS(\"$DEPLOYMENT_TARGET\")/" Packages/CinemaKit/Package.swift
+          grep -n "DEPLOYMENT_TARGET\|iOS:" Config/Base.xcconfig project.yml; grep -n "iOS(" Packages/CinemaKit/Package.swift
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -148,7 +157,6 @@ jobs:
             -only-testing:CinemaAppUITests/ScreenshotTests \
             -resultBundlePath TestResults.xcresult \
             -derivedDataPath build \
-            IPHONEOS_DEPLOYMENT_TARGET="$DEPLOYMENT_TARGET" \
             CODE_SIGNING_ALLOWED=NO \
             2>&1 | tee xcodebuild-test.log | grep -E "error:|Test Case|passed|failed|\*\*" || true
           grep -q "\*\* TEST SUCCEEDED \*\*" xcodebuild-test.log
