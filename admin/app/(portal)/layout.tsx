@@ -10,6 +10,10 @@ const NAV = [
   { href: '/branding', label: 'Branding & theme' },
   { href: '/releases', label: 'Releases' },
   { href: '/venues', label: 'Cinemas' },
+  { href: '/layouts', label: 'Auditorium layouts' },
+  { href: '/seating', label: 'Seat categories & pricing' },
+  { href: '/food', label: 'Food & drink' },
+  { href: '/vouchers', label: 'Vouchers' },
   { href: '/films', label: 'Films' },
 ];
 

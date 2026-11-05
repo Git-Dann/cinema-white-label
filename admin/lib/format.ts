@@ -2,6 +2,20 @@ export function formatMoney(minor: number, currency: string): string {
   return new Intl.NumberFormat('en-GB', { style: 'currency', currency }).format(minor / 100);
 }
 
+/** Minor units to a plain decimal string for inputs, e.g. 1250 -> "12.50". */
+export function minorToInput(minor: number | null | undefined): string {
+  if (minor === null || minor === undefined) return '';
+  return (minor / 100).toFixed(2);
+}
+
+/** Parses a pounds-and-pence input to minor units. '' -> null; invalid -> NaN. */
+export function inputToMinor(value: string): number | null {
+  const v = value.trim().replace(/^£/, '');
+  if (v === '') return null;
+  if (!/^\d+(\.\d{1,2})?$/.test(v)) return NaN;
+  return Math.round(Number(v) * 100);
+}
+
 export function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return '—';
   return new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso));
@@ -34,6 +48,20 @@ const ACTION_LABELS: Record<string, string> = {
   'film.create': 'Film created',
   'film.update': 'Film updated',
   'asset.update': 'Image focal point updated',
+  'seatCategory.create': 'Seat category created',
+  'seatCategory.update': 'Seat category updated',
+  'seatCategory.delete': 'Seat category deleted',
+  'pricing.update': 'Ticket prices updated',
+  'concession.create': 'Product created',
+  'concession.update': 'Product updated',
+  'concession.delete': 'Product deleted',
+  'voucher.create': 'Voucher created',
+  'voucher.update': 'Voucher updated',
+  'auditorium.create': 'Screen created',
+  'layout.draft.create': 'Layout draft created',
+  'layout.draft.update': 'Layout draft saved',
+  'layout.draft.delete': 'Layout draft deleted',
+  'layout.publish': 'Layout published',
 };
 export const actionLabel = (a: string) => ACTION_LABELS[a] ?? a;
 
@@ -62,5 +90,13 @@ export function permissions(role: string) {
     canEditContent: operator || role === 'CONTENT_EDITOR',
     canEditVenues: operator || role === 'VENUE_MANAGER',
     canDeleteVenues: operator,
+    /** Ticket prices and vouchers: operator admins only (server enforces the same). */
+    canEditPricing: operator,
+    canEditVouchers: operator,
+    canEditSeatCategories: operator || role === 'VENUE_MANAGER',
+    canDeleteSeatCategories: operator,
+    canEditConcessions: operator || role === 'VENUE_MANAGER',
+    canEditLayouts: operator || role === 'VENUE_MANAGER',
+    canPublishLayouts: operator,
   };
 }

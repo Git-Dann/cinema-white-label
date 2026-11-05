@@ -1467,6 +1467,60 @@
         ]
       }
     },
+    "/v1/admin/t/{tenant}/auditoriums/{id}": {
+      "put": {
+        "operationId": "AdminLayoutsController_renameAuditorium",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      },
+      "delete": {
+        "operationId": "AdminLayoutsController_deleteAuditorium",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
     "/v1/admin/t/{tenant}/layouts/{versionId}": {
       "get": {
         "operationId": "AdminLayoutsController_getVersion",

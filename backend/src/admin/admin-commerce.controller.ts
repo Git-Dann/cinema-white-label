@@ -122,14 +122,15 @@ export class AdminCommerceController {
     return categoryDto(row);
   }
 
-  /** Categories still used by a published layout or priced tickets cannot be deleted. */
+  /** Categories used by any layout version (draft, published or retired) cannot be deleted. */
   @Delete('seat-categories/:code')
   @HttpCode(204)
   @Roles('OPERATOR_ADMIN')
   async deleteCategory(@CurrentTenant() t: Tenant, @CurrentAdmin() a: AdminClaims, @Param('code') code: string) {
     const existing = await this.prisma.seatCategory.findUnique({ where: { tenantId_code: { tenantId: t.id, code } } });
     if (!existing) throw Errors.notFound('Seat category');
-    const layouts = await this.prisma.auditoriumLayoutVersion.findMany({ where: { auditorium: { tenantId: t.id }, status: { in: ['PUBLISHED', 'DRAFT'] } }, select: { geometry: true, auditorium: { select: { name: true } } } });
+    // Every version counts: retired layouts can still have live screenings priced by this category.
+    const layouts = await this.prisma.auditoriumLayoutVersion.findMany({ where: { auditorium: { tenantId: t.id } }, select: { geometry: true, auditorium: { select: { name: true } } } });
     const usedBy = layouts.filter((l) => (l.geometry as unknown as AuditoriumLayout).seats.some((s) => s.priceCategory === code));
     if (usedBy.length) throw Errors.validation(`This category is used by ${usedBy.length} auditorium layout(s), e.g. ${usedBy[0].auditorium.name}`);
     await this.prisma.$transaction([

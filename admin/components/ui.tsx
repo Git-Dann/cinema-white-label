@@ -31,7 +31,7 @@ export function SuccessNote({ message }: { message: string | null | undefined })
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  const cls = status === 'PUBLISHED' ? 'badge-success' : status === 'SCHEDULED' ? 'badge-warning' : 'badge-neutral';
+  const cls = status === 'PUBLISHED' ? 'badge-success' : status === 'SCHEDULED' || status === 'DRAFT' ? 'badge-warning' : 'badge-neutral';
   const label = status.charAt(0) + status.slice(1).toLowerCase();
   return <span className={`badge ${cls}`}>{label}</span>;
 }
@@ -40,6 +40,31 @@ export function Loading({ label = 'Loading…' }: { label?: string }) {
   return (
     <p className="muted" aria-busy="true">
       {label}
+    </p>
+  );
+}
+
+/** Error message plus any per-field details the API returned (details.issues). */
+export function ApiErrorNote({ error }: { error: { message: string; details: string[] } | null }) {
+  if (!error) return null;
+  return (
+    <div className="alert alert-error" role="alert">
+      <div>{error.message}</div>
+      {error.details.length > 0 && (
+        <ul className="alert-list">
+          {error.details.map((d, i) => (
+            <li key={i}>{d}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+export function ReadOnlyNote({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="note" role="note">
+      {children}
     </p>
   );
 }

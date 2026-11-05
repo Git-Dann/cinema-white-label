@@ -144,18 +144,23 @@ export function validateLayout(layout: AuditoriumLayout): LayoutIssue[] {
   for (const s of layout.seats) if (s.groupId) groups.set(s.groupId, (groups.get(s.groupId) ?? 0) + 1);
   for (const [g, n] of groups) if (n < 2) issues.push({ code: 'seat.group', message: `Seat group ${g} has only one seat` });
 
-  // Overlap check using inscribed circles (rotation-safe, slightly lenient).
+  // Overlap: unrotated seats use their real rectangles (so widened seats are
+  // caught); rotated seats fall back to inscribed circles (rotation-safe).
   const seats = layout.seats;
+  const tol = 0.98;
   for (let i = 0; i < seats.length; i++) {
     for (let j = i + 1; j < seats.length; j++) {
       const a = seats[i];
       const b = seats[j];
-      const ra = Math.min(a.width, a.height) / 2;
-      const rb = Math.min(b.width, b.height) / 2;
-      const d = Math.hypot(a.x - b.x, a.y - b.y);
-      if (d < (ra + rb) * 0.9) {
-        issues.push({ code: 'seat.overlap', message: `Seats ${a.id} and ${b.id} overlap`, seatId: a.id });
+      let overlap: boolean;
+      if (Math.abs(a.rotation) < 1 && Math.abs(b.rotation) < 1) {
+        overlap = Math.abs(a.x - b.x) < ((a.width + b.width) / 2) * tol && Math.abs(a.y - b.y) < ((a.height + b.height) / 2) * tol;
+      } else {
+        const ra = Math.min(a.width, a.height) / 2;
+        const rb = Math.min(b.width, b.height) / 2;
+        overlap = Math.hypot(a.x - b.x, a.y - b.y) < (ra + rb) * 0.9;
       }
+      if (overlap) issues.push({ code: 'seat.overlap', message: `Seats ${a.id} and ${b.id} overlap`, seatId: a.id });
     }
   }
 

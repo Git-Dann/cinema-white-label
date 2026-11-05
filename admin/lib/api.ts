@@ -258,3 +258,137 @@ export interface Film {
   backdrop: ImageRef | null;
   assets: FilmAsset[];
 }
+
+// ---- Seating, pricing, food and drink, vouchers, layouts ----
+
+export interface SeatCategoryColours {
+  light: { fill: string; accent: string };
+  dark: { fill: string; accent: string };
+}
+
+export interface SeatCategoryDto {
+  id: string;
+  label: string;
+  description: string | null;
+  shape: string;
+  icon: string | null;
+  colours: SeatCategoryColours | null;
+  sortOrder: number;
+}
+
+export interface SeatCategoriesResponse {
+  categories: SeatCategoryDto[];
+  shapes: string[];
+  icons: string[];
+}
+
+export interface PricingResponse {
+  currency: string;
+  bookingFeeMinor: number;
+  categories: SeatCategoryDto[];
+  ticketTypes: { id: string; code: string; name: string; prices: Record<string, number | null> }[];
+  supplements: { format: string; amountMinor: number }[];
+}
+
+export interface ModifierOption {
+  id: string;
+  name: string;
+  priceMinor: number;
+}
+
+export interface ModifierGroup {
+  id: string;
+  name: string;
+  min: number;
+  max: number;
+  options: ModifierOption[];
+}
+
+export type StockStatus = 'inStock' | 'low' | 'out';
+
+export interface Concession {
+  id: string;
+  venueId: string | null;
+  sku: string;
+  name: string;
+  description: string | null;
+  category: string;
+  priceMinor: number;
+  allergens: string[];
+  dietary: string[];
+  calories: number | null;
+  stockStatus: StockStatus;
+  available: boolean;
+  modifierGroups: ModifierGroup[];
+  bundleItems: string[];
+  sortOrder: number;
+}
+
+export interface Voucher {
+  id: string;
+  code: string;
+  description: string;
+  kind: 'percentOff' | 'amountOff';
+  value: number;
+  appliesTo: 'tickets' | 'concessions' | 'all';
+  minSpendMinor: number;
+  validFrom: string | null;
+  validTo: string | null;
+  maxRedemptions: number | null;
+  redemptions: number;
+  active: boolean;
+}
+
+export type LayoutStatus = 'DRAFT' | 'PUBLISHED' | 'RETIRED';
+
+export interface LayoutVersionSummary {
+  id: string;
+  version: number;
+  status: LayoutStatus;
+  seatCount: number;
+  publishedAt: string | null;
+  createdAt: string;
+}
+
+export interface AuditoriumSummary {
+  id: string;
+  name: string;
+  screenNumber: number;
+  versions: LayoutVersionSummary[];
+}
+
+export interface VenueAuditoriums {
+  venue: { id: string; name: string };
+  auditoriums: AuditoriumSummary[];
+}
+
+export interface LayoutIssueDto {
+  code: string;
+  message: string;
+  seatId?: string;
+}
+
+export interface LayoutVersionDetail extends LayoutVersionSummary {
+  auditorium: { id: string; name: string };
+  geometry: import('@cinema/contracts').AuditoriumLayout;
+  screenings: number;
+  issues: LayoutIssueDto[];
+}
+
+export interface LayoutValidation {
+  ok: boolean;
+  issues: LayoutIssueDto[];
+  seatCount: number;
+}
+
+/** Human-readable lines from an ApiError's details.issues (zod issues, contrast issues or layout issues). */
+export function errorDetails(e: unknown): string[] {
+  if (!(e instanceof ApiError) || !e.details || typeof e.details !== 'object') return [];
+  const issues = (e.details as { issues?: unknown }).issues;
+  if (!Array.isArray(issues)) return [];
+  return issues.map((raw) => {
+    const i = raw as { message?: string; path?: (string | number)[]; themeId?: string; appearance?: string; code?: string };
+    const where = i.path?.length ? `${i.path.join('.')}: ` : i.themeId ? `${i.themeId} theme, ${i.appearance ?? ''} appearance: ` : '';
+    return `${where}${i.message ?? i.code ?? 'Invalid value'}`;
+  });
+}

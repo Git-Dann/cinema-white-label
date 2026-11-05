@@ -80,6 +80,13 @@ describe('layout validation', () => {
     expect(codes).toContain('seat.bounds');
   });
 
+  it('catches widened seats overlapping their neighbours', () => {
+    const seats = buildRow({ rowId: 'A', sectionId: 'stalls', y: 0.2, seatSize: 0.04, gap: 0.008, seats: [{ label: '1' }, { label: '2' }] });
+    expect(validateLayout(base(seats))).toEqual([]);
+    seats[0].width = 0.07; // now reaches into seat 2, though the centres are unchanged
+    expect(validateLayout(base(seats)).map((i) => i.code)).toContain('seat.overlap');
+  });
+
   it('bends curved rows around the arc centre', () => {
     const seats = buildRow({
       rowId: 'A', sectionId: 'stalls', y: 0.3, seatSize: 0.04, gap: 0.01, arcCenter: { x: 0.5, y: -0.4 },

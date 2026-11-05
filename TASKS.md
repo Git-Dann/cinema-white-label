@@ -16,7 +16,8 @@ Prioritised. Phase numbers follow the master specification.
 - [x] Food and drink (modifiers, bundles, stock, seat delivery), vouchers, cancellation and refunds.
 - [x] Typed analytics schema, replaceable providers, opt-out. Media storage abstraction, prefetch, fallback artwork.
 - [x] App Intents and Spotlight.
-- [ ] Admin UI for seat categories, food menus, vouchers and promotions (APIs/schema exist).
+- [x] Admin UI for seat categories + pricing grid, food and drink, vouchers, and a visual auditorium layout editor (draft, validate, publish).
+- [ ] Admin: promotions content, booking fee and format supplement editing, layout editor undo/drag/features.
 - [ ] Loyalty earn/burn and memberships (models exist); gift cards pending operator sign-off.
 - [ ] Brand layer between operator and venues (multi-brand operators).
 - [ ] Live Activities + widget extension target; BackgroundTasks refresh of tickets.
@@ -25,12 +26,13 @@ Prioritised. Phase numbers follow the master specification.
 - [ ] Seat map: keyboard focus navigation between seats, Dynamic Type for row labels, on-device profiling with 400+ seats.
 - [ ] Availability stream through Redis pub/sub when running more than one API instance.
 - [ ] Customer-facing copy review and localisation catalogue (en-GB first).
-- [ ] CI pipeline (contracts, backend with Postgres service, `swift test` on Linux, xcodebuild on macOS runner).
+- [x] CI pipeline: contracts, backend with Postgres, `swift test` on Linux, admin build, OpenAPI and fixture drift checks.
+- [ ] CI: xcodebuild on a macOS runner once the app compiles.
 
 ## Phase 2 – content and administration
 - [ ] Film provider ingestion job (operator feed + licensed provider adapters, review queue UI).
 - [ ] Media library with rights metadata editing and expiry enforcement in admin.
-- [ ] Auditorium layout editor (geometry, sections, accessibility, preview, publish versions).
+- [x] Auditorium layout editor (row generator, seat inspector, live validation, versioned publish).
 - [ ] Screening and price management in admin.
 - [ ] Home section editor, support/legal editor.
 - [ ] Admin: httpOnly cookie sessions instead of localStorage tokens; palette delete/reject; actor names in audit.

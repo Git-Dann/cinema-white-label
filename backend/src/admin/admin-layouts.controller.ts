@@ -60,6 +60,30 @@ export class AdminLayoutsController {
     return { id: aud.id, name: aud.name, screenNumber: aud.screenNumber, versions: [] };
   }
 
+  @Put('auditoriums/:id')
+  @Roles('OPERATOR_ADMIN', 'VENUE_MANAGER')
+  async renameAuditorium(@CurrentTenant() t: Tenant, @CurrentAdmin() a: AdminClaims, @Param('id') id: string, @Body(new ZodPipe(auditoriumBody.partial())) b: Partial<z.infer<typeof auditoriumBody>>) {
+    await this.auditorium(t, id);
+    const aud = await this.prisma.auditorium.update({ where: { id }, data: b }).catch((e) => {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') throw Errors.validation(`Screen ${b.screenNumber} already exists at this cinema`);
+      throw e;
+    });
+    await this.audit.record({ tenantId: t.id, actorId: a.sub, action: 'auditorium.update', entityType: 'Auditorium', entityId: id, data: b });
+    return { id: aud.id, name: aud.name, screenNumber: aud.screenNumber };
+  }
+
+  /** Only screens that have never had screenings can be deleted; otherwise booking history would break. */
+  @Delete('auditoriums/:id')
+  @HttpCode(204)
+  @Roles('OPERATOR_ADMIN')
+  async deleteAuditorium(@CurrentTenant() t: Tenant, @CurrentAdmin() a: AdminClaims, @Param('id') id: string) {
+    await this.auditorium(t, id);
+    const screenings = await this.prisma.screening.count({ where: { auditoriumId: id } });
+    if (screenings) throw Errors.validation(`This screen has ${screenings} screening(s) and cannot be deleted`);
+    await this.prisma.auditorium.delete({ where: { id } });
+    await this.audit.record({ tenantId: t.id, actorId: a.sub, action: 'auditorium.delete', entityType: 'Auditorium', entityId: id });
+  }
+
   private async auditorium(t: Tenant, id: string) {
     const aud = await this.prisma.auditorium.findFirst({ where: { id, tenantId: t.id } });
     if (!aud) throw Errors.notFound('Auditorium');

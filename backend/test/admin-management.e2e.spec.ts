@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { api, createApp, T } from './harness';
+import { PrismaService } from '../src/common/prisma.service';
 
 describe('admin management: seat categories, pricing, food, vouchers, layouts (integration)', () => {
   let app: INestApplication;
@@ -15,6 +16,7 @@ describe('admin management: seat categories, pricing, food, vouchers, layouts (i
     editor = (await login('editor@northlight.example', 'editor-dev-password')).body.token;
   });
   afterAll(async () => app.close());
+  const prisma = () => app.get(PrismaService);
 
   describe('seat categories and pricing', () => {
     it('lists categories with the allowed shapes and icons', async () => {
@@ -132,6 +134,19 @@ describe('admin management: seat categories, pricing, food, vouchers, layouts (i
       expect(after.versions.map((x: any) => [x.version, x.status])).toEqual([[2, 'PUBLISHED'], [1, 'RETIRED']]);
     });
 
+    it('renames screens and deletes only those without screenings', async () => {
+      const venues = (await api(app, admin).get(`${A}/auditoriums`)).body;
+      const york = venues.find((v: any) => v.venue.name.includes('York'));
+      const aud = (await api(app, admin).post(`${A}/venues/${york.venue.id}/auditoriums`, { name: 'Temp', screenNumber: 12 }, null).expect(201)).body;
+      expect((await api(app, admin).put(`${A}/auditoriums/${aud.id}`, { name: 'Screen 12' }).expect(200)).body.name).toBe('Screen 12');
+      await api(app, editor).del(`${A}/auditoriums/${aud.id}`).expect(403);
+      await api(app, admin).del(`${A}/auditoriums/${aud.id}`).expect(204);
+      const busy = york.auditoriums.find((x: any) => x.versions.length > 0 && x.screenNumber === 1);
+      const r = await api(app, admin).del(`${A}/auditoriums/${busy.id}`);
+      expect(r.status).toBe(422);
+      expect(r.body.error.message).toContain('screening');
+    });
+
     it('keeps screenings on the layout version they were created with', async () => {
       const venues = (await api(app, admin).get(`${A}/auditoriums`)).body;
       const audWithScreenings = venues[0].auditoriums[0];
@@ -146,6 +161,22 @@ describe('admin management: seat categories, pricing, food, vouchers, layouts (i
       expect(old.screenings).toBe(detail.screenings);
       expect(old.geometry.seats.length).toBe(detail.geometry.seats.length);
     });
+  });
+
+  it('refuses to delete a category still used only by a retired layout', async () => {
+    // The previous test retired a layout version; its categories must stay deletable-protected.
+    await api(app, admin).post(`${A}/seat-categories`, { id: 'retired-only', label: 'Retired only', shape: 'seat' }, null).expect(201);
+    const venues = (await api(app, admin).get(`${A}/auditoriums`)).body;
+    const york = venues.find((v: any) => v.venue.name.includes('York'));
+    const aud = (await api(app, admin).post(`${A}/venues/${york.venue.id}/auditoriums`, { name: 'Screen 13', screenNumber: 13 }, null).expect(201)).body;
+    const seat = (id: string, x: number, cat: string) => ({ id, rowId: 'A', sectionId: 's', label: id, order: 0, x, y: 0.3, rotation: 0, width: 0.05, height: 0.05, type: 'standard', priceCategory: cat, accessibility: [], companionFor: [], groupId: null, restrictedView: null });
+    const geo = (cat: string) => ({ id: 'x', version: 1, name: 'S13', aspectRatio: 1.4, screen: { center: { x: 0.5, y: 0.08 }, width: 0.6, curvature: 0.05, edge: 'top', label: 'SCREEN' },
+      sections: [{ id: 's', name: 'Stalls', order: 0 }], rows: [{ id: 'A', sectionId: 's', label: 'A', order: 0 }], seats: [seat('A-1', 0.4, cat)], features: [] });
+    // v1 uses the new category, but publishing needs it priced, so draft-only then replace.
+    const v1 = (await api(app, admin).post(`${A}/auditoriums/${aud.id}/layouts`, { geometry: geo('retired-only') }, null).expect(201)).body;
+    await prisma().auditoriumLayoutVersion.update({ where: { id: v1.id }, data: { status: 'RETIRED' } });
+    const r = await api(app, admin).del(`${A}/seat-categories/retired-only`);
+    expect(r.status).toBe(422);
   });
 
   it('isolates tenants', async () => {
