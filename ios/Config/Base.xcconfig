@@ -9,8 +9,8 @@ API_BASE_URL = http:/$()/localhost:3000/
 
 // ---------------------------------------------------------------------------
 // Signing (set once). CI builds unsigned and ignores these.
-// DEVELOPMENT_TEAM: your Apple Developer Team ID (Xcode > Settings > Accounts).
-// BUNDLE_ID_PREFIX: a reverse-DNS prefix you own, e.g. uk.co.gitwork
-DEVELOPMENT_TEAM =
-BUNDLE_ID_PREFIX = com.example
+// DEVELOPMENT_TEAM: Git Work Ltd (Xcode > Settings > Accounts).
+// BUNDLE_ID_PREFIX: Gitwork reverse-DNS prefix.
+DEVELOPMENT_TEAM = B27Y4M6S3Y
+BUNDLE_ID_PREFIX = uk.co.gitwork
 CODE_SIGN_STYLE = Automatic
