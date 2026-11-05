@@ -40,9 +40,20 @@ public final class AppModel {
         }
     }
 
+    /// Last rewards and membership state, so the Account cards appear instantly.
+    private let accountStore: AccountSnapshotStore?
+
     public init(service: any CinemaService, configStore: TenantConfigStore, tickets: TicketStore, mediaBaseURL: URL, isDemo: Bool = false,
+                accountCacheDirectory: URL? = nil,
                 appGroup: String = Bundle.main.infoDictionary?["AppGroup"] as? String ?? "") {
         self.isDemo = isDemo
+        let store = accountCacheDirectory.map { AccountSnapshotStore(cacheDirectory: $0, tenantSlug: configStore.config.tenant.slug) }
+        self.accountStore = store
+        if let cached = store?.load() {
+            loyalty = cached.loyalty
+            membership = cached.membership
+            membershipPlans = cached.membershipPlans
+        }
         self.widgetStore = WidgetSnapshotStore(suiteName: appGroup)
         self.service = service
         self.configStore = configStore
@@ -63,7 +74,9 @@ public final class AppModel {
         async let config: Void = refreshConfig()
         async let content: Void = loadContent()
         async let tickets: Void = self.tickets.refresh(using: service)
-        _ = await (config, content, tickets)
+        // Load rewards and membership up front so Account is ready before it is opened.
+        async let account: Void = loadAccount()
+        _ = await (config, content, tickets, account)
     }
 
     public func refreshConfig() async {
@@ -95,17 +108,28 @@ public final class AppModel {
         let service = self.service
         let wantsPlans = config.features.memberships
         async let l = try? service.loyalty()
-        async let m = try? service.myMembership()
+        // `try?` would flatten "failed" and "no membership" together; keep them apart.
+        async let m = Self.fetchMembership(service)
         async let p: [MembershipPlan]? = wantsPlans ? (try? service.membershipPlans()) : []
         let (loyaltyResult, membershipResult, plansResult) = await (l, m, p)
-        loyalty = loyaltyResult ?? .none
-        membership = membershipResult ?? nil
-        membershipPlans = plansResult ?? []
+        let current = AccountSnapshot(loyalty: loyalty, membership: membership, membershipPlans: membershipPlans)
+        let next = current.merging(loyalty: loyaltyResult, membership: membershipResult, plans: plansResult)
+        guard next != current else { return }
+        loyalty = next.loyalty
+        membership = next.membership
+        membershipPlans = next.membershipPlans
+        accountStore?.save(next)
+    }
+
+    /// `.some(nil)` means no membership; `nil` means the request failed.
+    nonisolated private static func fetchMembership(_ service: any CinemaService) async -> Membership?? {
+        do { return .some(try await service.myMembership()) } catch { return nil }
     }
 
     /// Buys or renews a plan. The key is per attempt so a retried tap is not charged twice.
     public func buyMembership(_ plan: MembershipPlan, simulateDecline: Bool = false, idempotencyKey: String) async throws {
         membership = try await service.purchaseMembership(planId: plan.id, simulateDecline: simulateDecline, idempotencyKey: idempotencyKey)
+        accountStore?.save(AccountSnapshot(loyalty: loyalty, membership: membership, membershipPlans: membershipPlans))
         Task { await analytics.record(.membershipEngaged, ["action": "purchased"]) }
     }
 
