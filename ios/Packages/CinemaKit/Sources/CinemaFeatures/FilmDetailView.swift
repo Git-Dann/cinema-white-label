@@ -13,6 +13,9 @@ struct FilmDetailView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var expanded = false
     @State private var playing: PlayableTrailer?
+    /// Flipped once the big title scrolls away; shows the bar title and the soft
+    /// edge under the bar. A Bool, so scrolling does not re-evaluate the page every frame.
+    @State private var scrolledPastTitle = false
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -30,14 +33,36 @@ struct FilmDetailView: View {
                 }
                 .padding(.bottom, Spacing.section)
             }
-            .background(palette.background)
-            // The backdrop runs under the status bar and navigation bar, so no edge effect or bar background here.
-            .scrollEdgeEffectHidden(true, for: .top)
+            .onScrollGeometryChange(for: Bool.self) { geo in
+                geo.contentOffset.y + geo.contentInsets.top > Self.titleScrollThreshold
+            } action: { _, past in
+                withAnimation(.easeOut(duration: 0.2)) { scrolledPastTitle = past }
+            }
+            // The whole page takes the film's colour, fading into the theme background.
+            .background { pageBackground }
+            // Clean artwork at the top; once scrolled, content softens under the bar instead of clashing with it.
+            .scrollEdgeEffectHidden(!scrolledPastTitle, for: .top)
         }
         .navigationTitle(film.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                // A glass status chip over the artwork; once the big title scrolls away it becomes the title.
+                Group {
+                    if scrolledPastTitle {
+                        Text(film.title).font(.headline).lineLimit(1).foregroundStyle(palette.textPrimary)
+                    } else if let status = statusChip {
+                        Label(status, systemImage: film.status == .comingSoon ? "calendar" : "film")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(palette.textPrimary)
+                            .padding(.horizontal, Spacing.s)
+                            .padding(.vertical, 6)
+                            .glassEffect(.regular, in: Capsule())
+                    }
+                }
+                .contentTransition(.opacity)
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 ShareLink(item: "\(film.title) at \(app.config.tenant.name)") { Image(systemName: "square.and.arrow.up") }
                     .accessibilityLabel("Share film")
@@ -68,7 +93,24 @@ struct FilmDetailView: View {
     /// How far the backdrop extends above the hero, enough to reach the top of any device.
     private static let heroBleed: CGFloat = 240
 
-    private var tint: Color { film.backdrop?.dominantColor.map { Color(hex: $0) } ?? palette.surface }
+    /// Content colour from the artwork (computed on the server, so nothing is analysed on the phone).
+    private var tint: Color {
+        (film.backdrop?.dominantColor ?? film.poster?.dominantColor).map { Color(hex: $0) } ?? palette.surface
+    }
+
+    /// Roughly where the big title leaves the screen.
+    private static let titleScrollThreshold: CGFloat = 360
+
+    private var pageBackground: some View {
+        ZStack {
+            palette.background
+            LinearGradient(stops: [.init(color: tint.mix(with: palette.background, by: 0.45), location: 0),
+                                   .init(color: tint.mix(with: palette.background, by: 0.75), location: 0.35),
+                                   .init(color: palette.background, location: 0.75)],
+                           startPoint: .top, endPoint: .bottom)
+        }
+        .ignoresSafeArea()
+    }
 
     /// The backdrop fills the whole hero, from under the navigation bar to below the
     /// title, and fades into the page background, so there is never a cut-off edge.
@@ -76,10 +118,9 @@ struct FilmDetailView: View {
         VStack(spacing: Spacing.m) {
             ArtworkImage(film.poster, accessibilityLabel: "\(film.title) poster")
                 .aspectRatio(2 / 3, contentMode: .fit)
-                .frame(width: sizeClass == .regular ? 240 : 200)
+                .frame(width: sizeClass == .regular ? 240 : 210)
                 .clipShape(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous).strokeBorder(.white.opacity(0.1)))
-                .shadow(color: .black.opacity(0.55), radius: 28, y: 16)
+                .tiltEffect(cornerRadius: palette.cornerRadius.large)
             VStack(spacing: Spacing.xs) {
                 Text(film.title)
                     .font(.largeTitle.weight(.bold))
@@ -94,19 +135,16 @@ struct FilmDetailView: View {
         .frame(maxWidth: .infinity)
         .background(alignment: .top) {
             ArtworkImage(film.backdrop)
-                .overlay(
-                    LinearGradient(
-                        stops: [
-                            // Light shade at the very top keeps the back and share buttons readable.
-                            .init(color: palette.background.opacity(0.35), location: 0),
-                            .init(color: tint.opacity(0.15), location: 0.35),
-                            .init(color: palette.background.opacity(0.75), location: 0.8),
-                            .init(color: palette.background, location: 1),
-                        ],
-                        startPoint: .top, endPoint: .bottom
-                    )
-                )
+                // Light shade at the very top keeps the back and share buttons readable.
+                .overlay(LinearGradient(colors: [palette.background.opacity(0.4), .clear], startPoint: .top, endPoint: .center))
+                // Fade the artwork out into the film-coloured page rather than to a flat colour.
+                .mask(LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: 0.45), .init(color: .clear, location: 1)],
+                                     startPoint: .top, endPoint: .bottom))
                 .clipped()
+                // Parallax: the artwork scrolls at a little over half speed. Runs on the GPU, no re-layout.
+                .visualEffect { content, proxy in
+                    content.offset(y: -proxy.frame(in: .scrollView).minY * 0.45)
+                }
                 // Extend the image upwards past the hero's own frame: behind the navigation bar
                 // and status bar to the top of the screen. Anything above the screen is never seen.
                 .padding(.top, -Self.heroBleed)
@@ -114,25 +152,44 @@ struct FilmDetailView: View {
         }
     }
 
-    private var subtitle: String {
-        var parts: [String] = [film.certificate]
-        if let d = app.formatters.date(fromLocal: film.releaseDate, timeZone: app.config.tenant.timeZone) {
-            parts.append(film.status == .comingSoon ? "Out \(app.formatters.longDate(d, timeZone: app.config.tenant.timeZone))" : app.formatters.shortDate(d, timeZone: app.config.tenant.timeZone))
+    /// Short status for the chip at the top: release date for coming soon, otherwise now showing.
+    private var statusChip: String? {
+        if film.status == .comingSoon, let d = app.formatters.date(fromLocal: film.releaseDate, timeZone: app.config.tenant.timeZone) {
+            return "Out \(app.formatters.shortDate(d, timeZone: app.config.tenant.timeZone))"
         }
-        parts.append(app.formatters.runtime(film.runtimeMinutes))
-        return parts.joined(separator: " · ")
+        return film.status == .comingSoon ? "Coming soon" : "Now showing"
+    }
+
+    /// Date and how far away it is, like "14 November 2026 · In 9 days". Certificate and runtime sit in the facts row.
+    private var subtitle: String {
+        let tz = app.config.tenant.timeZone
+        guard let d = app.formatters.date(fromLocal: film.releaseDate, timeZone: tz) else { return app.formatters.runtime(film.runtimeMinutes) }
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: tz) ?? .current
+        let days = cal.dateComponents([.day], from: cal.startOfDay(for: Date()), to: cal.startOfDay(for: d)).day ?? 0
+        let when = days > 1 ? "In \(days) days" : days == 1 ? "Tomorrow" : days == 0 ? "Out today" : "Now showing"
+        return "\(app.formatters.longDate(d, timeZone: tz)) · \(when)"
     }
 
     private func actions(proxy: ScrollViewProxy) -> some View {
         HStack(spacing: Spacing.s) {
             Button {
                 withAnimation { proxy.scrollTo("showtimes", anchor: .top) }
-            } label: { Label(film.status == .comingSoon ? "Book Ahead" : "Book Tickets", systemImage: "ticket") }
-                .buttonStyle(.cinemaPrimary)
+            } label: {
+                Label(film.status == .comingSoon ? "Book Ahead" : "Book Tickets", systemImage: "ticket.fill")
+                    .font(.headline).frame(maxWidth: .infinity, minHeight: 36)
+            }
+            .buttonStyle(.glassProminent)
+            .tint(palette.actionPrimary)
+            .controlSize(.large)
             if let trailer = film.trailers.first {
-                Button { play(trailer) } label: { Label("Trailer", systemImage: "play.fill") }
-                    .buttonStyle(.cinemaGlass)
-                    .disabled(trailer.url == nil)
+                Button { play(trailer) } label: {
+                    Label("Trailer", systemImage: "play.fill")
+                        .font(.headline).frame(maxWidth: .infinity, minHeight: 36)
+                }
+                .buttonStyle(.glass)
+                .controlSize(.large)
+                .disabled(trailer.url == nil)
                     .accessibilityHint(trailer.url == nil ? "Trailer not available in this build" : "")
             }
         }
@@ -146,24 +203,31 @@ struct FilmDetailView: View {
                 .font(.body)
                 .foregroundStyle(palette.textSecondary)
                 .lineLimit(expanded ? nil : 3)
-            Button(expanded ? "Show less" : "Show more") { withAnimation { expanded.toggle() } }
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(palette.textMuted)
+            Button { withAnimation(.snappy) { expanded.toggle() } } label: {
+                HStack(spacing: 4) {
+                    Text(expanded ? "Show less" : "Show more")
+                    Image(systemName: "chevron.down").rotationEffect(.degrees(expanded ? 180 : 0))
+                }
+            }
+            .font(.headline)
+            .foregroundStyle(palette.textMuted)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .pagePadding()
     }
 
-    /// Two-by-two facts in one card, so long values (formats) wrap instead of running off screen.
+    /// Facts as one swipeable row, label over value, no box around them.
     private var facts: some View {
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: Spacing.m, alignment: .topLeading), GridItem(.flexible(), alignment: .topLeading)], alignment: .leading, spacing: Spacing.m) {
-            StatItem(icon: "clock.fill", label: "Runtime", value: app.formatters.runtime(film.runtimeMinutes), spokenValue: app.formatters.spokenRuntime(film.runtimeMinutes))
-            StatItem(icon: "shield.lefthalf.filled", label: "Certificate", value: film.certificate)
-            if let g = film.genres.first { StatItem(icon: "theatermasks.fill", label: "Genre", value: g) }
-            if !film.formats.isEmpty { StatItem(icon: "film", label: "Formats", value: film.formats.joined(separator: ", ")) }
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .top, spacing: Spacing.xl) {
+                StatItem(icon: "clock.fill", label: "Runtime", value: app.formatters.runtime(film.runtimeMinutes), spokenValue: app.formatters.spokenRuntime(film.runtimeMinutes)).fixedSize()
+                if let g = film.genres.first { StatItem(icon: "theatermasks.fill", label: "Genre", value: g).fixedSize() }
+                StatItem(icon: "shield.lefthalf.filled", label: "Certificate", value: film.certificate).fixedSize()
+                ForEach(film.formats, id: \.self) { f in StatItem(icon: "film", label: "Format", value: f).fixedSize() }
+            }
+            .pagePadding()
         }
-        .cardStyle()
-        .pagePadding()
+        .scrollClipDisabled()
     }
 
     @ViewBuilder
@@ -175,25 +239,25 @@ struct FilmDetailView: View {
                     HStack(alignment: .top, spacing: Spacing.item) {
                         ForEach(film.trailers) { t in
                             Button { play(t) } label: {
-                                VStack(alignment: .leading, spacing: Spacing.xs) {
-                                    ArtworkImage(film.backdrop)
-                                        .frame(width: 280, height: 158)
-                                        .overlay {
-                                            // A solid disc reads clearly over any artwork.
-                                            Image(systemName: "play.fill")
-                                                .font(.title2)
-                                                .foregroundStyle(.white)
-                                                .frame(width: 56, height: 56)
-                                                .background(.black.opacity(0.55), in: Circle())
-                                                .opacity(t.url == nil ? 0.5 : 1)
+                                ArtworkImage(film.backdrop)
+                                    .frame(width: 300, height: 170)
+                                    .overlay(LinearGradient(colors: [.clear, .black.opacity(0.7)], startPoint: .center, endPoint: .bottom))
+                                    .overlay(alignment: .bottomLeading) {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(t.title).font(.headline).foregroundStyle(.white).lineLimit(1)
+                                            Text(t.url == nil ? "Trailer source not configured" : "Trailer").font(.subheadline).foregroundStyle(.white.opacity(0.7))
                                         }
-                                        .clipShape(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous))
-                                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                                        Text(t.title).font(.subheadline.weight(.semibold)).foregroundStyle(palette.textPrimary)
-                                        Text(t.url == nil ? "Licensed trailer source not configured" : "Trailer").font(.caption).foregroundStyle(palette.textMuted)
+                                        .padding(Spacing.m)
                                     }
-                                }
-                                .frame(width: 280, alignment: .leading)
+                                    .overlay {
+                                        Image(systemName: "play.fill")
+                                            .font(.title3)
+                                            .foregroundStyle(.white)
+                                            .frame(width: 48, height: 48)
+                                            .glassEffect(.regular, in: Circle())
+                                            .opacity(t.url == nil ? 0.5 : 1)
+                                    }
+                                    .clipShape(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous))
                             }
                             .buttonStyle(.plain)
                             .disabled(t.url == nil)
