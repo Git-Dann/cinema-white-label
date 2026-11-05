@@ -106,9 +106,13 @@ final class ScreenshotTests: XCTestCase {
         sleep(1)
         shot("account-membership")
 
-        // The tab bar minimises while scrolling down; scroll back up so it is full size again.
-        app.swipeDown()
-        sleep(1)
+        // The tab bar minimises while scrolling down. Tapping the current tab scrolls
+        // to the top, which brings the full bar back; retry a few times to be safe.
+        for _ in 0..<4 where !(app.tabBars.buttons["Films"].exists && app.tabBars.buttons["Films"].isHittable) {
+            app.tabBars.buttons["Account"].firstMatch.tap()
+            app.swipeDown()
+            sleep(1)
+        }
 
         // Films and Cinemas tabs, for the layout review.
         app.tabBars.buttons["Films"].tap()
