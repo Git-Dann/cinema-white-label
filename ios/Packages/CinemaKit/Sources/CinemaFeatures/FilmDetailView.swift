@@ -48,20 +48,11 @@ struct FilmDetailView: View {
         .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                // A glass status chip over the artwork; once the big title scrolls away it becomes the title.
-                Group {
-                    if scrolledPastTitle {
-                        Text(film.title).font(.headline).lineLimit(1).foregroundStyle(palette.textPrimary)
-                    } else if let status = statusChip {
-                        Label(status, systemImage: film.status == .comingSoon ? "calendar" : "film")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(palette.textPrimary)
-                            .padding(.horizontal, Spacing.s)
-                            .padding(.vertical, 6)
-                            .glassEffect(.regular, in: Capsule())
-                    }
-                }
-                .contentTransition(.opacity)
+                // Nothing over the artwork; the title fades into the bar once the big title scrolls away.
+                Text(film.title).font(.headline).lineLimit(1)
+                    .foregroundStyle(palette.textPrimary)
+                    .opacity(scrolledPastTitle ? 1 : 0)
+                    .accessibilityHidden(!scrolledPastTitle)
             }
             ToolbarItem(placement: .topBarTrailing) {
                 ShareLink(item: "\(film.title) at \(app.config.tenant.name)") { Image(systemName: "square.and.arrow.up") }
@@ -135,6 +126,9 @@ struct FilmDetailView: View {
         .frame(maxWidth: .infinity)
         .background(alignment: .top) {
             ArtworkImage(film.backdrop)
+                // A soft blur, as Apple does behind artwork in TV and Music: keeps the colour and
+                // mood without competing with the poster. Opaque so the edges stay solid.
+                .blur(radius: 16, opaque: true)
                 // Light shade at the very top keeps the back and share buttons readable.
                 .overlay(LinearGradient(colors: [palette.background.opacity(0.4), .clear], startPoint: .top, endPoint: .center))
                 // Fade the artwork out into the film-coloured page rather than to a flat colour.
@@ -150,14 +144,6 @@ struct FilmDetailView: View {
                 .padding(.top, -Self.heroBleed)
                 .accessibilityHidden(true)
         }
-    }
-
-    /// Short status for the chip at the top: release date for coming soon, otherwise now showing.
-    private var statusChip: String? {
-        if film.status == .comingSoon, let d = app.formatters.date(fromLocal: film.releaseDate, timeZone: app.config.tenant.timeZone) {
-            return "Out \(app.formatters.shortDate(d, timeZone: app.config.tenant.timeZone))"
-        }
-        return film.status == .comingSoon ? "Coming soon" : "Now showing"
     }
 
     /// Date and how far away it is, like "14 November 2026 · In 9 days". Certificate and runtime sit in the facts row.
@@ -219,7 +205,7 @@ struct FilmDetailView: View {
     /// Facts as one swipeable row, label over value, no box around them.
     private var facts: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: Spacing.xl) {
+            HStack(alignment: .lastTextBaseline, spacing: Spacing.xl) {
                 StatItem(icon: "clock.fill", label: "Runtime", value: app.formatters.runtime(film.runtimeMinutes), spokenValue: app.formatters.spokenRuntime(film.runtimeMinutes)).fixedSize()
                 if let g = film.genres.first { StatItem(icon: "theatermasks.fill", label: "Genre", value: g).fixedSize() }
                 StatItem(icon: "shield.lefthalf.filled", label: "Certificate", value: film.certificate).fixedSize()
