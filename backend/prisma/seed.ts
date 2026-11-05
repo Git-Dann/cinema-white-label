@@ -231,10 +231,13 @@ async function main() {
     const release = await config.publish(tenant, null, { note: 'Initial seed' });
     const snapshot = await config.current(tenant.id);
     const dir = join(__dirname, '../../shared/fixtures/tenant-config');
-    mkdirSync(dir, { recursive: true });
-    const json = JSON.stringify({ ...snapshot, publishedAt: '2026-01-01T00:00:00.000Z' }, null, 2) + '\n';
-    writeFileSync(join(dir, `${t.slug}.json`), json);
-    writeFileSync(join(__dirname, `../../ios/Packages/CinemaKit/Sources/CinemaCore/PreviewData/tenant-config-${t.slug}.json`), json);
+    if (process.env.WRITE_FIXTURES !== 'false') mkdirSync(dir, { recursive: true });
+    // Refresh the committed fallback configs only when asked (ids are random per seed).
+    if (process.env.WRITE_FIXTURES !== 'false') {
+      const json = JSON.stringify({ ...snapshot, publishedAt: '2026-01-01T00:00:00.000Z' }, null, 2) + '\n';
+      writeFileSync(join(dir, `${t.slug}.json`), json);
+      writeFileSync(join(__dirname, `../../ios/Packages/CinemaKit/Sources/CinemaCore/PreviewData/tenant-config-${t.slug}.json`), json);
+    }
     console.log(`  Published config v${release.version}`);
   }
 

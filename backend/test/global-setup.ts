@@ -11,7 +11,7 @@ export default async function globalSetup() {
   if (!/_test(\?|$)/.test(url)) throw new Error(`Refusing to reset a non-test database: ${url}`);
   process.env.DATABASE_URL = url;
   process.env.AUTH_SECRET = 'test-secret';
-  const env = { ...process.env, DATABASE_URL: url, AUTH_SECRET: 'test-secret' };
+  const env = { ...process.env, DATABASE_URL: url, AUTH_SECRET: 'test-secret', WRITE_FIXTURES: 'false' };
   // Non-destructive: applies pending migrations only. The seed then replaces fixture data.
   execSync('npx prisma migrate deploy', { cwd: root, env, stdio: 'pipe' });
   execSync('npx ts-node --transpile-only prisma/seed.ts', { cwd: root, env, stdio: 'pipe' });

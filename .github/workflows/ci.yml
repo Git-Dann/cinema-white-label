@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: Contracts
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @cinema/contracts build
+      - run: pnpm --filter @cinema/contracts test
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: cinema
+          POSTGRES_PASSWORD: cinema
+          POSTGRES_DB: cinema_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U cinema"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://cinema:cinema@localhost:5432/cinema_test
+      DATABASE_URL: postgresql://cinema:cinema@localhost:5432/cinema_test
+      AUTH_SECRET: ci-only-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @cinema/contracts build
+      - name: Generate Prisma client
+        working-directory: backend
+        run: npx prisma generate
+      - name: Typecheck
+        working-directory: backend
+        run: npx tsc --noEmit -p tsconfig.json
+      - name: Unit and integration tests
+        working-directory: backend
+        run: pnpm test
+      - name: OpenAPI schema is up to date
+        working-directory: backend
+        run: |
+          pnpm openapi
+          git diff --exit-code -- ../shared/openapi || (echo "::error::shared/openapi/openapi.json is stale. Run 'pnpm openapi' in backend and commit." && exit 1)
+      - name: Layout fixtures are up to date
+        working-directory: backend
+        run: |
+          pnpm fixtures:layouts
+          git diff --exit-code -- ../shared/fixtures/layouts ../ios/Packages/CinemaKit/Sources/CinemaCore/PreviewData || (echo "::error::Layout fixtures are stale. Run 'pnpm fixtures:layouts' in backend and commit." && exit 1)
+
+  swift:
+    name: CinemaCore (Swift, Linux)
+    runs-on: ubuntu-24.04
+    container: swift:6.2-noble
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test
+        working-directory: ios/Packages/CinemaKit
+        run: swift test
+
+  admin:
+    name: Admin portal
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @cinema/contracts build
+      - run: pnpm --filter @cinema/admin build
