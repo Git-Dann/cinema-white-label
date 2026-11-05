@@ -11,10 +11,14 @@
 .hero-stage { display: flex; justify-content: flex-end; align-items: flex-start; padding-right: var(--s-8);
   /* a lit studio sweep in the sky tones (backgrounds.md), still: one light, no grain, no motion */
   background: radial-gradient(60% 50% at 62% 38%, #e3ebf2 0%, #d3dfe8 30%, #c3d3de 58%, #b4c7d4 82%, #a9bfcd 100%); }
-.device--hero { position: relative; z-index: 1; width: min(50%, 316px); margin-top: var(--s-8); flex: none; }
+/* the phone is sized from the frame itself (container units), so a tall window gets a taller phone,
+   never a fixed phone pinned to the top of an empty frame: about 78% of the frame's height, 7% down */
+.hero-stage { container-type: size; }
+.device--hero { position: relative; z-index: 1; width: min(76cqw, 34cqh, 440px); margin-top: 7cqh; flex: none; }
 .hero .ly-float { width: min(232px, calc(100% - 2 * var(--s-5))); }
 @media (max-width: 1023px) {
   .hero-stage { min-height: 280px; justify-content: center; padding-right: 0; }
+  .hero-stage { container-type: normal; }
   .device--hero { width: min(64%, 300px); margin-top: var(--s-6); }
   .hero .ly-float { display: none; }
 }
