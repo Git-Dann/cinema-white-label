@@ -184,7 +184,6 @@ struct MembershipPlansView: View {
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) { cta }
         .sheet(item: $buying) { MembershipPurchaseSheet(plan: $0) }
-        .onAppear { if selected == nil { selected = plans.featuredPlanID ?? plans.first?.id } }
     }
 
     private var header: some View {
@@ -201,20 +200,30 @@ struct MembershipPlansView: View {
 
     private var pager: some View {
         VStack(spacing: Spacing.m) {
+            // One card per swipe, always centred, with the neighbours peeking in
+            // evenly on both sides. Equal margins mean the last card can centre too,
+            // so a card is never left half off screen.
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: Spacing.item) {
+                HStack(spacing: Spacing.item) {
                     ForEach(plans) { plan in
                         PlanCard(plan: plan, featured: plan.id == plans.featuredPlanID, isCurrent: app.membership?.isActive == true && app.membership?.plan.id == plan.id)
-                            .containerRelativeFrame(.horizontal) { w, _ in plans.count > 1 ? w - Spacing.page * 2 - 24 : w - Spacing.page * 2 }
+                            .containerRelativeFrame(.horizontal)
                             .id(plan.id)
                             .onTapGesture { withAnimation(.snappy) { selected = plan.id } }
                     }
                 }
                 .scrollTargetLayout()
             }
-            .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
-            .scrollTargetBehavior(.viewAligned)
-            .scrollPosition(id: $selected)
+            .safeAreaPadding(.horizontal, plans.count > 1 ? Spacing.page + 14 : Spacing.page)
+            .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
+            .scrollPosition(id: $selected, anchor: .center)
+            // Start on the featured plan once the cards are laid out (and again if the
+            // plans arrive after the screen opens), so the dots and button match the card.
+            .task(id: plans.map(\.id)) {
+                guard selected == nil || !plans.contains(where: { $0.id == selected }) else { return }
+                await Task.yield()
+                selected = plans.featuredPlanID ?? plans.first?.id
+            }
 
             if plans.count > 1 {
                 HStack(spacing: 6) {
