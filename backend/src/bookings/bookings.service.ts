@@ -13,6 +13,7 @@ import { PricingService, TicketSelection } from '../pricing/pricing.service';
 import { AvailabilityEvents } from '../screenings/availability.events';
 import { WALLET_ISSUER, WalletPassIssuer } from '../wallet/wallet.issuer';
 import { CommerceService, ConcessionLine, ConcessionSelection, venueFeatures } from '../commerce/commerce.service';
+import { LoyaltyService, MembershipService, PointsMath, programDto } from '../loyalty/loyalty.service';
 
 const REF_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function bookingReference(): string {
@@ -24,12 +25,24 @@ export interface BasketExtras {
   concessions?: ConcessionSelection[];
   voucherCode?: string;
   fulfilment?: 'collect' | 'seatDelivery';
+  /** Loyalty points to spend, in whole-pound steps. */
+  loyaltyPoints?: number;
 }
 
 export interface CheckoutInput extends BasketExtras {
   holdId: string;
   tickets: TicketSelection[];
   payment: { type: 'simulated'; outcome?: 'approve' | 'decline' };
+}
+
+function loyaltyFields(q: { membership: { planName: string; discountMinor: number } | null; loyalty: { pointsRedeemed: number; pointsDiscountMinor: number; pointsToEarn: number } | null }) {
+  return {
+    membershipDiscountMinor: q.membership?.discountMinor ?? 0,
+    membershipPlanName: q.membership?.planName ?? null,
+    pointsRedeemed: q.loyalty?.pointsRedeemed ?? 0,
+    pointsDiscountMinor: q.loyalty?.pointsDiscountMinor ?? 0,
+    pointsEarned: q.loyalty?.pointsToEarn ?? 0,
+  };
 }
 
 const bookingInclude = {
@@ -63,6 +76,8 @@ export class BookingsService {
     @Inject(PAYMENT_PROVIDER) private readonly payments: PaymentProvider,
     @Inject(WALLET_ISSUER) private readonly wallet: WalletPassIssuer,
     private readonly commerce: CommerceService,
+    private readonly loyalty: LoyaltyService,
+    private readonly memberships: MembershipService,
   ) {}
 
   private async loadHoldContext(tenant: Tenant, customerId: string, holdId: string) {
@@ -77,12 +92,19 @@ export class BookingsService {
   async quote(tenant: Tenant, customerId: string, holdId: string, tickets: TicketSelection[], extras: BasketExtras = {}) {
     const { hold, layout } = await this.loadHoldContext(tenant, customerId, holdId);
     this.assertTicketsMatchHold(hold.seatIds, tickets);
-    return this.fullQuote(tenant, hold.screening, layout, tickets, extras);
+    return this.fullQuote(tenant, customerId, hold.screening, layout, tickets, extras);
   }
 
-  /** Tickets + food and drink + voucher + fees, all priced on the server. */
+  /**
+   * Tickets + food and drink, then discounts in a fixed order, all priced on the server:
+   *   1. membership benefits (ticket and food percentages, booking fee waiver)
+   *   2. voucher, on the amounts after membership discounts
+   *   3. loyalty points, in whole pounds, never below zero; booking fees are always paid in money
+   * Points are earned on what is left to pay, excluding fees, times the membership multiplier.
+   */
   private async fullQuote(
     tenant: Tenant,
+    customerId: string,
     screening: Parameters<PricingService['quote']>[1] & { venue: import('@prisma/client').Venue },
     layout: AuditoriumLayout,
     tickets: TicketSelection[],
@@ -95,17 +117,58 @@ export class BookingsService {
     if (fulfilment === 'seatDelivery' && (!venueFeatures(screening.venue).seatDelivery || concessions.length === 0)) {
       throw Errors.validation('Seat delivery is not available for this order');
     }
-    const voucher = extras.voucherCode ? await this.commerce.voucherDiscount(tenant, extras.voucherCode, base.subtotalMinor, concessionsMinor) : null;
-    const discountMinor = voucher?.discountMinor ?? 0;
+
+    // 1. Membership
+    const [member, program] = await Promise.all([this.memberships.active(tenant.id, customerId), this.loyalty.program(tenant.id)]);
+    const ent = member?.entitlements;
+    const memberTickets = ent ? Math.floor((base.subtotalMinor * ent.ticketDiscountPercent) / 100) : 0;
+    const memberFood = ent ? Math.floor((concessionsMinor * ent.foodDiscountPercent) / 100) : 0;
+    const feeWaivedMinor = ent?.bookingFeeWaived ? base.feesMinor : 0;
+    const feesMinor = base.feesMinor - feeWaivedMinor;
+    const membershipDiscountMinor = memberTickets + memberFood;
+
+    // 2. Voucher
+    const voucher = extras.voucherCode
+      ? await this.commerce.voucherDiscount(tenant, extras.voucherCode, base.subtotalMinor - memberTickets, concessionsMinor - memberFood)
+      : null;
+    const voucherMinor = voucher?.discountMinor ?? 0;
+    const goodsAfterDiscounts = base.subtotalMinor + concessionsMinor - membershipDiscountMinor - voucherMinor;
+
+    // 3. Points
+    if (extras.loyaltyPoints && !program) throw Errors.pointsInvalid('Points are not available');
+    const balance = program ? await this.loyalty.balance(customerId) : 0;
+    const points = program ? PointsMath.redeem(program, balance, extras.loyaltyPoints ?? 0, goodsAfterDiscounts) : { points: 0, discountMinor: 0 };
+    const pointsToEarn = program ? PointsMath.earn(program, goodsAfterDiscounts - points.discountMinor, ent?.pointsMultiplier ?? 1) : 0;
+
+    const discounts = [
+      ...(membershipDiscountMinor ? [{ kind: 'membership', label: `${member!.plan.name} member discount`, amountMinor: membershipDiscountMinor }] : []),
+      ...(voucher ? [{ kind: 'voucher', label: voucher.description, amountMinor: voucherMinor }] : []),
+      ...(points.points ? [{ kind: 'points', label: `${points.points} points`, amountMinor: points.discountMinor }] : []),
+    ];
+    const discountMinor = membershipDiscountMinor + voucherMinor + points.discountMinor;
     return {
       ...base,
+      feesMinor,
+      feeLabel: feesMinor > 0 ? base.feeLabel : null,
       concessions,
       concessionsMinor,
       fulfilment,
-      voucher: voucher ? { code: voucher.code, description: voucher.description, discountMinor } : null,
+      voucher: voucher ? { code: voucher.code, description: voucher.description, discountMinor: voucherMinor } : null,
+      discounts,
       discountMinor,
-      totalMinor: base.subtotalMinor + concessionsMinor + base.feesMinor - discountMinor,
+      totalMinor: base.subtotalMinor + concessionsMinor + feesMinor - discountMinor,
       voucherId: voucher?.id ?? null,
+      membership: member ? { planName: member.plan.name, discountMinor: membershipDiscountMinor, feeWaivedMinor } : null,
+      loyalty: program
+        ? {
+            ...programDto(program),
+            balance,
+            pointsRedeemed: points.points,
+            pointsDiscountMinor: points.discountMinor,
+            pointsToEarn,
+            maxRedeemablePoints: PointsMath.maxRedeemable(program, balance, goodsAfterDiscounts),
+          }
+        : null,
     };
   }
 
@@ -125,7 +188,7 @@ export class BookingsService {
       throw Errors.validation('Simulated payments are disabled in production');
     }
 
-    const quote = await this.fullQuote(tenant, hold.screening, layout, input.tickets, input);
+    const quote = await this.fullQuote(tenant, customerId, hold.screening, layout, input.tickets, input);
 
     // 1. Pending booking (reused on retry after a decline).
     const booking =
@@ -134,7 +197,7 @@ export class BookingsService {
         data: {
           tenantId: tenant.id, reference: bookingReference(), customerId, screeningId: hold.screeningId, holdId: hold.id, status: 'PENDING_PAYMENT',
           subtotalMinor: quote.subtotalMinor, concessionsMinor: quote.concessionsMinor, feesMinor: quote.feesMinor, discountMinor: quote.discountMinor, totalMinor: quote.totalMinor, currency: quote.currency,
-          voucherCode: quote.voucher?.code ?? null, fulfilment: quote.fulfilment,
+          voucherCode: quote.voucher?.code ?? null, fulfilment: quote.fulfilment, ...loyaltyFields(quote),
         },
       }));
     if (booking.status === 'CONFIRMED') return this.get(tenant.id, customerId, booking.id);
@@ -142,7 +205,7 @@ export class BookingsService {
       where: { id: booking.id },
       data: {
         subtotalMinor: quote.subtotalMinor, concessionsMinor: quote.concessionsMinor, feesMinor: quote.feesMinor, discountMinor: quote.discountMinor,
-        totalMinor: quote.totalMinor, voucherCode: quote.voucher?.code ?? null, fulfilment: quote.fulfilment,
+        totalMinor: quote.totalMinor, voucherCode: quote.voucher?.code ?? null, fulfilment: quote.fulfilment, ...loyaltyFields(quote),
       },
     });
 
@@ -188,6 +251,10 @@ export class BookingsService {
           const n = await tx.$executeRaw`UPDATE "Voucher" SET "redemptions" = "redemptions" + 1 WHERE "id" = ${quote.voucherId} AND ("maxRedemptions" IS NULL OR "redemptions" < "maxRedemptions")`;
           if (n !== 1) throw Errors.voucherInvalid('This code has already been fully used');
         }
+        await this.loyalty.applyCheckout(tx, {
+          tenantId: tenant.id, customerId, bookingId: booking.id, redeem: quote.loyalty?.pointsRedeemed ?? 0, earn: quote.loyalty?.pointsToEarn ?? 0,
+          description: `${hold.screening.film.title} · ${booking.reference}`,
+        });
         await tx.seatHold.update({ where: { id: hold.id }, data: { status: 'CONVERTED' } });
         await tx.booking.update({ where: { id: booking.id }, data: { status: 'CONFIRMED', confirmedAt: this.clock.now() } });
         await tx.admissionTicket.create({ data: { bookingId: booking.id, barcode: signAdmission(`CIN1.${booking.reference}.${booking.id}`) } });
@@ -237,7 +304,10 @@ export class BookingsService {
       venue: { id: s.venue.id, name: s.venue.name, timeZone: s.venue.timeZone, address: { line1: s.venue.addressLine1, city: s.venue.city, postcode: s.venue.postcode }, coordinate: { latitude: s.venue.latitude, longitude: s.venue.longitude } },
       auditorium: { id: s.auditorium.id, name: s.auditorium.name, screenNumber: s.auditorium.screenNumber },
       seats: b.seats.map((x) => ({ seatId: x.seatId, rowLabel: x.rowLabel, seatLabel: x.seatLabel, ticketTypeId: x.ticketTypeId, priceMinor: x.priceMinor })),
-      totals: { currency: b.currency, subtotalMinor: b.subtotalMinor, concessionsMinor: b.concessionsMinor, feesMinor: b.feesMinor, discountMinor: b.discountMinor, totalMinor: b.totalMinor, voucherCode: b.voucherCode },
+      totals: {
+        currency: b.currency, subtotalMinor: b.subtotalMinor, concessionsMinor: b.concessionsMinor, feesMinor: b.feesMinor, discountMinor: b.discountMinor, totalMinor: b.totalMinor, voucherCode: b.voucherCode,
+        membershipDiscountMinor: b.membershipDiscountMinor, membershipPlanName: b.membershipPlanName, pointsRedeemed: b.pointsRedeemed, pointsDiscountMinor: b.pointsDiscountMinor, pointsEarned: b.pointsEarned,
+      },
       concessions: b.concessions.map((c) => ({ name: c.name, quantity: c.quantity, modifiers: (c.modifiers as { label: string }[]).map((m) => m.label), lineTotalMinor: c.lineTotalMinor })),
       fulfilment: b.fulfilment,
       cancellation: {
@@ -272,6 +342,7 @@ export class BookingsService {
       await tx.bookingSeat.updateMany({ where: { bookingId: b.id }, data: { active: false } });
       await tx.screeningSeat.updateMany({ where: { screeningId: b.screeningId, bookingId: b.id, state: 'SOLD' }, data: { state: 'AVAILABLE', bookingId: null, holdId: null, version: { increment: 1 } } });
       await tx.booking.update({ where: { id: b.id }, data: { status: 'REFUNDED', cancelledAt: this.clock.now() } });
+      await this.loyalty.reverseBooking(tx, b);
       await tx.admissionTicket.updateMany({ where: { bookingId: b.id }, data: { status: 'VOID' } });
       await tx.walletPass.updateMany({ where: { bookingId: b.id }, data: { status: 'VOIDED' } });
       if (captured) {

@@ -14,6 +14,7 @@ import { ScreeningsService } from '../screenings/screenings.service';
 import { DemoWalletPassIssuer, WALLET_ISSUER } from '../wallet/wallet.issuer';
 import { BookingsService } from './bookings.service';
 import { CommerceService, concessionSelectionSchema } from '../commerce/commerce.service';
+import { LoyaltyModule } from '../loyalty/loyalty.module';
 
 const dateRe = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -73,6 +74,7 @@ const extras = {
   concessions: z.array(concessionSelectionSchema).max(30).default([]),
   voucherCode: z.string().max(40).optional(),
   fulfilment: z.enum(['collect', 'seatDelivery']).default('collect'),
+  loyaltyPoints: z.number().int().min(0).max(1_000_000).default(0),
 };
 const quoteBody = z.object({ holdId: z.string(), tickets: ticketsSchema, ...extras });
 const checkoutBody = z.object({
@@ -144,6 +146,7 @@ export class BookingController {
 }
 
 @Module({
+  imports: [LoyaltyModule],
   controllers: [ScreeningsController, BookingController],
   providers: [
     ScreeningsService,

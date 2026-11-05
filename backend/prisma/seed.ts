@@ -51,6 +51,8 @@ async function main() {
   await prisma.analyticsEvent.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.promotion.deleteMany();
+  await prisma.loyaltyLedgerEntry.deleteMany();
+  await prisma.loyaltyAccount.deleteMany();
   await prisma.adminUser.deleteMany();
   await prisma.tenant.deleteMany();
 
@@ -95,7 +97,7 @@ async function main() {
       markAssetId: null,
       splashAssetId: null,
       typography: t.slug === 'kestrel' ? { design: 'serif', headingWeight: 'bold' } : { design: 'default', headingWeight: 'heavy' },
-      features: { memberships: false, concessions: true, wallet: true, applePay: false, liveActivities: false, guestCheckout: true },
+      features: { memberships: t.slug === 'northlight', concessions: true, wallet: true, applePay: false, liveActivities: false, guestCheckout: true },
       home: [
         { id: 'featured', kind: 'featured', title: 'Featured', subtitle: 'Big screen picks this week' },
         { id: 'offers', kind: 'promotion', title: 'Offers' },
@@ -134,6 +136,19 @@ async function main() {
       });
     }
     for (const v of VOUCHERS) await prisma.voucher.create({ data: { tenantId: tenant.id, ...v } });
+
+    // Loyalty and memberships (Northlight only, so Kestrel shows the app without them).
+    if (t.slug === 'northlight') {
+      await prisma.loyaltyProgram.create({ data: { tenantId: tenant.id, name: 'Northlight Rewards', earnPointsPerPound: 10, redeemPointsPerPound: 200, minRedeemPoints: 200 } });
+      await prisma.membershipPlan.createMany({
+        data: [
+          { tenantId: tenant.id, name: 'Northlight Plus', description: '10% off tickets and food, no booking fees, 1.5× points.', priceMinor: 699, interval: 'month', sortOrder: 0,
+            entitlements: { ticketDiscountPercent: 10, foodDiscountPercent: 10, bookingFeeWaived: true, pointsMultiplier: 1.5 } },
+          { tenantId: tenant.id, name: 'Northlight Premiere', description: '25% off tickets, 15% off food, no booking fees, double points.', priceMinor: 1499, interval: 'month', sortOrder: 1,
+            entitlements: { ticketDiscountPercent: 25, foodDiscountPercent: 15, bookingFeeWaived: true, pointsMultiplier: 2 } },
+        ],
+      });
+    }
 
     // Pricing
     const ticketMeta: Record<string, { name: string; description: string; requiresProof: boolean; sortOrder: number }> = {

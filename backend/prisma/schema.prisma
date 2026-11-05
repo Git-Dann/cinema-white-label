@@ -25,35 +25,36 @@ model Tenant {
   createdAt DateTime @default(now())
 
   // Commercial rules (backend-evaluated, not part of the published theme config).
-  bookingFeeMinor      Int    @default(0)
-  maxTicketsPerBooking Int    @default(10)
-  holdDurationSeconds  Int    @default(480)
+  bookingFeeMinor           Int    @default(0)
+  maxTicketsPerBooking      Int    @default(10)
+  holdDurationSeconds       Int    @default(480)
   /// "allow" | "warn" | "block" — single empty seats left between selections.
-  orphanSeatPolicy     String @default("warn")
+  orphanSeatPolicy          String @default("warn")
   /// "none" | "warn" | "requireWheelchair"
-  companionPolicy      String @default("warn")
+  companionPolicy           String @default("warn")
   /// Customers may cancel up to this many minutes before the screening.
-  cancellationCutoffMinutes Int @default(60)
+  cancellationCutoffMinutes Int    @default(60)
 
-  settings        TenantSettings?
-  palettes        BrandPalette[]
-  releases        ConfigRelease[]
-  venues          Venue[]
-  films           Film[]
-  screenings      Screening[]
-  ticketTypes     TicketType[]
-  priceRules      PriceRule[]
-  formatSupplements FormatSupplement[]
-  customers       Customer[]
-  bookings        Booking[]
-  holds           SeatHold[]
-  adminUsers      AdminUser[]
-  mediaAssets     MediaAsset[]
-  membershipPlans MembershipPlan[]
+  settings           TenantSettings?
+  palettes           BrandPalette[]
+  releases           ConfigRelease[]
+  venues             Venue[]
+  films              Film[]
+  screenings         Screening[]
+  ticketTypes        TicketType[]
+  priceRules         PriceRule[]
+  formatSupplements  FormatSupplement[]
+  customers          Customer[]
+  bookings           Booking[]
+  holds              SeatHold[]
+  adminUsers         AdminUser[]
+  mediaAssets        MediaAsset[]
+  membershipPlans    MembershipPlan[]
   concessionProducts ConcessionProduct[]
-  seatCategories  SeatCategory[]
-  vouchers        Voucher[]
-  promotions      Promotion[]
+  seatCategories     SeatCategory[]
+  vouchers           Voucher[]
+  promotions         Promotion[]
+  loyaltyProgram     LoyaltyProgram?
 }
 
 /// Operator-configurable seat category: label, shape, icon and colours.
@@ -76,8 +77,8 @@ model SeatCategory {
 
 /// Editable draft configuration. Publishing snapshots it into a ConfigRelease.
 model TenantSettings {
-  tenantId String @id
-  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId  String   @id
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   /// Draft config: theme, palette, features, home sections, support, legal, booking.
   draft     Json
   updatedAt DateTime @updatedAt
@@ -187,10 +188,10 @@ model Venue {
 }
 
 model Auditorium {
-  id           String   @id @default(cuid())
+  id           String @id @default(cuid())
   tenantId     String
   venueId      String
-  venue        Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  venue        Venue  @relation(fields: [venueId], references: [id], onDelete: Cascade)
   name         String
   screenNumber Int
 
@@ -228,24 +229,24 @@ model AuditoriumLayoutVersion {
 // ---------------------------------------------------------------------------
 
 model Film {
-  id             String    @id @default(cuid())
-  tenantId       String
-  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  slug           String
-  title          String
-  tagline        String?
-  synopsis       String
-  releaseDate    DateTime  @db.Date
-  runtimeMinutes Int
-  certificate    String
-  genres         String[]
-  director       String?
-  cast           String[]
-  originalLanguage String  @default("en")
+  id               String   @id @default(cuid())
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  slug             String
+  title            String
+  tagline          String?
+  synopsis         String
+  releaseDate      DateTime @db.Date
+  runtimeMinutes   Int
+  certificate      String
+  genres           String[]
+  director         String?
+  cast             String[]
+  originalLanguage String   @default("en")
   /// Field-level provenance: { fieldName: providerId }.
-  provenance     Json      @default("{}")
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  provenance       Json     @default("{}")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   externalIds FilmExternalId[]
   assets      MediaAsset[]
@@ -471,6 +472,8 @@ model Customer {
   holds      SeatHold[]
   bookings   Booking[]
   favourites FavouriteVenue[]
+  loyalty    LoyaltyAccount?
+  membership Membership?
 }
 
 model FavouriteVenue {
@@ -491,37 +494,43 @@ enum BookingStatus {
 }
 
 model Booking {
-  id            String        @id @default(cuid())
-  tenantId      String
-  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  reference     String        @unique
-  customerId    String
-  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  screeningId   String
-  screening     Screening     @relation(fields: [screeningId], references: [id], onDelete: Cascade)
-  holdId        String        @unique
-  hold          SeatHold      @relation(fields: [holdId], references: [id])
-  status        BookingStatus
-  subtotalMinor Int
+  id                      String        @id @default(cuid())
+  tenantId                String
+  tenant                  Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  reference               String        @unique
+  customerId              String
+  customer                Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  screeningId             String
+  screening               Screening     @relation(fields: [screeningId], references: [id], onDelete: Cascade)
+  holdId                  String        @unique
+  hold                    SeatHold      @relation(fields: [holdId], references: [id])
+  status                  BookingStatus
+  subtotalMinor           Int
   /// Food and drink subtotal (included in totalMinor).
-  concessionsMinor Int        @default(0)
-  feesMinor     Int
-  discountMinor Int           @default(0)
-  voucherCode   String?
+  concessionsMinor        Int           @default(0)
+  feesMinor               Int
+  /// Sum of every discount (membership, voucher, points).
+  discountMinor           Int           @default(0)
+  voucherCode             String?
+  membershipDiscountMinor Int           @default(0)
+  membershipPlanName      String?
+  pointsRedeemed          Int           @default(0)
+  pointsDiscountMinor     Int           @default(0)
+  pointsEarned            Int           @default(0)
   /// "collect" | "seatDelivery"
-  fulfilment    String        @default("collect")
-  cancelledAt   DateTime?
-  totalMinor    Int
-  currency      String
-  createdAt     DateTime      @default(now())
-  confirmedAt   DateTime?
+  fulfilment              String        @default("collect")
+  cancelledAt             DateTime?
+  totalMinor              Int
+  currency                String
+  createdAt               DateTime      @default(now())
+  confirmedAt             DateTime?
 
-  seats      BookingSeat[]
-  payments   Payment[]
-  tickets    AdmissionTicket[]
-  walletPass WalletPass?
+  seats       BookingSeat[]
+  payments    Payment[]
+  tickets     AdmissionTicket[]
+  walletPass  WalletPass?
   concessions BookingConcession[]
-  refunds    Refund[]
+  refunds     Refund[]
 }
 
 model BookingConcession {
@@ -599,16 +608,16 @@ model Promotion {
 /// Sold seat. A partial unique index (see migration) guarantees a seat can only
 /// be actively sold once per screening, independent of application logic.
 model BookingSeat {
-  id           String     @id @default(cuid())
+  id           String  @id @default(cuid())
   bookingId    String
-  booking      Booking    @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  booking      Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   screeningId  String
   seatId       String
   rowLabel     String
   seatLabel    String
   ticketTypeId String
   priceMinor   Int
-  active       Boolean    @default(true)
+  active       Boolean @default(true)
 }
 
 enum PaymentStatus {
@@ -619,17 +628,17 @@ enum PaymentStatus {
 }
 
 model Payment {
-  id             String        @id @default(cuid())
-  tenantId       String
-  bookingId      String
-  booking        Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  provider       String
-  providerRef    String
-  status         PaymentStatus
-  amountMinor    Int
-  currency       String
-  failureReason  String?
-  createdAt      DateTime      @default(now())
+  id            String        @id @default(cuid())
+  tenantId      String
+  bookingId     String
+  booking       Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  provider      String
+  providerRef   String
+  status        PaymentStatus
+  amountMinor   Int
+  currency      String
+  failureReason String?
+  createdAt     DateTime      @default(now())
 
   @@unique([provider, providerRef])
 }
@@ -651,14 +660,14 @@ enum WalletPassStatus {
 }
 
 model WalletPass {
-  id                 String           @id @default(cuid())
-  bookingId          String           @unique
-  booking            Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  passTypeIdentifier String
-  serialNumber       String           @unique
+  id                  String           @id @default(cuid())
+  bookingId           String           @unique
+  booking             Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  passTypeIdentifier  String
+  serialNumber        String           @unique
   authenticationToken String
-  status             WalletPassStatus
-  updatedAt          DateTime         @updatedAt
+  status              WalletPassStatus
+  updatedAt           DateTime         @updatedAt
 }
 
 model IdempotencyRecord {
@@ -690,61 +699,127 @@ model AnalyticsEvent {
 // Phase 3 domains (modelled now so boundaries are explicit; not yet exposed)
 // ---------------------------------------------------------------------------
 
+/// Paid membership plan. Benefits are applied by the server at quote time.
+/// Entitlements (validated in code): { ticketDiscountPercent, foodDiscountPercent,
+/// bookingFeeWaived, pointsMultiplier }.
 model MembershipPlan {
-  id          String  @id @default(cuid())
-  tenantId    String
-  tenant      Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  name        String
-  /// e.g. { "monthlyFreeTickets": 4, "foodDiscountPercent": 10 }
+  id           String       @id @default(cuid())
+  tenantId     String
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name         String
+  description  String       @default("")
   entitlements Json
-  priceMinor  Int
-  interval    String
+  priceMinor   Int
+  /// "month" | "year"
+  interval     String
+  active       Boolean      @default(true)
+  sortOrder    Int          @default(0)
+  createdAt    DateTime     @default(now())
+  memberships  Membership[]
+}
+
+/// A customer's membership. One per customer; renewing extends the period.
+/// Renewal is manual until a real payment provider supports recurring billing.
+model Membership {
+  id               String               @id @default(cuid())
+  tenantId         String
+  customerId       String               @unique
+  customer         Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  planId           String
+  plan             MembershipPlan       @relation(fields: [planId], references: [id])
+  startedAt        DateTime
+  currentPeriodEnd DateTime
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  purchases        MembershipPurchase[]
+
+  @@index([tenantId, planId])
+}
+
+model MembershipPurchase {
+  id           String     @id @default(cuid())
+  tenantId     String
+  membershipId String
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  planId       String
+  provider     String
+  providerRef  String
+  amountMinor  Int
+  currency     String
+  periodStart  DateTime
+  periodEnd    DateTime
+  createdAt    DateTime   @default(now())
+
+  @@unique([provider, providerRef])
 }
 
 model ConcessionProduct {
-  id            String   @id @default(cuid())
-  tenantId      String
-  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   /// Null = available at every venue.
-  venueId       String?
-  sku           String
-  name          String
-  description   String?
-  category      String
-  priceMinor    Int
-  allergens     String[]
-  dietary       String[]
-  calories      Int?
+  venueId        String?
+  sku            String
+  name           String
+  description    String?
+  category       String
+  priceMinor     Int
+  allergens      String[]
+  dietary        String[]
+  calories       Int?
   /// "inStock" | "low" | "out"
-  stockStatus   String   @default("inStock")
-  available     Boolean  @default(true)
+  stockStatus    String   @default("inStock")
+  available      Boolean  @default(true)
   /// [{ id, name, min, max, options: [{ id, name, priceMinor }] }]
-  modifierGroups Json    @default("[]")
+  modifierGroups Json     @default("[]")
   /// Bundle components shown to the customer, e.g. ["Large popcorn", "2 × regular drink"].
-  bundleItems   String[]
-  imageAssetId  String?
-  sortOrder     Int      @default(0)
+  bundleItems    String[]
+  imageAssetId   String?
+  sortOrder      Int      @default(0)
 
   @@unique([tenantId, sku])
 }
 
 /// Phase 3: loyalty points ledger (internal; no external scheme integrated).
-model LoyaltyAccount {
-  id         String   @id @default(cuid())
-  tenantId   String
-  customerId String   @unique
-  points     Int      @default(0)
-  tier       String   @default("standard")
-  updatedAt  DateTime @updatedAt
+/// Operator loyalty scheme. Points are earned on what the customer paid
+/// (excluding booking fees) and redeemed in whole-pound steps.
+model LoyaltyProgram {
+  id                   String   @id @default(cuid())
+  tenantId             String   @unique
+  tenant               Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name                 String
+  enabled              Boolean  @default(true)
+  earnPointsPerPound   Int
+  redeemPointsPerPound Int
+  minRedeemPoints      Int      @default(0)
+  updatedAt            DateTime @updatedAt
 }
 
+model LoyaltyAccount {
+  id         String               @id @default(cuid())
+  tenantId   String
+  customerId String               @unique
+  customer   Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  points     Int                  @default(0)
+  tier       String               @default("standard")
+  updatedAt  DateTime             @updatedAt
+  entries    LoyaltyLedgerEntry[]
+}
+
+/// Append-only points history. `points` is signed.
 model LoyaltyLedgerEntry {
-  id         String   @id @default(cuid())
-  accountId  String
-  points     Int
-  reason     String
-  bookingId  String?
-  createdAt  DateTime @default(now())
+  id           String         @id @default(cuid())
+  accountId    String
+  account      LoyaltyAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  points       Int
+  /// "earn" | "redeem" | "reverse_earn" | "refund_redeem" | "adjust"
+  reason       String
+  description  String         @default("")
+  balanceAfter Int            @default(0)
+  bookingId    String?
+  createdAt    DateTime       @default(now())
+
+  @@index([accountId, createdAt])
 }
 
 /// Phase 3: stored-value gift cards. Modelled only; issuing stored value has

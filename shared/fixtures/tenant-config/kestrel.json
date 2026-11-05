@@ -119,7 +119,7 @@
     "appearancePolicy": "system"
   },
   "tenant": {
-    "id": "cmw3fzj8800oe7dj05qjeg6ic",
+    "id": "cmw3hcx9y00oi7djwkzjya2se",
     "name": "Kestrel Picturehouse",
     "slug": "kestrel",
     "locale": "en-GB",
@@ -139,7 +139,7 @@
   "branding": {
     "markUrl": null,
     "palette": {
-      "id": "cmw3fzj8a00og7dj0icbvfw5r",
+      "id": "cmw3hcxa000ok7djw2g1rf1lb",
       "name": "Kestrel Red",
       "accent": {
         "dark": "#FF5A6A",
@@ -152,8 +152,8 @@
     },
     "wordmark": "Kestrel",
     "splashUrl": null,
-    "logoDarkUrl": "/v1/media/cmw3fzj8h00ok7dj0do4dd1eg",
-    "logoLightUrl": "/v1/media/cmw3fzj8f00oi7dj0p08e81oz"
+    "logoDarkUrl": "/v1/media/cmw3hcxa300oo7djwjcvh7k45",
+    "logoLightUrl": "/v1/media/cmw3hcxa200om7djwn6dumhpc"
   },
   "features": {
     "wallet": true,

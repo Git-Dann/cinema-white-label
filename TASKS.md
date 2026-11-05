@@ -20,7 +20,9 @@ Prioritised. Phase numbers follow the master specification.
 - [x] Admin: promotions content (API, admin page, iOS Offers section), booking fee and format supplement editing.
 - [x] Admin: layout editor undo/redo and drag to move seats.
 - [ ] Admin: layout editor feature editing (aisles, entrances, exits) and drag for features.
-- [ ] Loyalty earn/burn and memberships (models exist); gift cards pending operator sign-off.
+- [x] Loyalty earn/burn and memberships (server, admin, app). See docs/decisions/0003.
+- [ ] Accounts (Sign in with Apple) before memberships take real money; adopt guest points and membership on sign-in.
+- [ ] Membership free-ticket allowances, loyalty tiers, points expiry, support adjustments. Gift cards pending operator sign-off.
 - [ ] Brand layer between operator and venues (multi-brand operators).
 - [x] Live Activities + widget extension target (local updates, no push).
 - [ ] BackgroundTasks refresh of tickets.
@@ -46,7 +48,7 @@ Prioritised. Phase numbers follow the master specification.
 - [x] Live Activities and Dynamic Island for upcoming screenings. Food collection updates still to do.
 - [x] Widgets, App Intents/App Shortcuts, Spotlight indexing.
 - [ ] Sign in with Apple and passkeys; account registration.
-- [ ] Memberships and concessions (models exist, not exposed).
+- [x] Memberships and concessions.
 - [ ] Real booking inventory adapters per operator.
 
 ## Phase 4 – platform operations

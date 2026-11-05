@@ -44,12 +44,13 @@ export function api(app: INestApplication, token?: string) {
 }
 
 /** Finds a future screening with N contiguous available standard seats in one block. */
-export async function findSeats(app: INestApplication, n: number, opts: { format?: string; layout?: string; certificate?: string[]; venueName?: string } = {}) {
+export async function findSeats(app: INestApplication, n: number, opts: { format?: string; layout?: string; certificate?: string[]; venueName?: string; minHoursAhead?: number } = {}) {
   const a = api(app);
   const list = (await a.get(`${T}/screenings?days=7`).expect(200)).body as any[];
   for (const s of list) {
     if (opts.format && !s.formats.includes(opts.format)) continue;
     if (opts.venueName && !s.venue.name.includes(opts.venueName)) continue;
+    if (opts.minHoursAhead && new Date(s.startsAt).getTime() < Date.now() + opts.minHoursAhead * 3_600_000) continue;
     if (opts.certificate && !opts.certificate.includes(s.film.certificate)) continue;
     const det = (await a.get(`${T}/screenings/${s.id}`).expect(200)).body;
     if (opts.layout && !det.layout.name.includes(opts.layout)) continue;

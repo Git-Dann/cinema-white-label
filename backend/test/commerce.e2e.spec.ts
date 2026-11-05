@@ -24,7 +24,7 @@ describe('seat categories, food and drink, vouchers and cancellation (integratio
   }
 
   async function holdFor(n = 1) {
-    const { screening, seatIds } = await findSeats(app, n, { venueName: 'Leeds' });
+    const { screening, seatIds } = await findSeats(app, n, { venueName: 'Leeds', minHoursAhead: 2 });
     const token = await guest(app);
     const hold = (await api(app, token).post(`${T}/holds`, { screeningId: screening.id, seatIds }).expect(201)).body;
     const tickets = seatIds.map((seatId) => ({ seatId, ticketTypeId: ticketType(screening, 'ADULT') }));
