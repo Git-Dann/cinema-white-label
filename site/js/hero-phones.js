@@ -21,7 +21,12 @@ if (root) {
   ];
   // the screens are laid out at 196px wide; each scales with its phone, so a large phone shows a large screen
   const BASE = 196;
-  const fit = el => { const w = el.parentElement.clientWidth - 6; el.style.width = BASE + 'px'; el.style.zoom = String(Math.max(0.6, w / BASE)); };
+  const fit = el => {
+    // the screen fills the body's inner box exactly: laid out at BASE px wide, then zoomed to fit
+    const body = el.parentElement, pad = parseFloat(getComputedStyle(body).paddingLeft) || 0;
+    const w = body.clientWidth - 2 * pad, h = body.clientHeight - 2 * pad, k = Math.max(0.6, w / BASE);
+    el.style.width = BASE + 'px'; el.style.height = h / k + 'px'; el.style.zoom = String(k);
+  };
   const screens = [...root.querySelectorAll('[data-hero-phone]')];
   screens.forEach(fit);
   new ResizeObserver(() => screens.forEach(fit)).observe(root);
