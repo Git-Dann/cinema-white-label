@@ -52,6 +52,15 @@ jobs:
         working-directory: ios
         run: xcodegen generate
 
+      - name: Check generated Info.plist
+        working-directory: ios
+        run: |
+          # Guards against keys being lost (no launch screen = legacy 320x480 mode).
+          for key in UILaunchScreen TenantSlug APIBaseURL AppGroup NSSupportsLiveActivities NSLocationWhenInUseUsageDescription; do
+            plutil -extract "$key" raw -o - App/Info.plist >/dev/null 2>&1 || plutil -extract "$key" xml1 -o - App/Info.plist >/dev/null || { echo "::error::App/Info.plist is missing $key"; exit 1; }
+          done
+          plutil -extract NSExtension.NSExtensionPointIdentifier raw -o - Widgets/Info.plist
+
       - name: Build Northlight for the iOS Simulator
         working-directory: ios
         run: |
@@ -143,6 +152,15 @@ jobs:
       - name: Generate Xcode project
         working-directory: ios
         run: xcodegen generate
+
+      - name: Check generated Info.plist
+        working-directory: ios
+        run: |
+          # Guards against keys being lost (no launch screen = legacy 320x480 mode).
+          for key in UILaunchScreen TenantSlug APIBaseURL AppGroup NSSupportsLiveActivities NSLocationWhenInUseUsageDescription; do
+            plutil -extract "$key" raw -o - App/Info.plist >/dev/null 2>&1 || plutil -extract "$key" xml1 -o - App/Info.plist >/dev/null || { echo "::error::App/Info.plist is missing $key"; exit 1; }
+          done
+          plutil -extract NSExtension.NSExtensionPointIdentifier raw -o - Widgets/Info.plist
 
       - name: Run screenshot UI test
         working-directory: ios

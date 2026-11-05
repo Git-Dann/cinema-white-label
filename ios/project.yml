@@ -25,8 +25,33 @@ targets:
       - path: App
       - path: Resources
       # Bundled fallback tenant configs ship inside CinemaCore (BundledConfig).
+    # XcodeGen generates App/Info.plist from these properties on every run;
+    # edit keys here, not in the generated file.
     info:
       path: App/Info.plist
+      properties:
+        CFBundleDisplayName: $(APP_NAME)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleURLTypes:
+          - CFBundleURLSchemes: [cinema-$(TENANT_SLUG)]
+        TenantSlug: $(TENANT_SLUG)
+        APIBaseURL: $(API_BASE_URL)
+        AppGroup: group.$(APP_BUNDLE_ID)
+        NSSupportsLiveActivities: true
+        NSLocationWhenInUseUsageDescription: Your location is used only to show cinemas near you. You can also search by town or postcode.
+        NSCalendarsWriteOnlyAccessUsageDescription: Adds your screening to your calendar when you ask.
+        NSAppTransportSecurity:
+          # Development only: allows the local API over HTTP. Remove for release builds.
+          NSAllowsLocalNetworking: true
+        UILaunchScreen:
+          UIColorName: ""
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
     entitlements:
       path: App/CinemaApp.entitlements
       properties:
