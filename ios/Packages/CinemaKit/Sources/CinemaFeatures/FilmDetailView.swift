@@ -48,11 +48,20 @@ struct FilmDetailView: View {
         .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                // The bar title appears only after the big title has scrolled away.
-                Text(film.title).font(.headline).lineLimit(1)
-                    .foregroundStyle(palette.textPrimary)
-                    .opacity(scrolledPastTitle ? 1 : 0)
-                    .accessibilityHidden(!scrolledPastTitle)
+                // A glass status chip over the artwork; once the big title scrolls away it becomes the title.
+                Group {
+                    if scrolledPastTitle {
+                        Text(film.title).font(.headline).lineLimit(1).foregroundStyle(palette.textPrimary)
+                    } else if let status = statusChip {
+                        Label(status, systemImage: film.status == .comingSoon ? "calendar" : "film")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(palette.textPrimary)
+                            .padding(.horizontal, Spacing.s)
+                            .padding(.vertical, 6)
+                            .glassEffect(.regular, in: Capsule())
+                    }
+                }
+                .contentTransition(.opacity)
             }
             ToolbarItem(placement: .topBarTrailing) {
                 ShareLink(item: "\(film.title) at \(app.config.tenant.name)") { Image(systemName: "square.and.arrow.up") }
@@ -143,25 +152,44 @@ struct FilmDetailView: View {
         }
     }
 
-    private var subtitle: String {
-        var parts: [String] = [film.certificate]
-        if let d = app.formatters.date(fromLocal: film.releaseDate, timeZone: app.config.tenant.timeZone) {
-            parts.append(film.status == .comingSoon ? "Out \(app.formatters.longDate(d, timeZone: app.config.tenant.timeZone))" : app.formatters.shortDate(d, timeZone: app.config.tenant.timeZone))
+    /// Short status for the chip at the top: release date for coming soon, otherwise now showing.
+    private var statusChip: String? {
+        if film.status == .comingSoon, let d = app.formatters.date(fromLocal: film.releaseDate, timeZone: app.config.tenant.timeZone) {
+            return "Out \(app.formatters.shortDate(d, timeZone: app.config.tenant.timeZone))"
         }
-        parts.append(app.formatters.runtime(film.runtimeMinutes))
-        return parts.joined(separator: " · ")
+        return film.status == .comingSoon ? "Coming soon" : "Now showing"
+    }
+
+    /// Date and how far away it is, like "14 November 2026 · In 9 days". Certificate and runtime sit in the facts row.
+    private var subtitle: String {
+        let tz = app.config.tenant.timeZone
+        guard let d = app.formatters.date(fromLocal: film.releaseDate, timeZone: tz) else { return app.formatters.runtime(film.runtimeMinutes) }
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: tz) ?? .current
+        let days = cal.dateComponents([.day], from: cal.startOfDay(for: Date()), to: cal.startOfDay(for: d)).day ?? 0
+        let when = days > 1 ? "In \(days) days" : days == 1 ? "Tomorrow" : days == 0 ? "Out today" : "Now showing"
+        return "\(app.formatters.longDate(d, timeZone: tz)) · \(when)"
     }
 
     private func actions(proxy: ScrollViewProxy) -> some View {
         HStack(spacing: Spacing.s) {
             Button {
                 withAnimation { proxy.scrollTo("showtimes", anchor: .top) }
-            } label: { Label(film.status == .comingSoon ? "Book Ahead" : "Book Tickets", systemImage: "ticket") }
-                .buttonStyle(.cinemaPrimary)
+            } label: {
+                Label(film.status == .comingSoon ? "Book Ahead" : "Book Tickets", systemImage: "ticket.fill")
+                    .font(.headline).frame(maxWidth: .infinity, minHeight: 36)
+            }
+            .buttonStyle(.glassProminent)
+            .tint(palette.actionPrimary)
+            .controlSize(.large)
             if let trailer = film.trailers.first {
-                Button { play(trailer) } label: { Label("Trailer", systemImage: "play.fill") }
-                    .buttonStyle(.cinemaGlass)
-                    .disabled(trailer.url == nil)
+                Button { play(trailer) } label: {
+                    Label("Trailer", systemImage: "play.fill")
+                        .font(.headline).frame(maxWidth: .infinity, minHeight: 36)
+                }
+                .buttonStyle(.glass)
+                .controlSize(.large)
+                .disabled(trailer.url == nil)
                     .accessibilityHint(trailer.url == nil ? "Trailer not available in this build" : "")
             }
         }
@@ -175,9 +203,14 @@ struct FilmDetailView: View {
                 .font(.body)
                 .foregroundStyle(palette.textSecondary)
                 .lineLimit(expanded ? nil : 3)
-            Button(expanded ? "Show less" : "Show more") { withAnimation { expanded.toggle() } }
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(palette.textMuted)
+            Button { withAnimation(.snappy) { expanded.toggle() } } label: {
+                HStack(spacing: 4) {
+                    Text(expanded ? "Show less" : "Show more")
+                    Image(systemName: "chevron.down").rotationEffect(.degrees(expanded ? 180 : 0))
+                }
+            }
+            .font(.headline)
+            .foregroundStyle(palette.textMuted)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .pagePadding()
@@ -206,25 +239,25 @@ struct FilmDetailView: View {
                     HStack(alignment: .top, spacing: Spacing.item) {
                         ForEach(film.trailers) { t in
                             Button { play(t) } label: {
-                                VStack(alignment: .leading, spacing: Spacing.xs) {
-                                    ArtworkImage(film.backdrop)
-                                        .frame(width: 280, height: 158)
-                                        .overlay {
-                                            // A solid disc reads clearly over any artwork.
-                                            Image(systemName: "play.fill")
-                                                .font(.title2)
-                                                .foregroundStyle(.white)
-                                                .frame(width: 56, height: 56)
-                                                .background(.black.opacity(0.55), in: Circle())
-                                                .opacity(t.url == nil ? 0.5 : 1)
+                                ArtworkImage(film.backdrop)
+                                    .frame(width: 300, height: 170)
+                                    .overlay(LinearGradient(colors: [.clear, .black.opacity(0.7)], startPoint: .center, endPoint: .bottom))
+                                    .overlay(alignment: .bottomLeading) {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(t.title).font(.headline).foregroundStyle(.white).lineLimit(1)
+                                            Text(t.url == nil ? "Trailer source not configured" : "Trailer").font(.subheadline).foregroundStyle(.white.opacity(0.7))
                                         }
-                                        .clipShape(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous))
-                                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                                        Text(t.title).font(.subheadline.weight(.semibold)).foregroundStyle(palette.textPrimary)
-                                        Text(t.url == nil ? "Licensed trailer source not configured" : "Trailer").font(.caption).foregroundStyle(palette.textMuted)
+                                        .padding(Spacing.m)
                                     }
-                                }
-                                .frame(width: 280, alignment: .leading)
+                                    .overlay {
+                                        Image(systemName: "play.fill")
+                                            .font(.title3)
+                                            .foregroundStyle(.white)
+                                            .frame(width: 48, height: 48)
+                                            .glassEffect(.regular, in: Circle())
+                                            .opacity(t.url == nil ? 0.5 : 1)
+                                    }
+                                    .clipShape(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous))
                             }
                             .buttonStyle(.plain)
                             .disabled(t.url == nil)
