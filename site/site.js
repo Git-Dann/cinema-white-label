@@ -12,20 +12,23 @@ async function seatMap(svg) {
   const res = await fetch(svg.dataset.layout);
   if (!res.ok) return;
   const L = await res.json();
-  const W = 1000, H = Math.round(W / L.aspectRatio);
+  // every coordinate in the layout is a fraction of the auditorium's width, y included
+  // (as shared/fixtures/layouts/curved.preview.svg draws it); the height only sets the viewBox
+  // the drawing ends just under the back row rather than at the layout's full height
+  const W = 1000, H = Math.round(Math.max(...L.seats.map(o => (o.y + o.height) * W)) + 40);
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
 
   // the screen: a curved line with its label under it
-  const s = L.screen, sx = s.center.x * W, sy = s.center.y * H, half = (s.width * W) / 2, bow = s.curvature * W * 0.5;
-  svg.append(el('path', { d: `M${sx - half} ${sy} Q${sx} ${sy - bow * 2} ${sx + half} ${sy}`, fill: 'none', stroke: T.screen, 'stroke-width': 5, 'stroke-linecap': 'round' }));
-  const lab = el('text', { x: sx, y: sy + 8, 'text-anchor': 'middle', fill: T.label, 'font-size': 18, 'letter-spacing': 8, 'font-family': 'Onest, sans-serif' });
+  const s = L.screen, sx = s.center.x * W, sy = s.center.y * W, half = (s.width * W) / 2, bow = s.curvature * s.width * W * 2;
+  svg.append(el('path', { d: `M${sx - half} ${sy} Q${sx} ${sy - bow} ${sx + half} ${sy}`, fill: 'none', stroke: T.screen, 'stroke-width': 5, 'stroke-linecap': 'round' }));
+  const lab = el('text', { x: sx, y: sy + 26, 'text-anchor': 'middle', fill: T.label, 'font-size': 18, 'letter-spacing': 8, 'font-family': 'Onest, sans-serif' });
   lab.textContent = 'SCREEN';
   svg.append(lab);
 
   for (const f of L.features || []) {
     const g = el('g');
-    g.append(el('rect', { x: f.x * W, y: f.y * H, width: f.width * W, height: f.height * H * 1.4, rx: 6, fill: 'none', stroke: T.feature, 'stroke-dasharray': '4 4' }));
-    const t = el('text', { x: (f.x + f.width / 2) * W, y: f.y * H + f.height * H * 0.95, 'text-anchor': 'middle', fill: T.label, 'font-size': 14, 'font-family': 'Onest, sans-serif' });
+    g.append(el('rect', { x: f.x * W, y: f.y * W, width: f.width * W, height: f.height * W, rx: 6, fill: 'none', stroke: T.feature, 'stroke-dasharray': '4 4' }));
+    const t = el('text', { x: (f.x + f.width / 2) * W, y: (f.y + f.height / 2) * W + 5, 'text-anchor': 'middle', fill: T.label, 'font-size': 14, 'font-family': 'Onest, sans-serif' });
     t.textContent = f.label;
     g.append(t);
     svg.append(g);
@@ -42,11 +45,12 @@ async function seatMap(svg) {
 
   const rowsSeen = new Set();
   for (const seat of L.seats) {
-    const w = seat.width * W, h = seat.height * H * 1.1, cx = seat.x * W, cy = seat.y * H;
+    const w = seat.width * W, h = seat.height * W, cx = seat.x * W, cy = seat.y * W;
     const sold = taken(seat.id), prem = seat.priceCategory === 'premium';
+    // the group places and turns the seat; the rect stays free to scale on hover without losing its turn
+    const g = el('g', { transform: `translate(${cx} ${cy}) rotate(${seat.rotation || 0})` });
     const r = el('rect', {
-      class: 'seat' + (sold ? ' is-sold' : ''), x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: w * 0.28,
-      transform: `rotate(${seat.rotation || 0} ${cx} ${cy})`,
+      class: 'seat' + (sold ? ' is-sold' : ''), x: -w / 2, y: -h / 2, width: w, height: h, rx: w * 0.28,
       fill: sold ? T.sold : T.free, stroke: sold ? T.soldLine : prem ? T.prem : T.freeLine, 'stroke-width': prem && !sold ? 2.5 : 1.5,
       tabindex: sold ? -1 : 0, role: 'checkbox', 'aria-checked': 'false',
       'aria-label': `Row ${seat.rowId}, seat ${seat.label}, ${prem ? 'premium' : 'standard'}, ${sold ? 'taken' : 'free'}`,
@@ -64,13 +68,14 @@ async function seatMap(svg) {
     };
     r.addEventListener('click', toggle);
     r.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); } });
-    svg.append(r);
+    g.append(r);
+    svg.append(g);
 
     // the row letter left of each row's leftmost seat
     if (!rowsSeen.has(seat.rowId)) {
       rowsSeen.add(seat.rowId);
       const first = L.seats.filter(o => o.rowId === seat.rowId).reduce((a, o) => (o.x < a.x ? o : a));
-      const t = el('text', { x: first.x * W - w * 1.3, y: first.y * H + 5, 'text-anchor': 'middle', fill: T.label, 'font-size': 14, 'font-family': 'Onest, sans-serif', 'aria-hidden': 'true' });
+      const t = el('text', { x: first.x * W - w * 1.3, y: first.y * W + 5, 'text-anchor': 'middle', fill: T.label, 'font-size': 14, 'font-family': 'Onest, sans-serif', 'aria-hidden': 'true' });
       t.textContent = seat.rowId;
       svg.append(t);
     }

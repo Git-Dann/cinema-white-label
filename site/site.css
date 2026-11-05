@@ -162,7 +162,7 @@ main > section.section.section:is(.bg-band, .bg-dots):not(.section--hero) { disp
 .seatmap.frame { align-items: stretch; justify-content: flex-start; }
 .seatmap.frame::before { display: none; }
 .seatmap__svg { flex: 1 1 0; width: 100%; }
-@media (max-width: 1023px) { .seatmap__svg { flex: none; height: auto; aspect-ratio: 1000 / 909; } }
+@media (max-width: 1023px) { .seatmap__svg { flex: none; height: auto; aspect-ratio: 1000 / 850; } }
 
 /* contrast checks are passes, not finished to-dos: no strike-through */
 .rel .ui-check.is-done .ui-check__label { text-decoration: none; }
