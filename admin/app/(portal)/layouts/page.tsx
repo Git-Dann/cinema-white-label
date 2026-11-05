@@ -7,12 +7,15 @@ import { formatDateTime } from '@/lib/format';
 import { DEFAULT_GENERATOR, emptyLayout, generateLayout } from '@/lib/layout-tools';
 import { LayoutEditor } from '@/components/LayoutEditor';
 import { ApiErrorNote, ErrorNote, Loading, PageHeader, StatusBadge, SuccessNote } from '@/components/ui';
+import { useCinemaScope } from '@/lib/cinema-scope';
 
 type ApiErr = { message: string; details: string[] } | null;
 
 export default function LayoutsPage() {
   const { tenant, can } = useSession();
   const list = useTenantData<VenueAuditoriums[]>(tenantPath(tenant, '/auditoriums'));
+  const scope = useCinemaScope();
+  const shownVenues = (list.data ?? []).filter((v) => scope.includes(v.venue.id));
   const cats = useTenantData<SeatCategoriesResponse>(tenantPath(tenant, '/seat-categories'));
   const [detail, setDetail] = useState<LayoutVersionDetail | null>(null);
   const [opening, setOpening] = useState<string | null>(null);
@@ -56,7 +59,7 @@ export default function LayoutsPage() {
   }
 
   function startNewScreen() {
-    const first = list.data?.[0];
+    const first = shownVenues[0] ?? list.data?.[0];
     const nextNumber = first ? Math.max(0, ...first.auditoriums.map((a) => a.screenNumber)) + 1 : 1;
     setNewScreen({ venueId: first?.venue.id ?? '', name: `Screen ${nextNumber}`, screenNumber: String(nextNumber) });
     setFormError(null);
@@ -190,7 +193,7 @@ export default function LayoutsPage() {
       )}
 
       {list.loading && !list.data && <Loading />}
-      {list.data?.map((v) => (
+      {shownVenues.map((v) => (
         <section className="card" key={v.venue.id} aria-labelledby={`venue-${v.venue.id}`}>
           <h2 id={`venue-${v.venue.id}`} className="h3">
             {v.venue.name}

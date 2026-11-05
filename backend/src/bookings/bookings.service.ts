@@ -129,7 +129,7 @@ export class BookingsService {
 
     // 2. Voucher
     const voucher = extras.voucherCode
-      ? await this.commerce.voucherDiscount(tenant, extras.voucherCode, base.subtotalMinor - memberTickets, concessionsMinor - memberFood)
+      ? await this.commerce.voucherDiscount(tenant, extras.voucherCode, base.subtotalMinor - memberTickets, concessionsMinor - memberFood, screening.venue.id)
       : null;
     const voucherMinor = voucher?.discountMinor ?? 0;
     const goodsAfterDiscounts = base.subtotalMinor + concessionsMinor - membershipDiscountMinor - voucherMinor;

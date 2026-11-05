@@ -324,11 +324,14 @@ export class AdminContentController {
   }
 
   @Get('stats')
-  async stats(@CurrentTenant() t: Tenant, @Query('days') days?: string) {
+  /** Totals for the operator, or for one cinema with ?venueId=. */
+  async stats(@CurrentTenant() t: Tenant, @Query('days') days?: string, @Query('venueId') venueId?: string) {
     const since = new Date(this.clock.now().getTime() - (Number(days) || 30) * 86400_000);
+    if (venueId && !(await this.prisma.venue.findFirst({ where: { id: venueId, tenantId: t.id } }))) throw Errors.notFound('Cinema');
+    const booked = { tenantId: t.id, status: 'CONFIRMED' as const, confirmedAt: { gte: since }, ...(venueId ? { screening: { venueId } } : {}) };
     const [bookings, revenue, events, venues, films] = await Promise.all([
-      this.prisma.booking.count({ where: { tenantId: t.id, status: 'CONFIRMED', confirmedAt: { gte: since } } }),
-      this.prisma.booking.aggregate({ where: { tenantId: t.id, status: 'CONFIRMED', confirmedAt: { gte: since } }, _sum: { totalMinor: true } }),
+      this.prisma.booking.count({ where: booked }),
+      this.prisma.booking.aggregate({ where: booked, _sum: { totalMinor: true } }),
       this.prisma.analyticsEvent.groupBy({ by: ['name'], where: { tenantId: t.id, occurredAt: { gte: since } }, _count: { _all: true } }),
       this.prisma.venue.count({ where: { tenantId: t.id } }),
       this.prisma.film.count({ where: { tenantId: t.id } }),

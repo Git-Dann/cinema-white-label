@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { SessionProvider, useSession } from '@/lib/session';
 import { roleLabel } from '@/lib/format';
+import { CinemaScopeProvider, useCinemaScope } from '@/lib/cinema-scope';
 
 const NAV = [
   { href: '/', label: 'Overview' },
@@ -55,6 +56,8 @@ function Shell({ children }: { children: React.ReactNode }) {
           )}
         </div>
 
+        <CinemaSwitch />
+
         <nav aria-label="Main">
           <ul className="nav">
             {NAV.map((n) => {
@@ -90,10 +93,38 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
+function CinemaSwitch() {
+  const { venues, venueId, setVenueId } = useCinemaScope();
+  if (venues.length < 2) return null;
+  return (
+    <div className="field compact">
+      <label htmlFor="cinema-switch">Cinema</label>
+      <select id="cinema-switch" value={venueId ?? ''} onChange={(e) => setVenueId(e.target.value || null)}>
+        <option value="">All cinemas</option>
+        {venues.map((v) => (
+          <option key={v.id} value={v.id}>
+            {v.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function ScopedShell({ children }: { children: React.ReactNode }) {
+  const { tenant } = useSession();
+  // Keyed by operator so the cinema choice reloads with the operator's venues.
+  return (
+    <CinemaScopeProvider key={tenant}>
+      <Shell>{children}</Shell>
+    </CinemaScopeProvider>
+  );
+}
+
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      <Shell>{children}</Shell>
+      <ScopedShell>{children}</ScopedShell>
     </SessionProvider>
   );
 }
