@@ -122,6 +122,16 @@ public enum PreviewFixtures {
         ]
     )
 
+    /// Fictional points scheme: 10 points per £1, £1 off per 200 points (5% back).
+    public static let loyaltyProgram = LoyaltyProgramInfo(name: "Northlight Rewards", earnPointsPerPound: 10, redeemPointsPerPound: 200, minRedeemPoints: 200)
+
+    public static let membershipPlans: [MembershipPlan] = [
+        MembershipPlan(id: "plan-plus", name: "Northlight Plus", description: "10% off tickets and food, no booking fees, 1.5× points.", priceMinor: 699, interval: "month",
+                       entitlements: .init(ticketDiscountPercent: 10, foodDiscountPercent: 10, bookingFeeWaived: true, pointsMultiplier: 1.5)),
+        MembershipPlan(id: "plan-premiere", name: "Northlight Premiere", description: "25% off tickets, 15% off food, no booking fees, double points.", priceMinor: 1499, interval: "month",
+                       entitlements: .init(ticketDiscountPercent: 25, foodDiscountPercent: 15, bookingFeeWaived: true, pointsMultiplier: 2)),
+    ]
+
     /// Fictional offers. WELCOME10 is accepted by the mock checkout.
     public static let promotions: [Promotion] = [
         Promotion(id: "promo-welcome", title: "New here? 10% off", body: "Use code WELCOME10 on your first booking, tickets and food included.",

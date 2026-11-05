@@ -17,6 +17,11 @@ public protocol CinemaService: Sendable {
     func concessions(venueId: String) async throws -> ConcessionMenu
     /// Live promotions for this cinema plus operator-wide ones.
     func promotions(venueId: String?) async throws -> [Promotion]
+    func loyalty() async throws -> LoyaltySummary
+    func membershipPlans() async throws -> [MembershipPlan]
+    func myMembership() async throws -> Membership?
+    /// Buys or renews a membership period. Payments are simulated in development.
+    func purchaseMembership(planId: String, simulateDecline: Bool, idempotencyKey: String) async throws -> Membership
     func quote(holdId: String, tickets: [TicketSelection], extras: BasketExtras) async throws -> Quote
     func checkout(holdId: String, tickets: [TicketSelection], extras: BasketExtras, simulateDecline: Bool, idempotencyKey: String) async throws -> Booking
     func bookings() async throws -> [Booking]
@@ -30,8 +35,10 @@ public struct BasketExtras: Codable, Sendable, Hashable {
     public var concessions: [BasketItem]
     public var voucherCode: String?
     public var fulfilment: Fulfilment
-    public init(concessions: [BasketItem] = [], voucherCode: String? = nil, fulfilment: Fulfilment = .collect) {
-        self.concessions = concessions; self.voucherCode = voucherCode; self.fulfilment = fulfilment
+    /// Loyalty points to spend, in whole-pound steps. Zero spends none.
+    public var loyaltyPoints: Int
+    public init(concessions: [BasketItem] = [], voucherCode: String? = nil, fulfilment: Fulfilment = .collect, loyaltyPoints: Int = 0) {
+        self.concessions = concessions; self.voucherCode = voucherCode; self.fulfilment = fulfilment; self.loyaltyPoints = loyaltyPoints
     }
     public static let none = BasketExtras()
 }
@@ -93,16 +100,32 @@ public struct LiveCinemaService: CinemaService {
 
     public func promotions(venueId: String?) async throws -> [Promotion] { try await client.get("/promotions" + q(["venueId": venueId])) }
 
+    public func loyalty() async throws -> LoyaltySummary { try await client.get("/loyalty", authenticated: true) }
+
+    public func membershipPlans() async throws -> [MembershipPlan] { try await client.get("/membership/plans") }
+
+    public func myMembership() async throws -> Membership? {
+        struct Envelope: Decodable, Sendable { var membership: Membership? }
+        return try await client.get("/me/membership", authenticated: true, as: Envelope.self).membership
+    }
+
+    public func purchaseMembership(planId: String, simulateDecline: Bool, idempotencyKey: String) async throws -> Membership {
+        struct Payment: Encodable, Sendable { var type = "simulated"; var outcome: String }
+        struct Body: Encodable, Sendable { var planId: String; var payment: Payment }
+        let body = Body(planId: planId, payment: Payment(outcome: simulateDecline ? "decline" : "approve"))
+        return try await client.send("POST", "/me/membership", body: body, authenticated: true, idempotencyKey: idempotencyKey, as: Membership.self).value!
+    }
+
     public func quote(holdId: String, tickets: [TicketSelection], extras: BasketExtras) async throws -> Quote {
-        struct Body: Encodable, Sendable { var holdId: String; var tickets: [TicketSelection]; var concessions: [BasketItem]; var voucherCode: String?; var fulfilment: Fulfilment }
-        let body = Body(holdId: holdId, tickets: tickets, concessions: extras.concessions, voucherCode: extras.voucherCode, fulfilment: extras.fulfilment)
+        struct Body: Encodable, Sendable { var holdId: String; var tickets: [TicketSelection]; var concessions: [BasketItem]; var voucherCode: String?; var fulfilment: Fulfilment; var loyaltyPoints: Int }
+        let body = Body(holdId: holdId, tickets: tickets, concessions: extras.concessions, voucherCode: extras.voucherCode, fulfilment: extras.fulfilment, loyaltyPoints: extras.loyaltyPoints)
         return try await client.send("POST", "/quotes", body: body, authenticated: true, as: Quote.self).value!
     }
 
     public func checkout(holdId: String, tickets: [TicketSelection], extras: BasketExtras, simulateDecline: Bool, idempotencyKey: String) async throws -> Booking {
         struct Payment: Encodable, Sendable { var type = "simulated"; var outcome: String }
-        struct Body: Encodable, Sendable { var holdId: String; var tickets: [TicketSelection]; var concessions: [BasketItem]; var voucherCode: String?; var fulfilment: Fulfilment; var payment: Payment }
-        let body = Body(holdId: holdId, tickets: tickets, concessions: extras.concessions, voucherCode: extras.voucherCode, fulfilment: extras.fulfilment, payment: Payment(outcome: simulateDecline ? "decline" : "approve"))
+        struct Body: Encodable, Sendable { var holdId: String; var tickets: [TicketSelection]; var concessions: [BasketItem]; var voucherCode: String?; var fulfilment: Fulfilment; var loyaltyPoints: Int; var payment: Payment }
+        let body = Body(holdId: holdId, tickets: tickets, concessions: extras.concessions, voucherCode: extras.voucherCode, fulfilment: extras.fulfilment, loyaltyPoints: extras.loyaltyPoints, payment: Payment(outcome: simulateDecline ? "decline" : "approve"))
         return try await client.send("POST", "/checkout", body: body, authenticated: true, idempotencyKey: idempotencyKey, as: Booking.self).value!
     }
 

@@ -46,8 +46,52 @@ public struct Quote: Codable, Sendable, Hashable {
     public var concessionsMinor: Int? = nil
     public var voucher: AppliedVoucher? = nil
     public var fulfilment: Fulfilment? = nil
+    /// Every discount applied, in the order the server applied them (membership, voucher, points).
+    public var discounts: [Discount]? = nil
+    public var membership: MembershipBenefit? = nil
+    public var loyalty: LoyaltyQuote? = nil
 
     public struct AppliedVoucher: Codable, Sendable, Hashable { public var code: String; public var description: String; public var discountMinor: Int }
+    public struct Discount: Codable, Sendable, Hashable {
+        /// "membership" | "voucher" | "points"
+        public var kind: String
+        public var label: String
+        public var amountMinor: Int
+        public init(kind: String, label: String, amountMinor: Int) { self.kind = kind; self.label = label; self.amountMinor = amountMinor }
+    }
+    public struct MembershipBenefit: Codable, Sendable, Hashable {
+        public var planName: String
+        public var discountMinor: Int
+        public var feeWaivedMinor: Int
+        public init(planName: String, discountMinor: Int, feeWaivedMinor: Int) { self.planName = planName; self.discountMinor = discountMinor; self.feeWaivedMinor = feeWaivedMinor }
+    }
+    public struct LoyaltyQuote: Codable, Sendable, Hashable {
+        public var name: String
+        public var earnPointsPerPound: Int
+        public var redeemPointsPerPound: Int
+        public var minRedeemPoints: Int
+        public var balance: Int
+        public var pointsRedeemed: Int
+        public var pointsDiscountMinor: Int
+        public var pointsToEarn: Int
+        public var maxRedeemablePoints: Int
+
+        public init(name: String, earnPointsPerPound: Int, redeemPointsPerPound: Int, minRedeemPoints: Int, balance: Int, pointsRedeemed: Int, pointsDiscountMinor: Int, pointsToEarn: Int, maxRedeemablePoints: Int) {
+            self.name = name; self.earnPointsPerPound = earnPointsPerPound; self.redeemPointsPerPound = redeemPointsPerPound; self.minRedeemPoints = minRedeemPoints
+            self.balance = balance; self.pointsRedeemed = pointsRedeemed; self.pointsDiscountMinor = pointsDiscountMinor; self.pointsToEarn = pointsToEarn; self.maxRedeemablePoints = maxRedeemablePoints
+        }
+
+        /// The amounts a customer can choose: nothing, then each whole pound up to the maximum.
+        public var redeemOptions: [Int] {
+            guard maxRedeemablePoints > 0, redeemPointsPerPound > 0 else { return [0] }
+            let first = max(redeemPointsPerPound, Int((Double(minRedeemPoints) / Double(redeemPointsPerPound)).rounded(.up)) * redeemPointsPerPound)
+            guard first <= maxRedeemablePoints else { return [0] }
+            return [0] + Array(stride(from: first, through: maxRedeemablePoints, by: redeemPointsPerPound))
+        }
+
+        /// Value of a number of points off this order, in minor units.
+        public func valueMinor(of points: Int) -> Int { redeemPointsPerPound > 0 ? points / redeemPointsPerPound * 100 : 0 }
+    }
 }
 
 public enum Fulfilment: String, Codable, Sendable, Hashable { case collect, seatDelivery }
@@ -72,6 +116,8 @@ public struct Booking: Codable, Sendable, Hashable, Identifiable {
     public struct Totals: Codable, Sendable, Hashable {
         public var currency: String; public var subtotalMinor: Int; public var feesMinor: Int; public var discountMinor: Int; public var totalMinor: Int
         public var concessionsMinor: Int?; public var voucherCode: String?
+        public var membershipDiscountMinor: Int? = nil; public var membershipPlanName: String? = nil
+        public var pointsRedeemed: Int? = nil; public var pointsDiscountMinor: Int? = nil; public var pointsEarned: Int? = nil
     }
     public struct FoodItem: Codable, Sendable, Hashable { public var name: String; public var quantity: Int; public var modifiers: [String]; public var lineTotalMinor: Int }
     public struct Cancellation: Codable, Sendable, Hashable { public var cancelledAt: Date?; public var cancellableUntil: Date; public var canCancel: Bool; public var refundedMinor: Int }

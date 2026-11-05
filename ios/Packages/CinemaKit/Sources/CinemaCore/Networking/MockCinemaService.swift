@@ -24,7 +24,15 @@ public actor MockCinemaService: CinemaService {
         }
     }
 
+    // Loyalty and membership demo state. Starts with some points so redemption can be tried.
+    private var points = 640
+    private var ledger: [LoyaltySummary.Entry] = [
+        .init(id: "seed-1", points: 640, reason: "earn", description: "Welcome bonus (demo)", balanceAfter: 640, createdAt: Date().addingTimeInterval(-86400 * 3)),
+    ]
+    private var membership: Membership?
+
     public func setFailure(_ f: Failure) { failure = f }
+    public func setPoints(_ p: Int) { points = p }
     public func setLatency(_ d: Duration) { latency = d }
 
     private func simulateNetwork() async throws {
@@ -191,9 +199,72 @@ public actor MockCinemaService: CinemaService {
             guard code == "WELCOME10" else { throw APIError(status: 422, code: .unknown, rawCode: "voucher_invalid", message: "This code is not recognised") }
             voucher = .init(code: code, description: "10% off your first booking", discountMinor: (sub + foodTotal) / 10)
         }
-        let discount = voucher?.discountMinor ?? 0
-        return Quote(currency: "GBP", lines: lines, subtotalMinor: sub, feesMinor: fees, discountMinor: discount, totalMinor: sub + foodTotal + fees - discount,
-                     feeLabel: fees > 0 ? "Booking fee" : nil, concessions: food, concessionsMinor: foodTotal, voucher: voucher, fulfilment: extras.fulfilment)
+        // Same order as the server: membership, voucher, points. Fees are never paid with points.
+        let ent = activeMembership?.plan.entitlements
+        let memberTickets = sub * (ent?.ticketDiscountPercent ?? 0) / 100
+        let memberFood = foodTotal * (ent?.foodDiscountPercent ?? 0) / 100
+        let feeWaived = ent?.bookingFeeWaived == true ? fees : 0
+        let payableFees = fees - feeWaived
+        if voucher != nil { voucher?.discountMinor = (sub - memberTickets + foodTotal - memberFood) / 10 }
+        let goods = sub + foodTotal - memberTickets - memberFood - (voucher?.discountMinor ?? 0)
+        let program = PreviewFixtures.loyaltyProgram
+        let step = program.redeemPointsPerPound
+        if extras.loyaltyPoints > 0 {
+            if extras.loyaltyPoints % step != 0 { throw pointsError("Points are used in steps of \(step) (£1 each)") }
+            if extras.loyaltyPoints > points { throw pointsError("You have \(points) points") }
+            if extras.loyaltyPoints / step * 100 > goods { throw pointsError("That is more points than this order needs") }
+        }
+        let pointsDiscount = extras.loyaltyPoints / step * 100
+        let maxPoints = min(points, goods / 100 * step) / step * step
+        let earn = Int(Double((goods - pointsDiscount) * program.earnPointsPerPound) * (ent?.pointsMultiplier ?? 1) / 100)
+        var discounts: [Quote.Discount] = []
+        if memberTickets + memberFood > 0, let m = activeMembership { discounts.append(.init(kind: "membership", label: "\(m.plan.name) member discount", amountMinor: memberTickets + memberFood)) }
+        if let v = voucher { discounts.append(.init(kind: "voucher", label: v.description, amountMinor: v.discountMinor)) }
+        if pointsDiscount > 0 { discounts.append(.init(kind: "points", label: "\(extras.loyaltyPoints) points", amountMinor: pointsDiscount)) }
+        let discount = discounts.reduce(0) { $0 + $1.amountMinor }
+        return Quote(currency: "GBP", lines: lines, subtotalMinor: sub, feesMinor: payableFees, discountMinor: discount, totalMinor: sub + foodTotal + payableFees - discount,
+                     feeLabel: payableFees > 0 ? "Booking fee" : nil, concessions: food, concessionsMinor: foodTotal, voucher: voucher, fulfilment: extras.fulfilment,
+                     discounts: discounts,
+                     membership: activeMembership.map { .init(planName: $0.plan.name, discountMinor: memberTickets + memberFood, feeWaivedMinor: feeWaived) },
+                     loyalty: .init(name: program.name, earnPointsPerPound: program.earnPointsPerPound, redeemPointsPerPound: step, minRedeemPoints: program.minRedeemPoints,
+                                    balance: points, pointsRedeemed: extras.loyaltyPoints, pointsDiscountMinor: pointsDiscount, pointsToEarn: earn,
+                                    maxRedeemablePoints: maxPoints >= max(step, program.minRedeemPoints) ? maxPoints : 0))
+    }
+
+    private func pointsError(_ message: String) -> APIError { APIError(status: 422, code: .unknown, rawCode: "points_invalid", message: message) }
+
+    private var activeMembership: Membership? {
+        guard let m = membership, m.currentPeriodEnd > Date() else { return nil }
+        return m
+    }
+
+    public func loyalty() async throws -> LoyaltySummary {
+        try await simulateNetwork()
+        let program = PreviewFixtures.loyaltyProgram
+        return LoyaltySummary(program: program, points: points, valueMinor: points / program.redeemPointsPerPound * 100, history: ledger.reversed())
+    }
+
+    public func membershipPlans() async throws -> [MembershipPlan] { try await simulateNetwork(); return PreviewFixtures.membershipPlans }
+
+    public func myMembership() async throws -> Membership? {
+        try await simulateNetwork()
+        guard var m = membership else { return nil }
+        m.status = m.currentPeriodEnd > Date() ? "active" : "expired"
+        return m
+    }
+
+    public func purchaseMembership(planId: String, simulateDecline: Bool, idempotencyKey: String) async throws -> Membership {
+        try await simulateNetwork()
+        guard let plan = PreviewFixtures.membershipPlans.first(where: { $0.id == planId }) else { throw APIError(status: 404, code: .notFound, message: "Membership plan not found") }
+        if simulateDecline { throw APIError(status: 402, code: .paymentDeclined, message: "Your payment was declined") }
+        let now = Date()
+        if let m = activeMembership, m.plan.id != plan.id {
+            throw APIError(status: 409, code: .unknown, rawCode: "membership_not_allowed", message: "You're a \(m.plan.name) member until then. You can change plan after that.")
+        }
+        let start = activeMembership?.currentPeriodEnd ?? now
+        let end = Calendar(identifier: .gregorian).date(byAdding: plan.interval == "year" ? .year : .month, value: 1, to: start) ?? start
+        membership = Membership(plan: plan, status: "active", startedAt: activeMembership?.startedAt ?? now, currentPeriodEnd: end)
+        return membership!
     }
 
     public func checkout(holdId: String, tickets: [TicketSelection], extras: BasketExtras, simulateDecline: Bool, idempotencyKey: String) async throws -> Booking {
@@ -203,6 +274,16 @@ public actor MockCinemaService: CinemaService {
         guard let h = holds[holdId], let s = screenings[h.screeningId] else { throw APIError(status: 409, code: .holdNotActive, message: "This reservation is no longer active") }
         for seat in h.seatIds { availabilityBySc[h.screeningId]?[seat] = .sold }
         holds[holdId]?.status = .CONVERTED
+        let redeemed = q.loyalty?.pointsRedeemed ?? 0
+        let earned = q.loyalty?.pointsToEarn ?? 0
+        if redeemed > 0 {
+            points -= redeemed
+            ledger.append(.init(id: "\(holdId)-redeem", points: -redeemed, reason: "redeem", description: s.film.title, balanceAfter: points, bookingId: "mock-\(holdId)", createdAt: Date()))
+        }
+        if earned > 0 {
+            points += earned
+            ledger.append(.init(id: "\(holdId)-earn", points: earned, reason: "earn", description: s.film.title, balanceAfter: points, bookingId: "mock-\(holdId)", createdAt: Date()))
+        }
         let ref = String(holdId.replacingOccurrences(of: "-", with: "").prefix(7)).uppercased()
         let booking = Booking(
             id: "mock-\(holdId)", reference: ref, status: .CONFIRMED, createdAt: Date(), confirmedAt: Date(),
@@ -213,7 +294,9 @@ public actor MockCinemaService: CinemaService {
             venue: .init(id: s.venue.id, name: s.venue.name, timeZone: s.venue.timeZone, address: .init(line1: "12 Wharf Approach", city: "Leeds", postcode: "LS1 4AB"), coordinate: .init(latitude: 53.79, longitude: -1.54)),
             auditorium: .init(id: s.auditorium.id, name: s.auditorium.name, screenNumber: s.auditorium.screenNumber),
             seats: q.lines.map { .init(seatId: $0.seatId, rowLabel: $0.rowLabel, seatLabel: $0.seatLabel, ticketTypeId: $0.ticketTypeId, priceMinor: $0.priceMinor) },
-            totals: .init(currency: "GBP", subtotalMinor: q.subtotalMinor, feesMinor: q.feesMinor, discountMinor: q.discountMinor, totalMinor: q.totalMinor, concessionsMinor: q.concessionsMinor, voucherCode: q.voucher?.code),
+            totals: .init(currency: "GBP", subtotalMinor: q.subtotalMinor, feesMinor: q.feesMinor, discountMinor: q.discountMinor, totalMinor: q.totalMinor, concessionsMinor: q.concessionsMinor, voucherCode: q.voucher?.code,
+                          membershipDiscountMinor: q.membership?.discountMinor, membershipPlanName: q.membership?.planName,
+                          pointsRedeemed: redeemed, pointsDiscountMinor: q.loyalty?.pointsDiscountMinor, pointsEarned: earned),
             payment: .init(provider: "simulated", status: "CAPTURED", isSimulated: true),
             admission: .init(barcode: "MOCK.\(ref)", format: "qr"),
             wallet: .init(available: false, status: nil),
@@ -237,6 +320,15 @@ public actor MockCinemaService: CinemaService {
         b.cancellation?.cancelledAt = Date()
         b.cancellation?.refundedMinor = b.totals.totalMinor
         booked[i] = b
+        if let r = b.totals.pointsRedeemed, r > 0 {
+            points += r
+            ledger.append(.init(id: "\(id)-refund", points: r, reason: "refund_redeem", description: "Cancelled booking \(b.reference)", balanceAfter: points, bookingId: id, createdAt: Date()))
+        }
+        if let e = b.totals.pointsEarned, e > 0 {
+            let back = min(e, points)
+            points -= back
+            if back > 0 { ledger.append(.init(id: "\(id)-reverse", points: -back, reason: "reverse_earn", description: "Cancelled booking \(b.reference)", balanceAfter: points, bookingId: id, createdAt: Date())) }
+        }
         let screeningId = b.screening.id
         var seats = availabilityBySc[screeningId] ?? [:]
         for seat in b.seats { seats[seat.seatId] = .available }

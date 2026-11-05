@@ -356,7 +356,19 @@ struct PriceBreakdown: View {
             line("\(c.quantity) × \(c.name)", c.lineTotalMinor)
         }
         if quote.feesMinor > 0 { line(quote.feeLabel ?? "Fees", quote.feesMinor) }
-        if quote.discountMinor > 0 { line(quote.voucher.map { "Voucher \($0.code)" } ?? "Discount", -quote.discountMinor) }
+        if let m = quote.membership, m.feeWaivedMinor > 0 {
+            HStack {
+                Text("Booking fee").foregroundStyle(palette.textSecondary)
+                Spacer()
+                Text("Waived for members").foregroundStyle(palette.success)
+            }
+            .accessibilityElement(children: .combine)
+        }
+        if let discounts = quote.discounts, !discounts.isEmpty {
+            ForEach(discounts, id: \.self) { d in line(d.kind == "voucher" ? "Voucher \(quote.voucher?.code ?? ""): \(d.label)" : d.label, -d.amountMinor) }
+        } else if quote.discountMinor > 0 {
+            line(quote.voucher.map { "Voucher \($0.code)" } ?? "Discount", -quote.discountMinor)
+        }
         HStack {
             Text("Total").font(.headline)
             Spacer()
@@ -557,6 +569,7 @@ struct ReviewScreen: View {
                 }
             }
             VoucherSection(flow: flow)
+            PointsSection(flow: flow)
             if let q = flow.quote { Section("Price") { PriceBreakdown(quote: q, formatters: flow.formatters) } }
             Section {
                 InfoBanner(.info, "Development build: payment is simulated and no money is taken. Apple Pay is enabled per operator once a payment provider is configured.")
@@ -613,6 +626,35 @@ struct VoucherSection: View {
     }
 }
 
+/// Spend loyalty points in whole-pound steps. Hidden when the operator has no scheme
+/// or the customer has no points yet; earning is still shown in the footer.
+struct PointsSection: View {
+    @Bindable var flow: BookingFlowModel
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        if let loyalty = flow.quote?.loyalty {
+            Section {
+                if loyalty.redeemOptions.count > 1 {
+                    Picker("Use points", selection: Binding(get: { flow.loyaltyPoints }, set: { v in Task { await flow.setLoyaltyPoints(v) } })) {
+                        ForEach(loyalty.redeemOptions, id: \.self) { p in
+                            Text(p == 0 ? "Don't use points" : "\(p) points (\(flow.formatters.money(-loyalty.valueMinor(of: p))))").tag(p)
+                        }
+                    }
+                } else if loyalty.balance > 0 {
+                    Text("You have \(loyalty.balance) points. You can use them from \(max(loyalty.redeemPointsPerPound, loyalty.minRedeemPoints)) points (\(flow.formatters.money(100)) off per \(loyalty.redeemPointsPerPound)).")
+                        .font(.subheadline).foregroundStyle(palette.textSecondary)
+                }
+                if let message = flow.pointsMessage { Text(message).font(.footnote).foregroundStyle(palette.error) }
+            } header: {
+                Text(loyalty.name)
+            } footer: {
+                Text(loyalty.pointsToEarn > 0 ? "You'll earn \(loyalty.pointsToEarn) points with this booking. Balance: \(loyalty.balance) points." : "Balance: \(loyalty.balance) points.")
+            }
+        }
+    }
+}
+
 // MARK: - Confirmation
 
 struct ConfirmationScreen: View {
@@ -632,6 +674,11 @@ struct ConfirmationScreen: View {
                         .multilineTextAlignment(.center).foregroundStyle(palette.textSecondary)
                     if let admission = b.admission { QRCodeView(admission.barcode).frame(maxWidth: 220) }
                     Text("Reference \(b.reference) · Seats \(b.seatSummary)").font(.headline).foregroundStyle(palette.textPrimary)
+                    if let earned = b.totals.pointsEarned, earned > 0 {
+                        Label("You earned \(earned) points", systemImage: "star.circle.fill")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(palette.success)
+                    }
                     Button("View ticket", action: onViewTicket).buttonStyle(.cinemaPrimary)
                 }
                 .padding(24)

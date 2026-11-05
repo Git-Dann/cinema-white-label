@@ -48,8 +48,12 @@ public final class BookingFlowModel {
     /// True when this cinema sells food and drink through the app.
     public var offersFood: Bool { menu.map { $0.features.concessions && !$0.isEmpty } ?? false }
     public var offersSeatDelivery: Bool { (menu?.features.seatDelivery ?? false) && !basket.isEmpty }
+    /// Points the customer chose to spend (whole-pound steps from `quote.loyalty.redeemOptions`).
+    public private(set) var loyaltyPoints = 0
+    public private(set) var pointsMessage: String?
+
     public var extras: BasketExtras {
-        BasketExtras(concessions: basket, voucherCode: voucherCode, fulfilment: offersSeatDelivery ? fulfilment : .collect)
+        BasketExtras(concessions: basket, voucherCode: voucherCode, fulfilment: offersSeatDelivery ? fulfilment : .collect, loyaltyPoints: loyaltyPoints)
     }
     /// serverTime - deviceTime when the hold was created; corrects device clock drift.
     private var serverClockOffset: TimeInterval = 0
@@ -155,6 +159,11 @@ public final class BookingFlowModel {
                 voucherMessage = e.message
                 voucherCode = nil
                 await refreshQuote()
+            case "points_invalid":
+                // e.g. the basket shrank below the points chosen: spend none and explain.
+                pointsMessage = e.message
+                loyaltyPoints = 0
+                await refreshQuote()
             case "concession_unavailable", "validation_failed" where step == .food:
                 basketMessage = e.message
             default:
@@ -209,6 +218,21 @@ public final class BookingFlowModel {
         voucherCode = trimmed.isEmpty ? nil : trimmed
         await refreshQuote()
         Task { await analytics?.record(.voucherApplied, ["result": voucherCode == nil ? "rejected" : "accepted"]) }
+    }
+
+    // MARK: Loyalty points
+
+    /// Spends this many points (0 for none). Values come from `quote.loyalty.redeemOptions`; the server re-checks.
+    public func setLoyaltyPoints(_ points: Int) async {
+        guard points != loyaltyPoints else { return }
+        pointsMessage = nil
+        loyaltyPoints = max(0, points)
+        await refreshQuote()
+        // If the order shrank (food removed), the maximum may now be lower than the choice.
+        if let max = quote?.loyalty?.maxRedeemablePoints, loyaltyPoints > max {
+            loyaltyPoints = quote?.loyalty?.redeemOptions.last ?? 0
+            await refreshQuote()
+        }
     }
 
     public func removeVoucher() async {

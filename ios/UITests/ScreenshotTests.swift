@@ -96,5 +96,14 @@ final class ScreenshotTests: XCTestCase {
         element(app.buttons, "label CONTAINS 'Ember Protocol'").tap()
         sleep(1)
         shot("ticket-detail")
+
+        // Account: rewards balance (demo points plus those just earned) and memberships.
+        app.tabBars.buttons["Account"].tap()
+        _ = element(app.descendants(matching: .any), "label CONTAINS 'points'")
+        sleep(1)
+        shot("account")
+        app.swipeUp()
+        sleep(1)
+        shot("account-membership")
     }
 }

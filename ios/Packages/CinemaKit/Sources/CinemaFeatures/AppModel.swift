@@ -21,6 +21,11 @@ public final class AppModel {
     public private(set) var comingSoon: [Film] = []
     /// Live offers for the selected cinema. Empty hides the Offers section.
     public private(set) var promotions: [Promotion] = []
+    /// Points balance and history. `program == nil` hides rewards.
+    public private(set) var loyalty: LoyaltySummary = .none
+    public private(set) var membership: Membership?
+    /// Plans on sale. Empty (or the memberships feature off) hides memberships.
+    public private(set) var membershipPlans: [MembershipPlan] = []
     public private(set) var loadError: String?
     public private(set) var isLoading = false
 
@@ -83,6 +88,25 @@ public final class AppModel {
         } catch {
             loadError = (error as? APIError)?.message ?? "We couldn't load films right now."
         }
+    }
+
+    /// Rewards and membership for the Account tab. Optional content: failures leave sections hidden.
+    public func loadAccount() async {
+        let service = self.service
+        let wantsPlans = config.features.memberships
+        async let l = try? service.loyalty()
+        async let m = try? service.myMembership()
+        async let p: [MembershipPlan]? = wantsPlans ? (try? service.membershipPlans()) : []
+        let (loyaltyResult, membershipResult, plansResult) = await (l, m, p)
+        loyalty = loyaltyResult ?? .none
+        membership = membershipResult ?? nil
+        membershipPlans = plansResult ?? []
+    }
+
+    /// Buys or renews a plan. The key is per attempt so a retried tap is not charged twice.
+    public func buyMembership(_ plan: MembershipPlan, simulateDecline: Bool = false, idempotencyKey: String) async throws {
+        membership = try await service.purchaseMembership(planId: plan.id, simulateDecline: simulateDecline, idempotencyKey: idempotencyKey)
+        Task { await analytics.record(.membershipEngaged, ["action": "purchased"]) }
     }
 
     /// Offers are optional content: a failure leaves the section hidden rather than erroring the home screen.
