@@ -15,7 +15,11 @@ export function configureApp(app: INestApplication) {
  * tokens, not cookies, so a wider origin list does not expose sessions.
  */
 export function corsOrigins(setting = 'http://localhost:3001') {
-  const entries = setting.split(',').map((s) => s.trim()).filter(Boolean);
+  // Tolerate values pasted with quotes or spaces (e.g. "*.vercel.app" typed into a dashboard).
+  const entries = setting
+    .split(',')
+    .map((s) => s.trim().replace(/^['"]+|['"]+$/g, '').trim().replace(/\/$/, '').replace(/^https:\/\/\*\./, '*.'))
+    .filter(Boolean);
   return (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
     if (!origin) return cb(null, true);
     let host = '';
