@@ -54,8 +54,8 @@ describe('admin management: seat categories, pricing, food, vouchers, layouts (i
       expect(before.supplements.map((s: any) => s.format)).toContain('3D');
 
       // Validation and roles.
-      expect((await api(app, admin).put(`${A}/pricing/fees`, { bookingFeePerTicketMinor: 100, supplements: [{ format: 'IMAX', amountMinor: 1 }, { format: 'imax', amountMinor: 2 }] }, null)).status).toBe(422);
-      expect((await api(app, admin).put(`${A}/pricing/fees`, { bookingFeePerTicketMinor: -1, supplements: [] }, null)).status).toBe(422);
+      expect((await api(app, admin).put(`${A}/pricing/fees`, { bookingFeePerTicketMinor: 100, supplements: [{ format: 'IMAX', amountMinor: 1 }, { format: 'imax', amountMinor: 2 }] })).status).toBe(422);
+      expect((await api(app, admin).put(`${A}/pricing/fees`, { bookingFeePerTicketMinor: -1, supplements: [] })).status).toBe(422);
       await api(app, editor).put(`${A}/pricing/fees`, { bookingFeePerTicketMinor: 0, supplements: [] }).expect(403);
 
       const updated = (await api(app, admin).put(`${A}/pricing/fees`, {
