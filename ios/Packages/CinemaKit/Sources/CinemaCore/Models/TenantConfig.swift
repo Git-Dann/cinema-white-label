@@ -103,7 +103,10 @@ public enum AppearancePolicy: String, Codable, Sendable, Hashable {
 }
 
 public struct ResolvedTheme: Codable, Sendable, Hashable {
-    public struct CornerRadius: Codable, Sendable, Hashable { public var small: Double; public var medium: Double; public var large: Double }
+    public struct CornerRadius: Codable, Sendable, Hashable {
+        public var small: Double; public var medium: Double; public var large: Double
+        public init(small: Double, medium: Double, large: Double) { self.small = small; self.medium = medium; self.large = large }
+    }
     public var themeId: ThemeID
     public var name: String
     public var appearancePolicy: AppearancePolicy
@@ -149,6 +152,45 @@ public struct SemanticTokens: Codable, Sendable, Hashable {
     public var seatRestricted: String
     public var seatBlocked: String
     public var screen: String
+
+    /// Public memberwise initialiser so other modules (e.g. design fallbacks, previews) can build tokens.
+    public init(background: String, backgroundElevated: String, surface: String, surfaceElevated: String, textPrimary: String, textSecondary: String, textMuted: String, actionPrimary: String, actionPrimaryText: String, actionSecondary: String, actionSecondaryText: String, selected: String, selectedText: String, divider: String, border: String, focus: String, error: String, warning: String, success: String, artworkScrim: String, membership: String, membershipText: String, seatAvailable: String, seatAvailableBorder: String, seatSelected: String, seatSelectedText: String, seatHeld: String, seatSold: String, seatUnavailable: String, seatPremium: String, seatAccessible: String, seatCompanion: String, seatRestricted: String, seatBlocked: String, screen: String) {
+        self.background = background
+        self.backgroundElevated = backgroundElevated
+        self.surface = surface
+        self.surfaceElevated = surfaceElevated
+        self.textPrimary = textPrimary
+        self.textSecondary = textSecondary
+        self.textMuted = textMuted
+        self.actionPrimary = actionPrimary
+        self.actionPrimaryText = actionPrimaryText
+        self.actionSecondary = actionSecondary
+        self.actionSecondaryText = actionSecondaryText
+        self.selected = selected
+        self.selectedText = selectedText
+        self.divider = divider
+        self.border = border
+        self.focus = focus
+        self.error = error
+        self.warning = warning
+        self.success = success
+        self.artworkScrim = artworkScrim
+        self.membership = membership
+        self.membershipText = membershipText
+        self.seatAvailable = seatAvailable
+        self.seatAvailableBorder = seatAvailableBorder
+        self.seatSelected = seatSelected
+        self.seatSelectedText = seatSelectedText
+        self.seatHeld = seatHeld
+        self.seatSold = seatSold
+        self.seatUnavailable = seatUnavailable
+        self.seatPremium = seatPremium
+        self.seatAccessible = seatAccessible
+        self.seatCompanion = seatCompanion
+        self.seatRestricted = seatRestricted
+        self.seatBlocked = seatBlocked
+        self.screen = screen
+    }
 
     /// Key-path lookup by contract token name, used by the contrast validator.
     public subscript(token token: String) -> String? {

@@ -2,6 +2,7 @@ import AppIntents
 import CoreSpotlight
 import Observation
 import SwiftUI
+import UniformTypeIdentifiers
 import CinemaCore
 
 /// Routes system entry points (App Intents, Spotlight, deep links) to a tab.
