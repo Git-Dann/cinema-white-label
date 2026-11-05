@@ -1335,8 +1335,17 @@
         "parameters": [
           {
             "name": "days",
-            "required": true,
+            "required": false,
             "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "venueId",
+            "required": false,
+            "in": "query",
+            "description": "Limit bookings and revenue to one cinema",
             "schema": {
               "type": "string"
             }

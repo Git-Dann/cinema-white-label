@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, Module, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Prisma, Tenant } from '@prisma/client';
 import { hexSchema, resolveTheme, themeTemplates, validateThemeContrast } from '@cinema/contracts';
 import { randomUUID } from 'crypto';
@@ -324,6 +324,8 @@ export class AdminContentController {
   }
 
   @Get('stats')
+  @ApiQuery({ name: 'days', required: false })
+  @ApiQuery({ name: 'venueId', required: false, description: 'Limit bookings and revenue to one cinema' })
   /** Totals for the operator, or for one cinema with ?venueId=. */
   async stats(@CurrentTenant() t: Tenant, @Query('days') days?: string, @Query('venueId') venueId?: string) {
     const since = new Date(this.clock.now().getTime() - (Number(days) || 30) * 86400_000);
