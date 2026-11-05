@@ -108,12 +108,16 @@ export class CommerceService {
   }
 
   /** Validates a voucher and returns the discount. Redemption happens at confirmation. */
-  async voucherDiscount(tenant: Tenant, code: string, ticketsMinor: number, concessionsMinor: number) {
+  async voucherDiscount(tenant: Tenant, code: string, ticketsMinor: number, concessionsMinor: number, venueId: string) {
     const v = await this.prisma.voucher.findUnique({ where: { tenantId_code: { tenantId: tenant.id, code: code.trim().toUpperCase() } } });
     const now = this.clock.now();
     if (!v || !v.active) throw Errors.voucherInvalid('This code is not recognised');
     if ((v.validFrom && v.validFrom > now) || (v.validTo && v.validTo < now)) throw Errors.voucherInvalid('This code has expired or is not valid yet');
     if (v.maxRedemptions !== null && v.redemptions >= v.maxRedemptions) throw Errors.voucherInvalid('This code has already been fully used');
+    if (v.venueId && v.venueId !== venueId) {
+      const only = await this.prisma.venue.findFirst({ where: { id: v.venueId, tenantId: tenant.id }, select: { name: true } });
+      throw Errors.voucherInvalid(only ? `This code can only be used at ${only.name}` : 'This code is not valid at this cinema');
+    }
     const scope = v.appliesTo === 'tickets' ? ticketsMinor : v.appliesTo === 'concessions' ? concessionsMinor : ticketsMinor + concessionsMinor;
     if (ticketsMinor + concessionsMinor < v.minSpendMinor) throw Errors.voucherInvalid(`Spend at least £${(v.minSpendMinor / 100).toFixed(2)} to use this code`);
     if (scope <= 0) throw Errors.voucherInvalid(v.appliesTo === 'concessions' ? 'This code applies to food and drink only' : 'This code does not apply to your basket');

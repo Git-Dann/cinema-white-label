@@ -5,10 +5,12 @@ import { AuditEntry, Release, Stats, tenantPath } from '@/lib/api';
 import { actionLabel, auditSummary, formatDateTime, formatMoney } from '@/lib/format';
 import { useSession, useTenantData } from '@/lib/session';
 import { ErrorNote, Loading, PageHeader, StatusBadge } from '@/components/ui';
+import { useCinemaScope } from '@/lib/cinema-scope';
 
 export default function OverviewPage() {
   const { tenant, tenantName } = useSession();
-  const stats = useTenantData<Stats>(tenantPath(tenant, '/stats'));
+  const scope = useCinemaScope();
+  const stats = useTenantData<Stats>(tenantPath(tenant, scope.venueId ? `/stats?venueId=${scope.venueId}` : '/stats'));
   const audit = useTenantData<AuditEntry[]>(tenantPath(tenant, '/audit'));
   const releases = useTenantData<Release[]>(tenantPath(tenant, '/releases'));
   const live = releases.data?.find((r) => r.status === 'PUBLISHED');
@@ -16,7 +18,7 @@ export default function OverviewPage() {
 
   return (
     <>
-      <PageHeader title="Overview" description={`${tenantName} · last 30 days`} />
+      <PageHeader title="Overview" description={`${scope.venue?.name ?? tenantName} · last 30 days`} />
       <ErrorNote message={stats.error} />
       <section aria-label="Key figures" className="stat-grid">
         <StatCard label="Confirmed bookings" value={stats.data ? stats.data.bookings.toLocaleString('en-GB') : '—'} />

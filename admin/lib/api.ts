@@ -341,6 +341,7 @@ export interface Voucher {
   maxRedemptions: number | null;
   redemptions: number;
   active: boolean;
+  venueId: string | null;
 }
 
 export type LayoutStatus = 'DRAFT' | 'PUBLISHED' | 'RETIRED';

@@ -2334,3 +2334,25 @@ dialog.sheet form {
     grid-template-columns: 1fr;
   }
 }
+
+/* Cinema scope */
+.scope-note {
+  margin: calc(-1 * var(--s3)) 0 var(--s3);
+  color: var(--text-2);
+  font-size: 13.5px;
+}
+.link-btn {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--link);
+  font: inherit;
+  cursor: pointer;
+}
+.link-btn:hover {
+  text-decoration: underline;
+}
+.badge-scope {
+  background: rgba(61, 214, 181, 0.12);
+  color: var(--link);
+}

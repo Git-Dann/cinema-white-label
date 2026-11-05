@@ -5,6 +5,7 @@ import { api, errorDetails, errorMessage, tenantPath, Voucher } from '@/lib/api'
 import { useSession, useTenantData } from '@/lib/session';
 import { formatDate, formatMoney, inputToMinor } from '@/lib/format';
 import { ApiErrorNote, ErrorNote, Loading, PageHeader, ReadOnlyNote, SuccessNote } from '@/components/ui';
+import { ScopeNote, useCinemaScope } from '@/lib/cinema-scope';
 
 type ApiErr = { message: string; details: string[] } | null;
 
@@ -21,8 +22,9 @@ interface CreateForm {
   validTo: string;
   maxRedemptions: string;
   active: boolean;
+  venueId: string;
 }
-const EMPTY: CreateForm = { code: '', description: '', kind: 'percentOff', value: '', appliesTo: 'all', minSpend: '', validFrom: '', validTo: '', maxRedemptions: '', active: true };
+const EMPTY: CreateForm = { code: '', description: '', kind: 'percentOff', value: '', appliesTo: 'all', minSpend: '', validFrom: '', validTo: '', maxRedemptions: '', active: true, venueId: '' };
 
 interface EditForm {
   description: string;
@@ -48,6 +50,8 @@ function validity(v: Voucher) {
 export default function VouchersPage() {
   const { tenant, can } = useSession();
   const vouchers = useTenantData<Voucher[]>(tenantPath(tenant, '/vouchers'));
+  const scope = useCinemaScope();
+  const shown = (vouchers.data ?? []).filter((v) => scope.includes(v.venueId));
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<CreateForm>(EMPTY);
   const [editing, setEditing] = useState<Voucher | null>(null);
@@ -87,6 +91,7 @@ export default function VouchersPage() {
       validTo: endOfDay(form.validTo),
       maxRedemptions: max,
       active: form.active,
+      venueId: form.venueId || null,
     };
     setBusy(true);
     setFormError(null);
@@ -161,7 +166,7 @@ export default function VouchersPage() {
               onClick={() => {
                 setCreating(true);
                 setEditing(null);
-                setForm(EMPTY);
+                setForm({ ...EMPTY, venueId: scope.venueId ?? '' });
                 setFormError(null);
                 setMsg({});
               }}
@@ -171,6 +176,7 @@ export default function VouchersPage() {
           )
         }
       />
+      <ScopeNote what="vouchers" />
       {!can.canEditVouchers && <ReadOnlyNote>Only operator admins can create or change vouchers. Vouchers are shown read-only.</ReadOnlyNote>}
       <ErrorNote message={msg.error ?? vouchers.error} />
       <SuccessNote message={msg.ok} />
@@ -240,6 +246,17 @@ export default function VouchersPage() {
                 <label htmlFor="vc-max">Maximum redemptions (optional)</label>
                 <input id="vc-max" type="number" min={1} step={1} value={form.maxRedemptions} onChange={set('maxRedemptions')} placeholder="Unlimited" />
               </div>
+              <div className="field">
+                <label htmlFor="vc-venue">Valid at</label>
+                <select id="vc-venue" value={form.venueId} onChange={(e) => setForm({ ...form, venueId: e.target.value })}>
+                  <option value="">All cinemas</option>
+                  {scope.venues.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="field span-2">
                 <span className="label">Status</span>
                 <label className="switch">
@@ -303,8 +320,8 @@ export default function VouchersPage() {
 
       <section className="card" aria-label="Vouchers list">
         {vouchers.loading && !vouchers.data && <Loading />}
-        {vouchers.data && vouchers.data.length === 0 && <p className="muted">No vouchers yet.</p>}
-        {vouchers.data && vouchers.data.length > 0 && (
+        {vouchers.data && shown.length === 0 && <p className="muted">{scope.venue ? `No vouchers for ${scope.venue.name} yet.` : 'No vouchers yet.'}</p>}
+        {shown.length > 0 && (
           <div className="table-wrap">
             <table className="table">
               <thead>
@@ -312,6 +329,7 @@ export default function VouchersPage() {
                   <th scope="col">Code</th>
                   <th scope="col">Discount</th>
                   <th scope="col">Applies to</th>
+                  <th scope="col">Valid at</th>
                   <th scope="col">Redemptions</th>
                   <th scope="col">Validity</th>
                   <th scope="col">Status</th>
@@ -321,7 +339,7 @@ export default function VouchersPage() {
                 </tr>
               </thead>
               <tbody>
-                {vouchers.data.map((v) => (
+                {shown.map((v) => (
                   <tr key={v.id}>
                     <td>
                       <code className="strong">{v.code}</code>
@@ -332,6 +350,7 @@ export default function VouchersPage() {
                       {v.minSpendMinor > 0 && <div className="muted small">Min spend {formatMoney(v.minSpendMinor, 'GBP')}</div>}
                     </td>
                     <td>{APPLIES[v.appliesTo]}</td>
+                    <td className="small">{v.venueId ? <span className="badge badge-scope">{scope.label(v.venueId)}</span> : 'All cinemas'}</td>
                     <td className="num nowrap">
                       {v.redemptions} / {v.maxRedemptions ?? 'unlimited'}
                     </td>

@@ -5,6 +5,7 @@ import { api, errorDetails, errorMessage, Film, Promotion, PromotionActionKind, 
 import { useSession, useTenantData } from '@/lib/session';
 import { formatDate } from '@/lib/format';
 import { ApiErrorNote, ErrorNote, Loading, PageHeader, ReadOnlyNote, SuccessNote } from '@/components/ui';
+import { ScopeNote, useCinemaScope } from '@/lib/cinema-scope';
 
 type ApiErr = { message: string; details: string[] } | null;
 
@@ -64,6 +65,8 @@ export default function PromotionsPage() {
   const { tenant, can } = useSession();
   const canEdit = can.canEditContent;
   const promotions = useTenantData<Promotion[]>(tenantPath(tenant, '/promotions'));
+  const scope = useCinemaScope();
+  const shown = (promotions.data ?? []).filter((p) => scope.includes(p.venueId));
   const films = useTenantData<Film[]>(tenantPath(tenant, '/films'));
   const venues = useTenantData<Venue[]>(tenantPath(tenant, '/venues'));
   const vouchers = useTenantData<Voucher[]>(tenantPath(tenant, '/vouchers'));
@@ -80,7 +83,7 @@ export default function PromotionsPage() {
 
   function open(p: Promotion | 'new') {
     setEditing(p);
-    setForm(p === 'new' ? EMPTY : toForm(p));
+    setForm(p === 'new' ? { ...EMPTY, venueId: scope.venueId ?? '' } : toForm(p));
     setFormError(null);
     setMsg({});
   }
@@ -158,6 +161,7 @@ export default function PromotionsPage() {
       <ErrorNote message={msg.error ?? promotions.error} />
       <SuccessNote message={msg.ok} />
 
+      <ScopeNote what="promotions" />
       {editing && canEdit && (
         <section className="card" aria-labelledby="pr-title">
           <h2 id="pr-title" className="h3">
@@ -276,8 +280,8 @@ export default function PromotionsPage() {
 
       <section className="card" aria-label="Promotions list">
         {promotions.loading && !promotions.data && <Loading />}
-        {promotions.data && promotions.data.length === 0 && <p className="muted">No promotions yet. The Offers section stays hidden in the app until there is one.</p>}
-        {promotions.data && promotions.data.length > 0 && (
+        {promotions.data && shown.length === 0 && <p className="muted">{scope.venue ? `No promotions for ${scope.venue.name} yet.` : 'No promotions yet. The Offers section stays hidden in the app until there is one.'}</p>}
+        {shown.length > 0 && (
           <div className="table-wrap">
             <table className="table">
               <thead>
@@ -293,7 +297,7 @@ export default function PromotionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {promotions.data.map((p) => {
+                {shown.map((p) => {
                   const s = status(p);
                   return (
                     <tr key={p.id}>

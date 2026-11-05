@@ -7,6 +7,7 @@ import { SafeImage } from '@/components/SafeImage';
 import { useSession, useTenantData } from '@/lib/session';
 import { formatMoney, inputToMinor, minorToInput } from '@/lib/format';
 import { ApiErrorNote, ErrorNote, Loading, PageHeader, ReadOnlyNote, SuccessNote } from '@/components/ui';
+import { ScopeNote, useCinemaScope } from '@/lib/cinema-scope';
 
 type ApiErr = { message: string; details: string[] } | null;
 
@@ -174,11 +175,12 @@ export default function FoodPage() {
   const [query, setQuery] = useState('');
   const dialog = useRef<HTMLDialogElement>(null);
 
+  const scope = useCinemaScope();
   const grouped = useMemo(() => {
     const m = new Map<string, Concession[]>();
-    for (const p of products.data ?? []) m.set(p.category, [...(m.get(p.category) ?? []), p]);
+    for (const p of products.data ?? []) if (scope.includes(p.venueId)) m.set(p.category, [...(m.get(p.category) ?? []), p]);
     return [...m.entries()].sort(([a], [b]) => a.localeCompare(b));
-  }, [products.data]);
+  }, [products.data, scope]);
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return grouped
@@ -198,7 +200,7 @@ export default function FoodPage() {
 
   function startNew() {
     setEditing('new');
-    setForm(EMPTY);
+    setForm({ ...EMPTY, venueId: scope.venueId ?? '' });
     setFormError(null);
     setMsg({});
   }
@@ -290,6 +292,7 @@ export default function FoodPage() {
           )
         }
       />
+      <ScopeNote what="the menu" />
       {!can.canEditConcessions && <ReadOnlyNote>Your role can view the menu but not change it.</ReadOnlyNote>}
       <ErrorNote message={msg.error ?? products.error} />
       <SuccessNote message={msg.ok} />
@@ -501,7 +504,7 @@ export default function FoodPage() {
             {[['all', 'All'] as const, ...grouped.map(([c]) => [c, c] as const)].map(([value, label]) => (
               <button key={value} className={`chip${category === value ? ' selected' : ''}`} aria-pressed={category === value} onClick={() => setCategory(value)}>
                 {label}
-                <span className="chip-count">{value === 'all' ? products.data?.length : grouped.find(([c]) => c === value)?.[1].length}</span>
+                <span className="chip-count">{value === 'all' ? grouped.reduce((n, [, items]) => n + items.length, 0) : grouped.find(([c]) => c === value)?.[1].length}</span>
               </button>
             ))}
           </div>
@@ -528,12 +531,13 @@ export default function FoodPage() {
                     <span className="product-price num">{formatMoney(p.priceMinor, cur)}</span>
                   </div>
                   <p className="product-meta">
-                    {[p.bundleItems.join(', '), p.modifierGroups.length ? `Choose ${p.modifierGroups.map((g) => g.name.toLowerCase()).join(', ')}` : '', p.venueId ? venueName(p.venueId) : '']
+                    {[p.bundleItems.join(', '), p.modifierGroups.length ? `Choose ${p.modifierGroups.map((g) => g.name.toLowerCase()).join(', ')}` : '']
                       .filter(Boolean)
                       .join(' · ') || p.sku}
                   </p>
-                  {(p.dietary.length > 0 || p.allergens.length > 0) && (
+                  {(p.venueId || p.dietary.length > 0 || p.allergens.length > 0) && (
                     <div className="tags">
+                      {p.venueId && <span className="badge badge-scope">{scope.label(p.venueId)} only</span>}
                       {p.dietary.map((d) => (
                         <span key={d} className="badge badge-success">
                           {d}

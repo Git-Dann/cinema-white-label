@@ -69,6 +69,8 @@ const voucherBody = z
     validTo: z.string().datetime().nullable().default(null),
     maxRedemptions: z.number().int().min(1).nullable().default(null),
     active: z.boolean().default(true),
+    /** Null = valid at every cinema. */
+    venueId: z.string().nullable().default(null),
   })
   .refine((v) => v.kind !== 'percentOff' || v.value <= 100, 'Percentage must be 100 or less')
   .refine((v) => !v.validFrom || !v.validTo || v.validFrom < v.validTo, 'End date must be after start date');
@@ -304,6 +306,7 @@ export class AdminCommerceController {
   @Post('vouchers')
   @Roles('OPERATOR_ADMIN')
   async createVoucher(@CurrentTenant() t: Tenant, @CurrentAdmin() a: AdminClaims, @Body(new ZodPipe(voucherBody)) b: z.infer<typeof voucherBody>) {
+    await this.assertVenue(t, b.venueId);
     const row = await this.prisma.voucher
       .create({ data: { ...b, tenantId: t.id, validFrom: b.validFrom ? new Date(b.validFrom) : null, validTo: b.validTo ? new Date(b.validTo) : null } })
       .catch((e) => {
@@ -321,11 +324,12 @@ export class AdminCommerceController {
     @CurrentTenant() t: Tenant,
     @CurrentAdmin() a: AdminClaims,
     @Param('id') id: string,
-    @Body(new ZodPipe(z.object({ description: z.string().min(1).max(100).optional(), active: z.boolean().optional(), validTo: z.string().datetime().nullable().optional(), maxRedemptions: z.number().int().min(1).nullable().optional() })))
-    b: { description?: string; active?: boolean; validTo?: string | null; maxRedemptions?: number | null },
+    @Body(new ZodPipe(z.object({ description: z.string().min(1).max(100).optional(), active: z.boolean().optional(), validTo: z.string().datetime().nullable().optional(), maxRedemptions: z.number().int().min(1).nullable().optional(), venueId: z.string().nullable().optional() })))
+    b: { description?: string; active?: boolean; validTo?: string | null; maxRedemptions?: number | null; venueId?: string | null },
   ) {
     const existing = await this.prisma.voucher.findFirst({ where: { id, tenantId: t.id } });
     if (!existing) throw Errors.notFound('Voucher');
+    await this.assertVenue(t, b.venueId);
     if (b.maxRedemptions != null && b.maxRedemptions < existing.redemptions) throw Errors.validation(`Already redeemed ${existing.redemptions} times`);
     const row = await this.prisma.voucher.update({ where: { id }, data: { ...b, validTo: b.validTo === undefined ? undefined : b.validTo ? new Date(b.validTo) : null } });
     await this.audit.record({ tenantId: t.id, actorId: a.sub, action: 'voucher.update', entityType: 'Voucher', entityId: id, data: b });

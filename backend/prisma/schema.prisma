@@ -586,6 +586,8 @@ model Voucher {
   maxRedemptions Int?
   redemptions    Int       @default(0)
   active         Boolean   @default(true)
+  /// Null = valid at every cinema.
+  venueId        String?
 
   @@unique([tenantId, code])
 }
