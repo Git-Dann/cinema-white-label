@@ -1,6 +1,6 @@
 #include "Base.xcconfig"
 // Build-time identity for the fictional Northlight Cinemas app.
-PRODUCT_BUNDLE_IDENTIFIER = com.example.northlight.cinema
-PRODUCT_NAME = Northlight
+APP_BUNDLE_ID = com.example.northlight.cinema
+APP_NAME = Northlight
 TENANT_SLUG = northlight
 ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon-Northlight

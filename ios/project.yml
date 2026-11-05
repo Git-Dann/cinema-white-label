@@ -34,6 +34,9 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_PREVIEWS: YES
+        # Operator identity comes from Config/<Operator>.xcconfig; only the app uses it.
+        PRODUCT_NAME: $(APP_NAME)
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID)
   CinemaAppUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -44,6 +47,8 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
         TEST_TARGET_NAME: CinemaApp
+        PRODUCT_NAME: CinemaAppUITests
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID).uitests
 schemes:
   Northlight:
     build:
