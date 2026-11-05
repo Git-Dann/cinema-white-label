@@ -16,10 +16,8 @@ struct CinemaApp: App {
         let base = URL(string: info["APIBaseURL"] as? String ?? "http://localhost:3000/")!
 
         // Bundled known-good configuration so the app always has a valid theme offline.
-        guard let url = Bundle.main.url(forResource: "tenant-config-\(slug)", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let bundled = try? APIClient.decoder.decode(TenantConfig.self, from: data) else {
-            fatalError("Missing bundled tenant configuration for \(slug)")
+        guard let bundled = BundledConfig.load(tenantSlug: slug) else {
+            fatalError("Missing bundled tenant configuration for \(slug); run the backend seed to regenerate it")
         }
 
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]

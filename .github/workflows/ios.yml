@@ -1,0 +1,93 @@
+name: iOS
+
+# macOS minutes cost ~10x Linux minutes, so this only runs when the app or its
+# fixtures change.
+on:
+  pull_request:
+    paths:
+      - "ios/**"
+      - "shared/fixtures/**"
+      - ".github/workflows/ios.yml"
+  push:
+    branches: [main]
+    paths:
+      - "ios/**"
+      - "shared/fixtures/**"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: iOS app (Xcode build)
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode
+        run: |
+          XCODE=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          {
+            echo "### Toolchain"
+            echo '```'
+            xcodebuild -version
+            xcodebuild -showsdks | grep -i ios
+            xcrun simctl list runtimes | grep -i ios
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Build Northlight for the iOS Simulator
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project Cinema.xcodeproj \
+            -scheme Northlight \
+            -configuration "Northlight Debug" \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee xcodebuild.log
+      - name: Summarise compiler errors
+        if: failure()
+        working-directory: ios
+        run: |
+          {
+            echo "### Compiler errors"
+            echo '```'
+            grep -E "error:" xcodebuild.log | sed 's#.*/ios/##' | sort -u | head -80 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          grep -E "error:" xcodebuild.log | sed 's#.*/ios/##' | sort -u | head -80 || true
+
+      - name: Build Kestrel (second operator identity)
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild build -project Cinema.xcodeproj -scheme Kestrel -configuration "Kestrel Debug" \
+            -destination "generic/platform=iOS Simulator" -derivedDataPath build CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tail -20
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: ios/xcodebuild.log
+          if-no-files-found: ignore

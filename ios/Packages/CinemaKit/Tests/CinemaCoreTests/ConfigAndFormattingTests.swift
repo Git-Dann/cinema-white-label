@@ -125,3 +125,15 @@ struct FormattingTests {
         #expect(serial == "s1")
     }
 }
+
+@Suite("Bundled configuration")
+struct BundledConfigTests {
+    @Test func bothOperatorsShipAValidFallbackConfig() {
+        for slug in ["northlight", "kestrel"] {
+            let c = BundledConfig.load(tenantSlug: slug)
+            #expect(c?.tenant.slug == slug)
+            #expect(c.map { TenantConfigStore.rejectionReason($0, expectedTenant: slug) } == .some(nil))
+        }
+        #expect(BundledConfig.load(tenantSlug: "nope") == nil)
+    }
+}

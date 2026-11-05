@@ -24,12 +24,7 @@ targets:
     sources:
       - path: App
       - path: Resources
-      - path: ../shared/fixtures/tenant-config/northlight.json
-        buildPhase: resources
-        name: tenant-config-northlight.json
-      - path: ../shared/fixtures/tenant-config/kestrel.json
-        buildPhase: resources
-        name: tenant-config-kestrel.json
+      # Bundled fallback tenant configs ship inside CinemaCore (BundledConfig).
     info:
       path: App/Info.plist
     dependencies:
@@ -45,6 +40,10 @@ targets:
     sources: [UITests]
     dependencies:
       - target: CinemaApp
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: CinemaApp
 schemes:
   Northlight:
     build:
