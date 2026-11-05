@@ -351,7 +351,7 @@
 
   <!-- SEATS: the dark band. split-text-left with the live seat map of the 226-seat curved screen,
        drawn from the layout fixture (seat-map.js); tap seats to choose them. -->
-  <section class="section ground-inverse" id="seats" aria-labelledby="seats-h">
+  <section class="section" id="seats" aria-labelledby="seats-h">
     <div class="wrap">
       <div class="grid">
         <div class="span-6 stack-5">
@@ -392,74 +392,85 @@
             <h3>Puts the booking on the Lock Screen</h3>
             <p>After booking, a Live Activity shows the film, screen and seats, and the minutes to the start.</p>
             <div class="panel" data-fx="painterly-landscape" data-fx-seed="11" data-fx-params='{"blur":1,"brush":0.35,"slope":0,"hillY":0.3,"horizon":0.62,"drift":0}' data-fx-palette='{"bg":"#a3b0b6","accent":"#c49a6c"}'>
-              <div class="stage"><div class="at-rise fit live-wrap" style="--fit-max:520px;--ax:max(24px, 50% - 260px);--ay:48px;--ay-sm:32px">
-                <div class="ui live" role="img" aria-label="A Live Activity: Ember Protocol, Screen 4, seats D1 and D2, starts at 18:10, in 24 minutes">
-                  <div class="live__island"><span class="live__poster"></span><span class="live__in">24 min</span></div>
-                  <div class="live__card">
-                    <img class="live__art" src="img/ember-protocol-poster-120.jpg" alt="" width="120" height="180" loading="lazy">
-                    <div class="live__text">
-                      <p class="live__app"><span class="live__n">N</span>Northlight</p>
-                      <p class="live__film">Ember Protocol</p>
-                      <p class="live__meta">Screen 4 · Seats D1, D2</p>
-                    </div>
-                    <div class="live__time"><p class="live__big">24 min</p><p class="live__meta">Starts 18:10</p></div>
-                    <div class="live__bar"><i style="--k:.72"></i></div>
+              <div class="stage nph-stage">
+                <div class="nph" role="img" aria-label="An iPhone Lock Screen at 17:46 with a Live Activity: Ember Protocol, Screen 4, seats D1 and D2, starts at 18:10, in 24 minutes"><div class="nph__screen nph--lock">
+                  <span class="nph__sb nph__sb--lock" aria-hidden="true"><span></span><span class="nph__sb-r" aria-hidden="true"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="5" y="5.5" width="3" height="6.5" rx=".8"/><rect x="10" y="3" width="3" height="9" rx=".8"/><rect x="15" y="0" width="3" height="12" rx=".8"/></svg><svg viewBox="0 0 16 12"><path d="M8 11.5 5.6 8.9a3.4 3.4 0 0 1 4.8 0zM3.4 6.7a6.5 6.5 0 0 1 9.2 0l-1.3 1.4a4.6 4.6 0 0 0-6.6 0zM1 4.3a9.9 9.9 0 0 1 14 0l-1.3 1.3a8 8 0 0 0-11.4 0z"/></svg><i class="nph__batt"></i></span></span>
+                  <i class="nph__island nph__island--live" aria-hidden="true"><span class="live__poster"></span><span>24 min</span></i>
+                  <p class="lock__date">Friday 6 November</p>
+                  <p class="lock__time">17:46</p>
+                  <div class="lock__live">
+                    <img class="lock__art" src="img/ember-protocol-poster-120.jpg" alt="" width="120" height="180" loading="lazy">
+                    <div class="lock__text"><p class="lock__app"><span class="live__n">N</span>Northlight</p><p class="lock__film">Ember Protocol</p><p class="lock__meta">Screen 4 · Seats D1, D2</p></div>
+                    <div class="lock__when"><p class="lock__big">24 min</p><p class="lock__meta">Starts 18:10</p></div>
+                    <div class="lock__bar"><i></i></div>
                   </div>
-                </div>
-              </div></div>
+                  <span class="lock__btn lock__btn--l" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M5 1.5h6v3l-1.5 2.5v7.5h-3V7L5 4.5z"/></svg></span>
+                  <span class="lock__btn lock__btn--r" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M2 5.5h2.5L6 3.5h4l1.5 2H14v7.5H2z"/><circle cx="8" cy="9" r="2.3"/></svg></span>
+                  <i class="nph__island" aria-hidden="true"></i><i class="nph__home" aria-hidden="true"></i>
+                </div></div>
+              </div>
             </div>
           </article>
           <article class="card card--row card--open span-6 m-nolift">
             <h3>Opens booked tickets with no signal</h3>
             <p>Tickets are stored on the phone, ready at the door.</p>
             <div class="panel" data-fx="painterly-landscape" data-fx-seed="23" data-fx-params='{"drift":0}' data-fx-palette='{"bg":"#cdd6c6","surface":"#dce3d6","ink":"#262d24","accent":"#6c8e63"}'>
-              <div class="stage stage--fade-b"><div class="at-rise fit" style="--fit-max:240px;--ax:max(24px, 50% - 120px);--ay:40px;--ay-sm:32px">
-                <div class="ui ticket" role="img" aria-label="An offline ticket with its QR code, booking reference 5321825">
-                  <p class="ticket__film">Ember Protocol</p>
-                  <p class="ticket__meta">Fri 6 Nov · 18:10 · Seats D1, D2</p>
-                  <img class="ticket__qr" src="img/ticket-qr.svg" alt="" width="29" height="29" loading="lazy">
-                  <p class="ticket__ref">Booking reference 5321825</p>
-                </div>
-              </div></div>
+              <div class="stage nph-stage">
+                <div class="nph" role="img" aria-label="The app’s ticket screen: Ember Protocol, Friday 6 November at 18:10, a QR code, booking reference 5321825, Screen 4, seats D1 and D2"><div class="nph__screen nph--shot">
+                  <img class="nph__shot" src="img/app-ticket-detail-480.webp" srcset="img/app-ticket-detail-240.webp 240w, img/app-ticket-detail-480.webp 480w, img/app-ticket-detail.webp 960w" sizes="300px" alt="" width="480" height="1043" loading="lazy">
+                  <i class="nph__island" aria-hidden="true"></i><i class="nph__home" aria-hidden="true"></i>
+                </div></div>
+              </div>
             </div>
           </article>
         </div>
       </div>
       <div class="grid">
-        <article class="card card--row card--open span-6 m-nolift">
-          <h3>Finds cinema times in Spotlight</h3>
-          <p>Films and tickets show up in iPhone search and Shortcuts.</p>
-          <div class="panel" data-fx="painterly-landscape" data-fx-seed="37" data-fx-params='{"drift":0}' data-fx-palette='{"bg":"#c6d3df","surface":"#d6e0e9","ink":"#25303a","accent":"#3f6a92"}'>
-            <div class="stage stage--fade-b"><div class="at-rise fit" style="--fit-max:300px;--ax:max(24px, 50% - 150px);--ay:40px;--ay-sm:32px">
-              <div class="ui ui-panel ui-search" data-ui="search">
-                <div class="ui-search__field">
-                  <svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
-                  <span class="ui-search__q"><span data-search-q>ember</span><i class="ui-search__caret"></i></span>
-                </div>
-                <div class="ui-search__group">Northlight</div>
-                <ul class="ui-search__list" data-search-list>
-                  <li class="ui-search__row is-sel"><span class="ui-search__ico"><svg class="ui-icon" viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="9" rx="1.5"/><path d="M5 3.5v9M11 3.5v9"/></svg></span><span class="ui-search__t"><b>Ember</b> Protocol</span><span class="ui-search__m">Film</span></li>
-                  <li class="ui-search__row"><span class="ui-search__ico"><svg class="ui-icon" viewBox="0 0 16 16"><path d="M2.5 5.5h11v2a1.5 1.5 0 0 0 0 3v2h-11v-2a1.5 1.5 0 0 0 0-3z"/></svg></span><span class="ui-search__t"><b>Ember</b> Protocol, Fri 18:10</span><span class="ui-search__m">Ticket</span></li>
-                  <li class="ui-search__row"><span class="ui-search__ico"><svg class="ui-icon" viewBox="0 0 16 16"><path d="M8 14s4.5-4.2 4.5-7.5a4.5 4.5 0 0 0-9 0C3.5 9.8 8 14 8 14z"/></svg></span><span class="ui-search__t">Showing at Leeds Riverside</span><span class="ui-search__m">Cinema</span></li>
-                </ul>
+          <article class="card card--row card--open span-6 m-nolift">
+            <h3>Finds cinema times in Spotlight</h3>
+            <p>Films and tickets show up in iPhone search and Shortcuts.</p>
+            <div class="panel" data-fx="painterly-landscape" data-fx-seed="37" data-fx-params='{"drift":0}' data-fx-palette='{"bg":"#c6d3df","surface":"#d6e0e9","ink":"#25303a","accent":"#3f6a92"}'>
+              <div class="stage nph-stage">
+                <div class="nph" role="img" aria-label="iPhone Spotlight search for ember: the film Ember Protocol as the top hit, then your ticket and the Leeds Riverside cinema from Northlight"><div class="nph__screen nph--spot">
+                  <span class="nph__sb" aria-hidden="true"><span>17:46</span><span class="nph__sb-r" aria-hidden="true"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="5" y="5.5" width="3" height="6.5" rx=".8"/><rect x="10" y="3" width="3" height="9" rx=".8"/><rect x="15" y="0" width="3" height="12" rx=".8"/></svg><svg viewBox="0 0 16 12"><path d="M8 11.5 5.6 8.9a3.4 3.4 0 0 1 4.8 0zM3.4 6.7a6.5 6.5 0 0 1 9.2 0l-1.3 1.4a4.6 4.6 0 0 0-6.6 0zM1 4.3a9.9 9.9 0 0 1 14 0l-1.3 1.3a8 8 0 0 0-11.4 0z"/></svg><i class="nph__batt"></i></span></span>
+                  <div class="spot__field"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg><span>ember</span><i class="spot__caret"></i></div>
+                  <p class="spot__h">Top Hit</p>
+                  <div class="spot__group"><div class="spot__row spot__row--top"><img src="img/ember-protocol-poster-120.jpg" alt="" width="120" height="180" loading="lazy"><span><b>Ember Protocol</b><em>Film · Northlight</em></span></div></div>
+                  <p class="spot__h">Northlight</p>
+                  <div class="spot__group">
+                    <div class="spot__row"><span class="spot__ico"><svg viewBox="0 0 16 16"><path d="M2.5 5.5h11v2a1.5 1.5 0 0 0 0 3v2h-11v-2a1.5 1.5 0 0 0 0-3z"/></svg></span><span><b>Your ticket, Fri 18:10</b><em>Screen 4 · Seats D1, D2</em></span></div>
+                    <div class="spot__row"><span class="spot__ico"><svg viewBox="0 0 16 16"><path d="M8 14s4.5-4.2 4.5-7.5a4.5 4.5 0 0 0-9 0C3.5 9.8 8 14 8 14z"/></svg></span><span><b>Leeds Riverside</b><em>Showing today at 18:10, 20:50</em></span></div>
+                  </div>
+                  <div class="spot__kb" aria-hidden="true"><div class="spot__keys"><b class="spot__key">q</b><b class="spot__key">w</b><b class="spot__key">e</b><b class="spot__key">r</b><b class="spot__key">t</b><b class="spot__key">y</b><b class="spot__key">u</b><b class="spot__key">i</b><b class="spot__key">o</b><b class="spot__key">p</b></div><div class="spot__keys"><b class="spot__key">a</b><b class="spot__key">s</b><b class="spot__key">d</b><b class="spot__key">f</b><b class="spot__key">g</b><b class="spot__key">h</b><b class="spot__key">j</b><b class="spot__key">k</b><b class="spot__key">l</b></div><div class="spot__keys"><b class="spot__key spot__key--fn">⇧</b><b class="spot__key">z</b><b class="spot__key">x</b><b class="spot__key">c</b><b class="spot__key">v</b><b class="spot__key">b</b><b class="spot__key">n</b><b class="spot__key">m</b><b class="spot__key spot__key--fn">⌫</b></div><div class="spot__keys"><b class="spot__key spot__key--fn spot__key--w">123</b><b class="spot__key spot__key--space">space</b><b class="spot__key spot__key--go">search</b></div></div>
+                  <i class="nph__island" aria-hidden="true"></i><i class="nph__home" aria-hidden="true"></i>
+                </div></div>
               </div>
-            </div></div>
-          </div>
-        </article>
-        <article class="card card--row card--open span-6 m-nolift">
-          <h3>Reads cinema seats aloud</h3>
-          <p>VoiceOver users pick seats from a plain list instead of the map.</p>
-          <div class="panel" data-fx="painterly-landscape" data-fx-seed="41" data-fx-params='{"drift":0}' data-fx-palette='{"bg":"#d9ccb7","surface":"#e9e0d2","ink":"#2a2622","accent":"#a8794a"}'>
-            <div class="stage stage--fade-b"><div class="at-rise fit" style="--fit-max:300px;--ax:max(24px, 50% - 150px);--ay:40px;--ay-sm:32px">
-              <ul class="ui vo" role="img" aria-label="The accessible seat list: row D, seat 1, VIP bed, £34.95, available">
-                <li class="vo__row is-focus"><span><b>Row D, seat 1</b><em>VIP bed · £34.95</em></span><span class="vo__st">Available</span></li>
-                <li class="vo__row"><span><b>Row D, seat 2</b><em>VIP bed · £34.95</em></span><span class="vo__st">Available</span></li>
-                <li class="vo__row"><span><b>Row D, seat 3</b><em>VIP bed · £34.95</em></span><span class="vo__st vo__st--off">Taken</span></li>
-                <li class="vo__row"><span><b>Row E, seat 1</b><em>Wheelchair space</em></span><span class="vo__st">Available</span></li>
-              </ul>
-            </div></div>
-          </div>
-        </article>
+            </div>
+          </article>
+          <article class="card card--row card--open span-6 m-nolift">
+            <h3>Reads cinema seats aloud</h3>
+            <p>VoiceOver users pick seats from a plain list instead of the map.</p>
+            <div class="panel" data-fx="painterly-landscape" data-fx-seed="41" data-fx-params='{"drift":0}' data-fx-palette='{"bg":"#d9ccb7","surface":"#e9e0d2","ink":"#2a2622","accent":"#a8794a"}'>
+              <div class="stage nph-stage">
+                <div class="nph" role="img" aria-label="The seat list with VoiceOver on: row D, seat 1, VIP bed, £34.95, available, double-tap to select"><div class="nph__screen nph--vo">
+                  <span class="nph__sb" aria-hidden="true"><span>17:46</span><span class="nph__sb-r" aria-hidden="true"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="5" y="5.5" width="3" height="6.5" rx=".8"/><rect x="10" y="3" width="3" height="9" rx=".8"/><rect x="15" y="0" width="3" height="12" rx=".8"/></svg><svg viewBox="0 0 16 12"><path d="M8 11.5 5.6 8.9a3.4 3.4 0 0 1 4.8 0zM3.4 6.7a6.5 6.5 0 0 1 9.2 0l-1.3 1.4a4.6 4.6 0 0 0-6.6 0zM1 4.3a9.9 9.9 0 0 1 14 0l-1.3 1.3a8 8 0 0 0-11.4 0z"/></svg><i class="nph__batt"></i></span></span>
+                  <div class="vo__head"><span class="vo__back" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5"/></svg></span><span><b>Choose seats</b><em>Screen 2 · Fri 18:10</em></span></div>
+                  <div class="vo__seg" aria-hidden="true"><span>Map</span><span class="is-on">List</span></div>
+                  <ul class="vo__list">
+                    <li class="vo__row is-focus"><span><b>Row D, seat 1</b><em>VIP bed · £34.95</em></span><span class="vo__st">Available</span></li>
+                    <li class="vo__row"><span><b>Row D, seat 2</b><em>VIP bed · £34.95</em></span><span class="vo__st">Available</span></li>
+                    <li class="vo__row"><span><b>Row D, seat 3</b><em>VIP bed · £34.95</em></span><span class="vo__st vo__st--off">Taken</span></li>
+                    <li class="vo__row"><span><b>Row E, seat 1</b><em>Wheelchair space</em></span><span class="vo__st">Available</span></li>
+                    <li class="vo__row"><span><b>Row E, seat 2</b><em>Companion seat</em></span><span class="vo__st">Available</span></li>
+                    <li class="vo__row"><span><b>Row F, seat 4</b><em>Recliner · £18.50</em></span><span class="vo__st">Available</span></li>
+                    <li class="vo__row"><span><b>Row F, seat 5</b><em>Recliner · £18.50</em></span><span class="vo__st vo__st--off">Taken</span></li>
+                  </ul>
+                  <p class="vo__caption">Row D, seat 1. VIP bed, £34.95. Available. Double-tap to select.</p>
+                  <i class="nph__island" aria-hidden="true"></i><i class="nph__home" aria-hidden="true"></i>
+                </div></div>
+              </div>
+            </div>
+          </article>
       </div>
     </div>
   </section>
@@ -489,18 +500,22 @@
 
   <section class="section" id="questions" aria-labelledby="questions-h">
     <div class="wrap">
-      <div class="grid">
-        <div class="span-6 stack-4">
+      <div class="section-head section-head--split">
+        <div>
           <h2 id="questions-h">Questions</h2>
           <p class="t-lead">Straight answers about what works today and what comes next.</p>
-          <a class="link" href="mailto:hello@seatfold.example?subject=Question%20about%20Seatfold">Email us a question</a>
         </div>
-        <div class="faq span-6 start-7">
+        <a class="link" href="mailto:hello@seatfold.example?subject=Question%20about%20Seatfold">Email us a question</a>
+      </div>
+      <div class="faq faq--2">
           <div class="faq__item"><h3>Is it a native app or a web view?</h3><p>Native. The app is built in SwiftUI for iPhone, and the seat map is drawn on the phone.</p></div>
           <div class="faq__item"><h3>Do we get our own App Store listing?</h3><p>Yes. Each operator gets its own build with its own name and icon. Everything else changes from the portal.</p></div>
+          <div class="faq__item"><h3>Can we run more than one cinema?</h3><p>Yes. Each venue has its own screens, seat maps, menus and features, all under one operator account.</p></div>
+          <div class="faq__item"><h3>Can customers order food to their seat?</h3><p>Yes, at venues that turn on seat delivery. Food goes into the same booking as the tickets, priced by the server.</p></div>
+          <div class="faq__item"><h3>Do tickets work with no signal?</h3><p>Yes. Tickets are saved on the phone and the QR code opens offline, so a foyer with no signal is fine.</p></div>
+          <div class="faq__item"><h3>Do you support loyalty and memberships?</h3><p>Not in the app yet. Points, memberships and gift cards are already modelled on the server and come next.</p></div>
           <div class="faq__item"><h3>Does the app connect to our ticketing system?</h3><p>Not yet. The connection layer is ready, and each adapter is written once we have licensed access to that system.</p></div>
           <div class="faq__item"><h3>How does the app take payments?</h3><p>Checkout runs in a test mode today. Apple Pay arrives through a payment provider once your merchant account is set up.</p></div>
-        </div>
       </div>
     </div>
   </section>
