@@ -46,7 +46,7 @@
      deal: hero split, nav nav-cards, close close-word, footer footer-columns, rhythm dark-band, buttons pill,
            mark dots, ground sky, palette teal-on-paper, type onest, radius soft
      effect: grain-gradient in the hero frame (behind the phone); card ground: painterly-landscape (native bento)
-     grounds: portal bg-band, native bg-dots; seats on .ground-inverse (the dark band)
+     grounds: native bg-dots (portal plain, its blue band removed at the client's request); seats on .ground-inverse (the dark band)
      moments: pinned-chapters in #journey; the hero moment (liquid-type) is not listed by the split hero, so none
      name: Seatfold (coined, see names.json). Every app screen is a real CI simulator capture of the
      Northlight demo build; the seat map is drawn from shared/fixtures/layouts/curved.json. -->
@@ -61,17 +61,23 @@
         <div class="nav__menu">
           <div class="wrap grid">
             <a class="menu-card span-4" href="#portal">
-              <div class="panel menu-shot"><img class="frame__img" src="img/app-home-thumb.webp" width="440" height="956" loading="lazy" alt="The Northlight app home screen with featured films" style="--shot-y: 8%"></div>
+              <div class="panel menu-pic" role="img" aria-label="A draft release in the portal: its palette and six contrast checks passed">
+                <div class="ui menu-rel">
+                  <p class="menu-rel__t">Version 15 <span>Ready to publish</span></p>
+                  <p class="menu-rel__sw"><i style="--c:#060B14"></i><i style="--c:#111A2B"></i><i style="--c:#2DD4BF"></i><i style="--c:#B08A2E"></i><i style="--c:#4C9AFF"></i></p>
+                  <p class="menu-rel__ok">Contrast, WCAG 2.2 AA <b>6 of 6 pass</b></p>
+                </div>
+              </div>
               <span class="t-card">Operator portal</span>
               <span class="t-small muted">Brand, prices and menus for every cinema</span>
             </a>
             <a class="menu-card span-4" href="#journey">
-              <div class="panel menu-shot"><img class="frame__img" src="img/app-food-thumb.webp" width="440" height="956" loading="lazy" alt="The food and drink menu in the app" style="--shot-y: 6%"></div>
+              <div class="panel menu-pic"><div class="device device--menu"><img src="img/app-home-thumb.webp" width="340" height="739" loading="lazy" alt="The Northlight app home screen"></div></div>
               <span class="t-card">iPhone booking app</span>
               <span class="t-small muted">Seats, food and tickets in your name</span>
             </a>
             <a class="menu-card span-4" href="#seats">
-              <div class="panel menu-shot"><img class="frame__img" src="img/app-seat-selected-thumb.webp" width="440" height="956" loading="lazy" alt="Choosing two VIP beds on the seat map" style="--shot-y: 30%"></div>
+              <div class="panel menu-pic menu-pic--dark"><img class="menu-map" src="img/seatmap-mini.svg" width="1000" height="815" loading="lazy" alt="The 226-seat curved screen, two seats chosen"></div>
               <span class="t-card">Seat maps</span>
               <span class="t-small muted">Drawn from the layout of each screen</span>
             </a>
@@ -120,7 +126,7 @@
 
   <!-- APP-FRAME: the operator portal, big. List: the release history (window). Open: the draft release
        with its theme, palette and the WCAG contrast checks (checklist loops). -->
-  <section class="section bg-band" id="portal" aria-labelledby="portal-h">
+  <section class="section" id="portal" aria-labelledby="portal-h">
     <div class="wrap">
       <div class="grid">
         <h2 id="portal-h" class="span-6">One portal for every cinema you run</h2>
@@ -288,7 +294,7 @@
           <div class="seatmap__head">
             <div><p class="seatmap__title">Screen 2, Leeds Riverside</p><p class="seatmap__sub">Harbour Lights · Sat 7 Nov · 20:50</p></div>
           </div>
-          <svg class="seatmap__svg" viewBox="0 0 1000 909" role="group" aria-label="Seat map for Screen 2. Tap a free seat to choose it." data-layout="data/curved.json"></svg>
+          <svg class="seatmap__svg" viewBox="0 0 1000 850" role="group" aria-label="Seat map for Screen 2. Tap a free seat to choose it." data-layout="data/curved.json"></svg>
           <div class="seatmap__foot">
             <ul class="seatmap__key" aria-hidden="true">
               <li><i class="k-free"></i>Free</li><li><i class="k-sel"></i>Yours</li><li><i class="k-sold"></i>Taken</li><li><i class="k-prem"></i>Premium</li>
