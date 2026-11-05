@@ -332,6 +332,7 @@ export default function SeatingPage() {
       </section>
 
       <PricingGrid pricing={pricing.data} loading={pricing.loading} error={pricing.error} onSaved={(p) => pricing.setData(p)} />
+      {pricing.data && <FeesEditor pricing={pricing.data} onSaved={(p) => pricing.setData(p)} />}
     </>
   );
 }
@@ -447,10 +448,199 @@ function PricingGrid({ pricing, loading, error, onSaved }: { pricing: PricingRes
             </table>
           </div>
           <p className="help mt-2">
-            Empty means the ticket type is not sold for that category. Booking fee {formatMoney(pricing.bookingFeeMinor, pricing.currency)} per booking.
-            {pricing.supplements.length > 0 && ` Format supplements: ${pricing.supplements.map((s) => `${s.format} ${formatMoney(s.amountMinor, pricing.currency)}`).join(', ')}.`}
+            Empty means the ticket type is not sold for that category. Prices exclude the booking fee and format supplements, which are set below.
+            Changes apply to new quotes straight away; confirmed bookings keep what they were charged.
           </p>
         </>
+      )}
+    </section>
+  );
+}
+
+interface SupplementRow {
+  key: number;
+  format: string;
+  amount: string;
+}
+
+/** Per-ticket booking fee and format supplements (IMAX, 3D…), saved together. */
+function FeesEditor({ pricing, onSaved }: { pricing: PricingResponse; onSaved: (p: PricingResponse) => void }) {
+  const { tenant, can } = useSession();
+  const readOnly = !can.canEditPricing;
+  const [fee, setFee] = useState('');
+  const [rows, setRows] = useState<SupplementRow[]>([]);
+  const [nextKey, setNextKey] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok?: string; error?: ApiErr }>({});
+
+  const original = useMemo(
+    () => ({
+      fee: minorToInput(pricing.bookingFeeMinor),
+      rows: pricing.supplements.map((s, i) => ({ key: i, format: s.format, amount: minorToInput(s.amountMinor) })),
+    }),
+    [pricing],
+  );
+
+  function reset() {
+    setFee(original.fee);
+    setRows(original.rows);
+    setNextKey(original.rows.length);
+  }
+  useEffect(reset, [original]);
+
+  const serialise = (f: string, r: SupplementRow[]) => JSON.stringify([f.trim(), r.map((x) => [x.format.trim(), x.amount.trim()])]);
+  const dirty = serialise(fee, rows) !== serialise(original.fee, original.rows);
+  const known = new Set(pricing.knownFormats);
+  const formatsLower = rows.map((r) => r.format.trim().toLowerCase());
+
+  function problems(): string[] {
+    const out: string[] = [];
+    const feeMinor = inputToMinor(fee);
+    if (feeMinor === null || Number.isNaN(feeMinor)) out.push('Enter a booking fee, such as 0.95 (use 0 for no fee).');
+    rows.forEach((r, i) => {
+      const name = r.format.trim() || `Row ${i + 1}`;
+      if (!r.format.trim()) out.push(`Row ${i + 1}: enter a format name.`);
+      const a = inputToMinor(r.amount);
+      if (a === null || Number.isNaN(a)) out.push(`${name}: enter an amount, such as 4.00.`);
+      if (r.format.trim() && formatsLower.indexOf(r.format.trim().toLowerCase()) !== i) out.push(`${name} is listed twice.`);
+    });
+    return out;
+  }
+
+  async function save() {
+    const issues = problems();
+    if (issues.length) return setMsg({ error: { message: 'Check the fees before saving.', details: issues } });
+    setBusy(true);
+    setMsg({});
+    try {
+      const res = await api<PricingResponse>(tenantPath(tenant, '/pricing/fees'), {
+        method: 'PUT',
+        body: { bookingFeePerTicketMinor: inputToMinor(fee), supplements: rows.map((r) => ({ format: r.format.trim(), amountMinor: inputToMinor(r.amount) })) },
+      });
+      onSaved(res);
+      setMsg({ ok: 'Booking fee and supplements saved.' });
+    } catch (e) {
+      setMsg({ error: toErr(e) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const update = (key: number, patch: Partial<SupplementRow>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+
+  return (
+    <section className="card" aria-labelledby="fees-title">
+      <div className="section-title">
+        <h2 id="fees-title" className="h3">
+          Booking fee &amp; format supplements
+        </h2>
+        {!readOnly && (
+          <div className="row gap-1">
+            <button className="btn btn-ghost btn-sm" onClick={reset} disabled={busy || !dirty}>
+              Discard
+            </button>
+            <button className="btn btn-primary" onClick={save} disabled={busy || !dirty}>
+              {busy ? 'Saving…' : 'Save fees'}
+            </button>
+          </div>
+        )}
+      </div>
+      {readOnly && <ReadOnlyNote>Only operator admins can change fees and supplements.</ReadOnlyNote>}
+      <ApiErrorNote error={msg.error ?? null} />
+      <SuccessNote message={msg.ok} />
+
+      <div className="field">
+        <label htmlFor="booking-fee">Booking fee per ticket</label>
+        {readOnly ? (
+          <p className="num">{formatMoney(pricing.bookingFeeMinor, pricing.currency)}</p>
+        ) : (
+          <div className="money-input" style={{ maxWidth: 160 }}>
+            <span aria-hidden="true">£</span>
+            <input id="booking-fee" inputMode="decimal" value={fee} onChange={(e) => setFee(e.target.value)} aria-describedby="booking-fee-help" />
+          </div>
+        )}
+        <p id="booking-fee-help" className="help">
+          Added once per ticket and shown to customers as a separate line before they pay.
+        </p>
+      </div>
+
+      <h3 className="h4 mt-2">Format supplements</h3>
+      <p className="help">Added to every ticket price for screenings in that format. A screening with several formats pays each supplement.</p>
+      <datalist id="known-formats">
+        {pricing.knownFormats.map((f) => (
+          <option key={f} value={f} />
+        ))}
+      </datalist>
+      {rows.length === 0 && <p className="muted">No supplements. Every format is charged at the standard ticket price.</p>}
+      {rows.length > 0 && (
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th scope="col">Format</th>
+                <th scope="col">Supplement per ticket</th>
+                {!readOnly && <th scope="col"><span className="visually-hidden">Actions</span></th>}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => {
+                const unused = r.format.trim() !== '' && !known.has(r.format.trim());
+                return (
+                  <tr key={r.key}>
+                    <td>
+                      {readOnly ? (
+                        r.format
+                      ) : (
+                        <input
+                          list="known-formats"
+                          aria-label={`Format name, row ${i + 1}`}
+                          value={r.format}
+                          maxLength={20}
+                          onChange={(e) => update(r.key, { format: e.target.value })}
+                          aria-describedby={unused ? `unused-${r.key}` : undefined}
+                        />
+                      )}
+                      {unused && (
+                        <div id={`unused-${r.key}`} className="help help-warning">
+                          No screenings use “{r.format.trim()}”. Names must match exactly, including capitals.
+                        </div>
+                      )}
+                    </td>
+                    <td className="tight">
+                      {readOnly ? (
+                        <span className="num">{formatMoney(inputToMinor(r.amount) ?? 0, pricing.currency)}</span>
+                      ) : (
+                        <div className="money-input">
+                          <span aria-hidden="true">£</span>
+                          <input inputMode="decimal" aria-label={`Supplement for ${r.format || `row ${i + 1}`}`} value={r.amount} onChange={(e) => update(r.key, { amount: e.target.value })} />
+                        </div>
+                      )}
+                    </td>
+                    {!readOnly && (
+                      <td className="tight">
+                        <button className="btn btn-ghost btn-sm" onClick={() => setRows((rs) => rs.filter((x) => x.key !== r.key))} aria-label={`Remove ${r.format || `row ${i + 1}`}`}>
+                          Remove
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {!readOnly && (
+        <button
+          className="btn btn-ghost btn-sm mt-2"
+          onClick={() => {
+            setRows((rs) => [...rs, { key: nextKey, format: '', amount: '' }]);
+            setNextKey((k) => k + 1);
+          }}
+          disabled={rows.length >= 20}
+        >
+          Add supplement
+        </button>
       )}
     </section>
   );

@@ -1266,6 +1266,25 @@
         ]
       }
     },
+    "/v1/admin/t/{tenant}/pricing/fees": {
+      "put": {
+        "operationId": "AdminCommerceController_setFees",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
     "/v1/admin/t/{tenant}/concessions": {
       "get": {
         "operationId": "AdminCommerceController_concessions",

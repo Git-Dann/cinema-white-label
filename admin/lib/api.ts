@@ -288,6 +288,8 @@ export interface PricingResponse {
   categories: SeatCategoryDto[];
   ticketTypes: { id: string; code: string; name: string; prices: Record<string, number | null> }[];
   supplements: { format: string; amountMinor: number }[];
+  /** Formats used by this operator's screenings; supplements must match one exactly to apply. */
+  knownFormats: string[];
 }
 
 export interface ModifierOption {

@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { AuditService } from '../common/common.module';
 import { Errors } from '../common/errors';
 import { PrismaService } from '../common/prisma.service';
-import { AdminGuard, CurrentAdmin, CurrentTenant, Roles } from '../common/tenant-context';
+import { AdminGuard, CurrentAdmin, CurrentTenant, Roles, TenantCache } from '../common/tenant-context';
 import { AdminClaims } from '../common/tokens';
 import { ZodPipe } from '../common/zod.pipe';
 import { ConfigService, paletteFromRow } from '../tenants/config.service';
@@ -16,6 +16,15 @@ const categoryPatch = seatCategorySchema.omit({ id: true }).partial();
 const pricingBody = z.object({
   prices: z.array(z.object({ ticketTypeId: z.string(), priceCategory: z.string(), amountMinor: z.number().int().min(0).max(100_000).nullable() })).max(500),
 });
+
+/** Formats are free text on screenings (2D, IMAX, 4DX, Dolby Atmos…); keep them short and printable. */
+const FORMAT = /^[A-Za-z0-9][A-Za-z0-9 +\-]{0,19}$/;
+const feesBody = z
+  .object({
+    bookingFeePerTicketMinor: z.number().int().min(0).max(1_000),
+    supplements: z.array(z.object({ format: z.string().trim().regex(FORMAT, 'Format names use letters, numbers, spaces, + or -'), amountMinor: z.number().int().min(0).max(5_000) })).max(20),
+  })
+  .refine((b) => new Set(b.supplements.map((s) => s.format.toLowerCase())).size === b.supplements.length, 'Each format can only have one supplement');
 
 const modifierGroupSchema = z
   .object({
@@ -74,7 +83,12 @@ function categoryDto(c: { code: string; label: string; description: string | nul
 @Controller('v1/admin/t/:tenant')
 @UseGuards(AdminGuard)
 export class AdminCommerceController {
-  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly config: ConfigService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+    private readonly config: ConfigService,
+    private readonly tenants: TenantCache,
+  ) {}
 
   // ---------------- Seat categories ----------------
 
@@ -144,10 +158,12 @@ export class AdminCommerceController {
 
   @Get('pricing')
   async pricing(@CurrentTenant() t: Tenant) {
-    const [types, categories, supplements] = await Promise.all([
+    const [types, categories, supplements, formats] = await Promise.all([
       this.prisma.ticketType.findMany({ where: { tenantId: t.id }, include: { priceRules: true }, orderBy: { sortOrder: 'asc' } }),
       this.prisma.seatCategory.findMany({ where: { tenantId: t.id }, orderBy: { sortOrder: 'asc' } }),
       this.prisma.formatSupplement.findMany({ where: { tenantId: t.id }, orderBy: { format: 'asc' } }),
+      // Supplements match screening formats exactly, so the admin can flag typos.
+      this.prisma.$queryRaw<{ format: string }[]>`SELECT DISTINCT unnest("formats") AS format FROM "Screening" WHERE "tenantId" = ${t.id} ORDER BY 1`,
     ]);
     return {
       currency: t.currency,
@@ -158,6 +174,7 @@ export class AdminCommerceController {
         prices: Object.fromEntries(categories.map((c) => [c.code, tt.priceRules.find((r) => r.priceCategory === c.code)?.amountMinor ?? null])),
       })),
       supplements: supplements.map((s) => ({ format: s.format, amountMinor: s.amountMinor })),
+      knownFormats: formats.map((f) => f.format),
     };
   }
 
@@ -182,6 +199,35 @@ export class AdminCommerceController {
     );
     await this.audit.record({ tenantId: t.id, actorId: a.sub, action: 'pricing.update', entityType: 'PriceRule', data: b });
     return this.pricing(t);
+  }
+
+  /**
+   * Replaces the per-ticket booking fee and the full list of format supplements.
+   * Formats left out are removed. New prices apply to quotes from now on; confirmed
+   * bookings keep the totals they were charged.
+   */
+  @Put('pricing/fees')
+  @Roles('OPERATOR_ADMIN')
+  async setFees(@CurrentTenant() t: Tenant, @CurrentAdmin() a: AdminClaims, @Body(new ZodPipe(feesBody)) b: z.infer<typeof feesBody>) {
+    const before = await this.prisma.formatSupplement.findMany({ where: { tenantId: t.id } });
+    await this.prisma.$transaction([
+      this.prisma.tenant.update({ where: { id: t.id }, data: { bookingFeeMinor: b.bookingFeePerTicketMinor } }),
+      this.prisma.formatSupplement.deleteMany({ where: { tenantId: t.id, format: { notIn: b.supplements.map((s) => s.format) } } }),
+      ...b.supplements.map((s) =>
+        this.prisma.formatSupplement.upsert({
+          where: { tenantId_format: { tenantId: t.id, format: s.format } },
+          create: { tenantId: t.id, format: s.format, amountMinor: s.amountMinor },
+          update: { amountMinor: s.amountMinor },
+        }),
+      ),
+    ]);
+    // The fee lives on the tenant row, which is cached per instance for 30s.
+    this.tenants.invalidate(t.slug);
+    await this.audit.record({
+      tenantId: t.id, actorId: a.sub, action: 'pricing.fees.update', entityType: 'Tenant', entityId: t.id,
+      data: { before: { bookingFeePerTicketMinor: t.bookingFeeMinor, supplements: before.map((s) => ({ format: s.format, amountMinor: s.amountMinor })) }, after: b },
+    });
+    return this.pricing({ ...t, bookingFeeMinor: b.bookingFeePerTicketMinor });
   }
 
   // ---------------- Food and drink ----------------

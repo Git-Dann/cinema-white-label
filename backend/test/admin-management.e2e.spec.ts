@@ -48,6 +48,35 @@ describe('admin management: seat categories, pricing, food, vouchers, layouts (i
       await api(app, editor).put(`${A}/pricing`, { prices: [{ ticketTypeId: adult.id, priceCategory: 'gold', amountMinor: 1 }] }).expect(403);
     });
 
+    it('edits the booking fee and format supplements, and screenings pick them up', async () => {
+      const before = (await api(app, admin).get(`${A}/pricing`).expect(200)).body;
+      expect(before.knownFormats).toContain('IMAX');
+      expect(before.supplements.map((s: any) => s.format)).toContain('3D');
+
+      // Validation and roles.
+      expect((await api(app, admin).put(`${A}/pricing/fees`, { bookingFeePerTicketMinor: 100, supplements: [{ format: 'IMAX', amountMinor: 1 }, { format: 'imax', amountMinor: 2 }] }, null)).status).toBe(422);
+      expect((await api(app, admin).put(`${A}/pricing/fees`, { bookingFeePerTicketMinor: -1, supplements: [] }, null)).status).toBe(422);
+      await api(app, editor).put(`${A}/pricing/fees`, { bookingFeePerTicketMinor: 0, supplements: [] }).expect(403);
+
+      const updated = (await api(app, admin).put(`${A}/pricing/fees`, {
+        bookingFeePerTicketMinor: 120,
+        supplements: [{ format: 'IMAX', amountMinor: 500 }, { format: '4DX', amountMinor: 650 }],
+      }).expect(200)).body;
+      expect(updated.bookingFeeMinor).toBe(120);
+      expect(updated.supplements).toEqual([{ format: '4DX', amountMinor: 650 }, { format: 'IMAX', amountMinor: 500 }]);
+
+      const imax = await prisma().screening.findFirstOrThrow({ where: { tenant: { slug: 'northlight' }, formats: { has: 'IMAX' }, startsAt: { gt: new Date() } } });
+      const detail = (await api(app).get(`${T}/screenings/${imax.id}`).expect(200)).body;
+      expect(detail.pricing.bookingFeePerTicketMinor).toBe(120);
+      expect(detail.pricing.supplements).toEqual([{ format: 'IMAX', amountMinor: 500 }]);
+
+      const audit = await prisma().auditLog.findFirst({ where: { action: 'pricing.fees.update' }, orderBy: { createdAt: 'desc' } });
+      expect((audit?.data as any).before.bookingFeePerTicketMinor).toBe(before.bookingFeeMinor);
+
+      // Restore the seeded values for the other suites.
+      await api(app, admin).put(`${A}/pricing/fees`, { bookingFeePerTicketMinor: before.bookingFeeMinor, supplements: before.supplements }).expect(200);
+    });
+
     it('refuses to delete a category used by a layout', async () => {
       const r = await api(app, admin).del(`${A}/seat-categories/premium`);
       expect(r.status).toBe(422);
