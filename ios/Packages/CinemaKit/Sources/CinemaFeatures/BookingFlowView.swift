@@ -79,7 +79,13 @@ struct BookingStepsView: View {
                     }
                 }
                 if flow.step == .tickets || flow.step == .food || flow.step == .review {
-                    ToolbarItem(placement: .principal) { HoldCountdown(flow: flow) }
+                    ToolbarItem(placement: .principal) {
+                        VStack(spacing: 0) {
+                            Text(title).font(.headline).foregroundStyle(palette.textPrimary)
+                            HoldCountdown(flow: flow)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
                 }
             }
             .overlay {
@@ -126,8 +132,9 @@ struct HoldCountdown: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             if let s = flow.secondsRemaining(now: context.date) {
-                Label(s > 0 ? flow.formatters.countdown(s) : "Expired", systemImage: "timer")
-                    .font(.subheadline.monospacedDigit().weight(.semibold))
+                Label(s > 0 ? "\(flow.formatters.countdown(s)) left" : "Expired", systemImage: "timer")
+                    .labelStyle(.titleAndIcon)
+                    .font(.caption.monospacedDigit().weight(.semibold))
                     .foregroundStyle(s < 60 ? palette.warning : palette.textSecondary)
                     .accessibilityLabel(s > 0 ? "Seats reserved for \(s / 60) minutes \(s % 60) seconds" : "Reservation expired")
                     .onChange(of: s == 60) { _, oneMinute in
@@ -313,7 +320,7 @@ struct TicketTypesScreen: View {
                     } label: {
                         VStack(alignment: .leading) {
                             Text("Row \(flow.selection.rowLabel(for: seat)), Seat \(seat.label)").foregroundStyle(palette.textPrimary)
-                            Text(SeatAccessibility.categoryName(SeatPresentation.Category(rawValue: seat.type.rawValue) ?? .standard).capitalized)
+                            Text(flow.selection.category(for: seat).label)
                                 .font(.footnote).foregroundStyle(palette.textMuted)
                         }
                     }

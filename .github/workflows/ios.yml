@@ -202,8 +202,18 @@ jobs:
                       base = name.split("_")[0] if name[:2].isdigit() else name
                       if os.path.exists(src):
                           shutil.move(src, os.path.join(d, base if base.endswith(".png") else base + ".png"))
+          # Debug attachments carry quotes and backticks, which artifact upload rejects.
+          import re
+          for f in os.listdir(d):
+              safe = re.sub(r"[^A-Za-z0-9._-]+", "_", f)
+              if safe != f:
+                  shutil.move(os.path.join(d, f), os.path.join(d, safe))
           print(sorted(os.listdir(d)))
           PY
+          # Live Activity diagnostics from the simulator (start, skip and failure reasons).
+          xcrun simctl spawn "$SIM_UDID" log show --last 30m --style compact \
+            --predicate 'subsystem == "cinema.liveactivity"' > shots/liveactivity.log 2>&1 || true
+          tail -20 shots/liveactivity.log || true
           grep -E "error:" xcodebuild-test.log | sed 's#.*/ios/##' | sort -u | head -40 || true
 
       - name: Upload screenshots

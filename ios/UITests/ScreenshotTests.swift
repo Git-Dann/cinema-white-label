@@ -93,7 +93,7 @@ final class ScreenshotTests: XCTestCase {
         app.buttons["View ticket"].tap()
         sleep(2)
         shot("tickets-tab")
-        element(app.cells, "label CONTAINS 'Ember Protocol'").tap()
+        element(app.buttons, "label CONTAINS 'Ember Protocol'").tap()
         sleep(1)
         shot("ticket-detail")
     }

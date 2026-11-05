@@ -1,5 +1,6 @@
 import ActivityKit
 import Foundation
+import OSLog
 import CinemaCore
 
 /// ActivityKit attributes for an upcoming screening. Shared by the app (which
@@ -22,9 +23,18 @@ public final class LiveActivityController {
 
     public var isEnabled: Bool { ActivityAuthorizationInfo().areActivitiesEnabled }
 
+    private let log = Logger(subsystem: "cinema.liveactivity", category: "controller")
+
     /// Starts (or refreshes) an activity for a confirmed booking.
     public func start(for booking: Booking, config: TenantConfig, demo: Bool = false) {
-        guard isEnabled, LiveActivityPolicy.shouldStart(booking, now: Date(), demo: demo) else { return }
+        guard isEnabled else {
+            log.notice("Not started: Live Activities are turned off for this app")
+            return
+        }
+        guard LiveActivityPolicy.shouldStart(booking, now: Date(), demo: demo) else {
+            log.info("Not started yet: screening is outside the start window")
+            return
+        }
         let content = ScreeningActivityContent(booking: booking, config: config)
         if let existing = Activity<CinemaActivityAttributes>.activities.first(where: { $0.attributes.content.bookingId == booking.id }) {
             scheduleUpdates(for: existing)
@@ -38,8 +48,10 @@ public final class LiveActivityController {
                 pushType: nil
             )
             scheduleUpdates(for: activity)
+            log.info("Started activity \(activity.id, privacy: .public)")
         } catch {
             // Live Activities are a convenience; the ticket is always in the app.
+            log.error("Activity request failed: \(String(describing: error), privacy: .public)")
         }
     }
 

@@ -207,7 +207,9 @@ public actor MockCinemaService: CinemaService {
         let booking = Booking(
             id: "mock-\(holdId)", reference: ref, status: .CONFIRMED, createdAt: Date(), confirmedAt: Date(),
             screening: .init(id: s.id, startsAt: s.startsAt, endsAt: s.endsAt, localDate: s.localDate, formats: s.formats, attributes: s.attributes),
-            film: .init(id: s.film.id, title: s.film.title, certificate: s.film.certificate, runtimeMinutes: s.film.runtimeMinutes, poster: nil, backdrop: nil),
+            film: .init(id: s.film.id, title: s.film.title, certificate: s.film.certificate, runtimeMinutes: s.film.runtimeMinutes,
+                        poster: PreviewFixtures.films.first { $0.id == s.film.id }?.poster ?? s.film.poster,
+                        backdrop: PreviewFixtures.films.first { $0.id == s.film.id }?.backdrop),
             venue: .init(id: s.venue.id, name: s.venue.name, timeZone: s.venue.timeZone, address: .init(line1: "12 Wharf Approach", city: "Leeds", postcode: "LS1 4AB"), coordinate: .init(latitude: 53.79, longitude: -1.54)),
             auditorium: .init(id: s.auditorium.id, name: s.auditorium.name, screenNumber: s.auditorium.screenNumber),
             seats: q.lines.map { .init(seatId: $0.seatId, rowLabel: $0.rowLabel, seatLabel: $0.seatLabel, ticketTypeId: $0.ticketTypeId, priceMinor: $0.priceMinor) },

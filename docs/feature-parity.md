@@ -22,7 +22,7 @@ Source: an internal technical analysis of a UK operator's Android app (Vista pla
 | | Food and drink, modifiers, bundles, ordering | Done: venue menus, modifier min/max validation, bundles, stock, priced on the server and stored on the booking |
 | | Seat delivery / collection | Done: per-venue `seatDelivery` flag and `fulfilment` on the booking |
 | | Cancellations and refunds | Done: operator cutoff, refund via the payment provider, seats released, ticket voided |
-| | Promotions, vouchers | Vouchers done (percent or amount, scope, minimum spend, atomic single-use). Promotions content: planned |
+| | Promotions, vouchers | Vouchers done (percent or amount, scope, minimum spend, atomic single-use). Promotions done: home Offers section linking to a film, voucher code or https page, per cinema and scheduled |
 | | Loyalty, memberships, gift cards | Modelled (`LoyaltyAccount`, `MembershipPlan`, `GiftCard`), not exposed. Gift cards need operator legal/finance sign-off |
 | | Transaction history, digital tickets | Done: bookings list, offline QR tickets |
 | **Branding** | Logos, palettes, themes, contrast checks | Done |

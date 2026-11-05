@@ -17,17 +17,19 @@ Prioritised. Phase numbers follow the master specification.
 - [x] Typed analytics schema, replaceable providers, opt-out. Media storage abstraction, prefetch, fallback artwork.
 - [x] App Intents and Spotlight.
 - [x] Admin UI for seat categories + pricing grid, food and drink, vouchers, and a visual auditorium layout editor (draft, validate, publish).
-- [ ] Admin: promotions content, booking fee and format supplement editing, layout editor undo/drag/features.
+- [x] Admin: promotions content (API, admin page, iOS Offers section), booking fee and format supplement editing.
+- [ ] Admin: layout editor undo/drag/features.
 - [ ] Loyalty earn/burn and memberships (models exist); gift cards pending operator sign-off.
 - [ ] Brand layer between operator and venues (multi-brand operators).
-- [ ] Live Activities + widget extension target; BackgroundTasks refresh of tickets.
+- [x] Live Activities + widget extension target (local updates, no push).
+- [ ] BackgroundTasks refresh of tickets.
 
 ## Phase 1 gaps
 - [ ] Seat map: keyboard focus navigation between seats, Dynamic Type for row labels, on-device profiling with 400+ seats.
-- [ ] Availability stream through Redis pub/sub when running more than one API instance.
+- [ ] Availability stream through Redis pub/sub when running more than one API instance. Same for tenant cache invalidation (fee changes take up to 30s on other instances).
 - [ ] Customer-facing copy review and localisation catalogue (en-GB first).
 - [x] CI pipeline: contracts, backend with Postgres, `swift test` on Linux, admin build, OpenAPI and fixture drift checks.
-- [ ] CI: xcodebuild on a macOS runner once the app compiles.
+- [x] CI: xcodebuild on a macOS runner, plus simulator screenshots of the booking journey (`ci-screenshots` branch).
 
 ## Phase 2 – content and administration
 - [ ] Film provider ingestion job (operator feed + licensed provider adapters, review queue UI).
@@ -40,8 +42,8 @@ Prioritised. Phase numbers follow the master specification.
 ## Phase 3 – Apple and commercial services
 - [ ] Apple Pay via a PSP sandbox (merchant ID, payment processing certificate).
 - [ ] Signed Wallet passes + PassKit web service (needs Pass Type ID certificate).
-- [ ] Live Activities and Dynamic Island for upcoming screenings and food collection.
-- [ ] Widgets, App Intents/App Shortcuts, Spotlight indexing.
+- [x] Live Activities and Dynamic Island for upcoming screenings. Food collection updates still to do.
+- [x] Widgets, App Intents/App Shortcuts, Spotlight indexing.
 - [ ] Sign in with Apple and passkeys; account registration.
 - [ ] Memberships and concessions (models exist, not exposed).
 - [ ] Real booking inventory adapters per operator.
