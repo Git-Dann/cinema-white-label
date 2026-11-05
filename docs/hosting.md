@@ -51,3 +51,15 @@ Deploy, open the portal and sign in with `admin@northlight.example` / `operator-
 - Scheduled config releases are promoted when the config is read.
 - Film artwork is served from the bundled fixtures. Images uploaded in the portal are stored in `/tmp` and can disappear when the function restarts. Production should use object storage behind `MediaStorage` (S3, R2 or Vercel Blob).
 - Preview deployments share the production database, so they do not run migrations: an unmerged branch could otherwise change the live schema. To migrate from a preview (a preview with its own database), set `RUN_DB_DEPLOY_PREVIEW=true` for the Preview environment. Give previews their own database before real customers use it.
+
+## Builds only for what changed
+
+The three Vercel projects (marketing site, API, portal) share one account, and the free plan allows 100 deployments a day. Each project's `vercel.json` has an `ignoreCommand` that skips the build when nothing it depends on changed since that project's last deployment (`VERCEL_GIT_PREVIOUS_SHA`, or the previous commit on a first deploy):
+
+| Project | Builds when these change |
+|---|---|
+| `site` | `site/` |
+| `backend` | `backend/`, `packages/`, `shared/`, `pnpm-lock.yaml` |
+| `admin` | `admin/`, `packages/`, `pnpm-lock.yaml` |
+
+If the comparison can't run (an unknown commit), the build goes ahead. To force a build, use Redeploy in the Vercel dashboard.
