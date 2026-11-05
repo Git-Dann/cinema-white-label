@@ -1,6 +1,7 @@
 name: TestFlight
 
-# Archives the Northlight Demo build (offline demo data, simulated payments) and
+# Archives the Northlight Release build, which talks to the hosted API
+# (https://cinema-api-flame.vercel.app, payments simulated and labelled), and
 # uploads it to TestFlight for internal testers. Runs on pushes that change the
 # app, and on demand from the Actions tab. Free on a public repository.
 #
@@ -89,7 +90,7 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild archive \
-            -project Cinema.xcodeproj -scheme "Northlight Demo" -configuration "Northlight Demo" \
+            -project Cinema.xcodeproj -scheme Northlight -configuration "Northlight Release" \
             -destination "generic/platform=iOS" -archivePath "$RUNNER_TEMP/Northlight.xcarchive" \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey.p8" \
@@ -113,7 +114,7 @@ jobs:
             -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}" \
             2>&1 | tee upload.log | grep -E "error|Upload|EXPORT" || true
           grep -q "EXPORT SUCCEEDED" upload.log || { echo "::error::Upload failed; see upload.log"; tail -40 upload.log; exit 1; }
-          echo "Uploaded build ${{ github.run_number }} of Northlight Demo. It appears in TestFlight after Apple's processing (usually 10 to 30 minutes)." >> "$GITHUB_STEP_SUMMARY"
+          echo "Uploaded build ${{ github.run_number }} of Northlight (live API). It appears in TestFlight after Apple's processing (usually 10 to 30 minutes)." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Keep logs
         if: always() && steps.key.outputs.ready == 'true'
