@@ -2219,3 +2219,118 @@ dialog.sheet form {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- Food & drink: choices editor ---------- */
+.choices {
+  margin-top: var(--s2);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--border);
+}
+.choices-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.choices > .help {
+  margin-bottom: var(--s2);
+}
+.choice-group {
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 18px 20px 10px;
+  margin-bottom: 12px;
+}
+.choice-group input:not([type='checkbox']):not([type='radio']):not([type='color']) {
+  background-color: var(--surface-3);
+}
+.choice-group input:not([type='checkbox']):not([type='radio']):not([type='color']):hover {
+  background-color: #2f2f35;
+}
+.choice-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--s2);
+  align-items: end;
+}
+.choice-rule-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.choice-rule-inputs input {
+  width: 64px !important;
+  text-align: center;
+}
+.choice-summary {
+  margin: 8px 0 14px;
+}
+.choice-options {
+  display: grid;
+  gap: 8px;
+}
+.choice-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px 36px;
+  gap: 8px;
+  align-items: center;
+}
+.choice-option-head {
+  font-size: 12.5px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease), color 0.15s var(--ease);
+}
+.icon-btn:hover {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.choice-foot {
+  display: flex;
+  justify-content: space-between;
+  margin: 10px -8px 0;
+}
+.add-choice {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 20px;
+  margin-bottom: var(--s4);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 550;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+.add-choice:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--accent);
+}
+.add-choice .muted {
+  font-weight: 400;
+  font-size: 13px;
+}
+.sheet-foot {
+  border-top: 1px solid var(--border);
+}
+@media (max-width: 640px) {
+  .choice-head {
+    grid-template-columns: 1fr;
+  }
+}

@@ -411,60 +411,65 @@ export default function FoodPage() {
               </div>
             </div>
 
-            <fieldset className="plain mb-3">
-              <legend className="h4">Modifier groups</legend>
-              <p className="help mb-2">Choices such as size or flavour. Minimum 0 makes the choice optional.</p>
+            <fieldset className="plain choices">
+              <legend className="choices-title">Choices</legend>
+              <p className="help">Options customers pick when they add this item, such as size or flavour.</p>
               {form.groups.map((g, gi) => (
-                <div className="group-editor" key={g.key} role="group" aria-label={`Modifier group ${gi + 1}`}>
-                  <div className="form-grid cols-4">
-                    <div className="field span-2">
-                      <label htmlFor={`g-${g.key}-name`}>Group name</label>
-                      <input id={`g-${g.key}-name`} maxLength={40} value={g.name} onChange={(e) => updateGroup(g.key, { name: e.target.value, id: g.id && g.id !== slugify(g.name) ? g.id : slugify(e.target.value) })} />
+                <div className="choice-group" key={g.key} role="group" aria-label={`Choice ${gi + 1}`}>
+                  <div className="choice-head">
+                    <div className="field compact choice-name">
+                      <label htmlFor={`g-${g.key}-name`}>Choice name</label>
+                      <input id={`g-${g.key}-name`} maxLength={40} placeholder="Size" value={g.name} onChange={(e) => updateGroup(g.key, { name: e.target.value, id: g.id && g.id !== slugify(g.name) ? g.id : slugify(e.target.value) })} />
                     </div>
-                    <div className="field">
-                      <label htmlFor={`g-${g.key}-min`}>Minimum</label>
-                      <input id={`g-${g.key}-min`} type="number" min={0} max={10} value={g.min} onChange={(e) => updateGroup(g.key, { min: e.target.value })} />
-                    </div>
-                    <div className="field">
-                      <label htmlFor={`g-${g.key}-max`}>Maximum</label>
-                      <input id={`g-${g.key}-max`} type="number" min={1} max={10} value={g.max} onChange={(e) => updateGroup(g.key, { max: e.target.value })} />
+                    <div className="field compact choice-rule">
+                      <span className="label" id={`g-${g.key}-rule`}>Customers pick</span>
+                      <div className="choice-rule-inputs" role="group" aria-labelledby={`g-${g.key}-rule`}>
+                        <input aria-label="At least" type="number" min={0} max={10} value={g.min} onChange={(e) => updateGroup(g.key, { min: e.target.value })} />
+                        <span className="muted">to</span>
+                        <input aria-label="At most" type="number" min={1} max={10} value={g.max} onChange={(e) => updateGroup(g.key, { max: e.target.value })} />
+                      </div>
                     </div>
                   </div>
-                  {g.options.map((o, oi) => (
-                    <div className="option-row" key={o.key}>
-                      <div className="field">
-                        <label htmlFor={`o-${o.key}-name`}>Option {oi + 1}</label>
-                        <input id={`o-${o.key}-name`} maxLength={40} value={o.name} onChange={(e) => updateOption(g.key, o.key, { name: e.target.value, id: o.id && o.id !== slugify(o.name) ? o.id : slugify(e.target.value) })} />
-                      </div>
-                      <div className="field">
-                        <label htmlFor={`o-${o.key}-price`}>Extra cost</label>
+                  <p className="help choice-summary">{ruleSummary(g)}</p>
+
+                  <div className="choice-options" role="table" aria-label={`${g.name || 'Choice'} options`}>
+                    <div className="choice-option choice-option-head" role="row">
+                      <span role="columnheader">Option</span>
+                      <span role="columnheader">Extra cost</span>
+                      <span role="columnheader" className="visually-hidden">Remove</span>
+                    </div>
+                    {g.options.map((o, oi) => (
+                      <div className="choice-option" role="row" key={o.key}>
+                        <input aria-label={`Option ${oi + 1} name`} maxLength={40} placeholder={oi === 0 ? 'Regular' : 'Large'} value={o.name} onChange={(e) => updateOption(g.key, o.key, { name: e.target.value, id: o.id && o.id !== slugify(o.name) ? o.id : slugify(e.target.value) })} />
                         <div className="money-input">
                           <span aria-hidden="true">£</span>
-                          <input id={`o-${o.key}-price`} inputMode="decimal" placeholder="0.00" value={o.price} onChange={(e) => updateOption(g.key, o.key, { price: e.target.value })} />
+                          <input aria-label={`Option ${oi + 1} extra cost`} inputMode="decimal" placeholder="0.00" value={o.price} onChange={(e) => updateOption(g.key, o.key, { price: e.target.value })} />
                         </div>
+                        <button type="button" className="icon-btn" aria-label={`Remove option ${o.name || oi + 1}`} onClick={() => updateGroup(g.key, { options: g.options.filter((x) => x.key !== o.key) })}>
+                          ×
+                        </button>
                       </div>
-                      <button type="button" className="btn btn-sm btn-ghost" aria-label={`Remove option ${o.name || oi + 1}`} onClick={() => updateGroup(g.key, { options: g.options.filter((x) => x.key !== o.key) })}>
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                  <div className="row gap-1 mt-2">
-                    <button type="button" className="btn btn-sm" onClick={() => updateGroup(g.key, { options: [...g.options, { key: nextKey(), id: '', name: '', price: '' }] })}>
-                      Add option
+                    ))}
+                  </div>
+
+                  <div className="choice-foot">
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => updateGroup(g.key, { options: [...g.options, { key: nextKey(), id: '', name: '', price: '' }] })}>
+                      + Add option
                     </button>
-                    <button type="button" className="btn btn-sm btn-danger" onClick={() => setForm((f) => ({ ...f, groups: f.groups.filter((x) => x.key !== g.key) }))}>
-                      Remove group
+                    <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setForm((f) => ({ ...f, groups: f.groups.filter((x) => x.key !== g.key) }))}>
+                      Remove choice
                     </button>
                   </div>
                 </div>
               ))}
               <button
                 type="button"
-                className="btn btn-sm"
+                className="add-choice"
                 disabled={form.groups.length >= 6}
                 onClick={() => setForm((f) => ({ ...f, groups: [...f.groups, { key: nextKey(), id: '', name: '', min: '1', max: '1', options: [{ key: nextKey(), id: '', name: '', price: '' }] }] }))}
               >
-                Add modifier group
+                + Add a choice
+                <span className="muted">e.g. size, flavour or toppings</span>
               </button>
             </fieldset>
 
@@ -561,6 +566,18 @@ export default function FoodPage() {
       {grouped.length > 0 && shown.length === 0 && <p className="muted">No products match “{query}”.</p>}
     </>
   );
+}
+
+/** Plain-English reading of a choice's minimum and maximum. */
+function ruleSummary(g: GroupForm): string {
+  const min = Number.parseInt(g.min, 10);
+  const max = Number.parseInt(g.max, 10);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return 'Enter how many options customers pick.';
+  if (min > max) return 'The first number must not be more than the second.';
+  if (max > g.options.length) return `Add more options: customers can pick up to ${max} but there are only ${g.options.length}.`;
+  if (min === 0) return max === 1 ? 'Optional. Customers can pick one.' : `Optional. Customers can pick up to ${max}.`;
+  if (min === max) return min === 1 ? 'Required. Customers pick exactly one.' : `Required. Customers pick exactly ${min}.`;
+  return `Required. Customers pick between ${min} and ${max}.`;
 }
 
 /** Shown when a product has no photo (or it fails to load): the name on a soft tile, never a broken image. */
