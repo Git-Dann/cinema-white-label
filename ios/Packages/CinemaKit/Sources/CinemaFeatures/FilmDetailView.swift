@@ -31,10 +31,12 @@ struct FilmDetailView: View {
                 .padding(.bottom, Spacing.section)
             }
             .background(palette.background)
-            .scrollEdgeEffectStyle(.soft, for: .top)
+            // The backdrop runs under the status bar and navigation bar, so no edge effect or bar background here.
+            .scrollEdgeEffectHidden(true, for: .top)
         }
         .navigationTitle(film.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 ShareLink(item: "\(film.title) at \(app.config.tenant.name)") { Image(systemName: "square.and.arrow.up") }
@@ -62,6 +64,9 @@ struct FilmDetailView: View {
         guard let raw = trailer.url, let url = URL(string: raw, relativeTo: app.mediaBaseURL)?.absoluteURL else { return }
         playing = PlayableTrailer(id: trailer.id, url: url)
     }
+
+    /// How far the backdrop extends above the hero, enough to reach the top of any device.
+    private static let heroBleed: CGFloat = 240
 
     private var tint: Color { film.backdrop?.dominantColor.map { Color(hex: $0) } ?? palette.surface }
 
@@ -92,16 +97,19 @@ struct FilmDetailView: View {
                 .overlay(
                     LinearGradient(
                         stops: [
-                            .init(color: palette.background.opacity(0.55), location: 0),
-                            .init(color: tint.opacity(0.25), location: 0.3),
-                            .init(color: palette.background.opacity(0.75), location: 0.75),
+                            // Light shade at the very top keeps the back and share buttons readable.
+                            .init(color: palette.background.opacity(0.35), location: 0),
+                            .init(color: tint.opacity(0.15), location: 0.35),
+                            .init(color: palette.background.opacity(0.75), location: 0.8),
                             .init(color: palette.background, location: 1),
                         ],
                         startPoint: .top, endPoint: .bottom
                     )
                 )
                 .clipped()
-                .ignoresSafeArea(edges: .top)
+                // Extend the image upwards past the hero's own frame: behind the navigation bar
+                // and status bar to the top of the screen. Anything above the screen is never seen.
+                .padding(.top, -Self.heroBleed)
                 .accessibilityHidden(true)
         }
     }

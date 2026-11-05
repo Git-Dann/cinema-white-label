@@ -13,7 +13,8 @@ name: TestFlight
 # Without them the job explains what is missing and stops without failing.
 on:
   push:
-    branches: [main, claude/phase-1-foundation]
+    # Only main ships to testers; branches can be sent by hand from the Actions tab.
+    branches: [main]
     paths:
       - "ios/**"
       - ".github/workflows/testflight.yml"
