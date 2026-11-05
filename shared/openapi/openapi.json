@@ -1139,6 +1139,488 @@
           "Admin"
         ]
       }
+    },
+    "/v1/admin/t/{tenant}/seat-categories": {
+      "get": {
+        "operationId": "AdminCommerceController_categories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      },
+      "post": {
+        "operationId": "AdminCommerceController_createCategory",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/seat-categories/{code}": {
+      "put": {
+        "operationId": "AdminCommerceController_updateCategory",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      },
+      "delete": {
+        "operationId": "AdminCommerceController_deleteCategory",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/pricing": {
+      "get": {
+        "operationId": "AdminCommerceController_pricing",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      },
+      "put": {
+        "operationId": "AdminCommerceController_setPricing",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/concessions": {
+      "get": {
+        "operationId": "AdminCommerceController_concessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      },
+      "post": {
+        "operationId": "AdminCommerceController_createConcession",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/concessions/{id}": {
+      "put": {
+        "operationId": "AdminCommerceController_updateConcession",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      },
+      "delete": {
+        "operationId": "AdminCommerceController_deleteConcession",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/vouchers": {
+      "get": {
+        "operationId": "AdminCommerceController_vouchers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      },
+      "post": {
+        "operationId": "AdminCommerceController_createVoucher",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/vouchers/{id}": {
+      "put": {
+        "operationId": "AdminCommerceController_updateVoucher",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/auditoriums": {
+      "get": {
+        "operationId": "AdminLayoutsController_auditoriums",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/venues/{venueId}/auditoriums": {
+      "post": {
+        "operationId": "AdminLayoutsController_createAuditorium",
+        "parameters": [
+          {
+            "name": "venueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/layouts/{versionId}": {
+      "get": {
+        "operationId": "AdminLayoutsController_getVersion",
+        "parameters": [
+          {
+            "name": "versionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      },
+      "put": {
+        "operationId": "AdminLayoutsController_updateDraft",
+        "parameters": [
+          {
+            "name": "versionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      },
+      "delete": {
+        "operationId": "AdminLayoutsController_deleteDraft",
+        "parameters": [
+          {
+            "name": "versionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/layouts/validate": {
+      "post": {
+        "operationId": "AdminLayoutsController_validate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/auditoriums/{id}/layouts": {
+      "post": {
+        "operationId": "AdminLayoutsController_createDraft",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/layouts/{versionId}/publish": {
+      "post": {
+        "operationId": "AdminLayoutsController_publish",
+        "parameters": [
+          {
+            "name": "versionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin"
+        ]
+      }
     }
   },
   "info": {
