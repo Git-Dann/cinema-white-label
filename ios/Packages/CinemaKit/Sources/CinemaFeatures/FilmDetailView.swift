@@ -13,6 +13,9 @@ struct FilmDetailView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var expanded = false
     @State private var playing: PlayableTrailer?
+    /// Flipped once the big title scrolls away; shows the bar title and the soft
+    /// edge under the bar. A Bool, so scrolling does not re-evaluate the page every frame.
+    @State private var scrolledPastTitle = false
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -30,14 +33,27 @@ struct FilmDetailView: View {
                 }
                 .padding(.bottom, Spacing.section)
             }
-            .background(palette.background)
-            // The backdrop runs under the status bar and navigation bar, so no edge effect or bar background here.
-            .scrollEdgeEffectHidden(true, for: .top)
+            .onScrollGeometryChange(for: Bool.self) { geo in
+                geo.contentOffset.y + geo.contentInsets.top > Self.titleScrollThreshold
+            } action: { _, past in
+                withAnimation(.easeOut(duration: 0.2)) { scrolledPastTitle = past }
+            }
+            // The whole page takes the film's colour, fading into the theme background.
+            .background { pageBackground }
+            // Clean artwork at the top; once scrolled, content softens under the bar instead of clashing with it.
+            .scrollEdgeEffectHidden(!scrolledPastTitle, for: .top)
         }
         .navigationTitle(film.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                // The bar title appears only after the big title has scrolled away.
+                Text(film.title).font(.headline).lineLimit(1)
+                    .foregroundStyle(palette.textPrimary)
+                    .opacity(scrolledPastTitle ? 1 : 0)
+                    .accessibilityHidden(!scrolledPastTitle)
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 ShareLink(item: "\(film.title) at \(app.config.tenant.name)") { Image(systemName: "square.and.arrow.up") }
                     .accessibilityLabel("Share film")
@@ -68,7 +84,24 @@ struct FilmDetailView: View {
     /// How far the backdrop extends above the hero, enough to reach the top of any device.
     private static let heroBleed: CGFloat = 240
 
-    private var tint: Color { film.backdrop?.dominantColor.map { Color(hex: $0) } ?? palette.surface }
+    /// Content colour from the artwork (computed on the server, so nothing is analysed on the phone).
+    private var tint: Color {
+        (film.backdrop?.dominantColor ?? film.poster?.dominantColor).map { Color(hex: $0) } ?? palette.surface
+    }
+
+    /// Roughly where the big title leaves the screen.
+    private static let titleScrollThreshold: CGFloat = 360
+
+    private var pageBackground: some View {
+        ZStack {
+            palette.background
+            LinearGradient(stops: [.init(color: tint.mix(with: palette.background, by: 0.45), location: 0),
+                                   .init(color: tint.mix(with: palette.background, by: 0.75), location: 0.35),
+                                   .init(color: palette.background, location: 0.75)],
+                           startPoint: .top, endPoint: .bottom)
+        }
+        .ignoresSafeArea()
+    }
 
     /// The backdrop fills the whole hero, from under the navigation bar to below the
     /// title, and fades into the page background, so there is never a cut-off edge.
@@ -76,10 +109,9 @@ struct FilmDetailView: View {
         VStack(spacing: Spacing.m) {
             ArtworkImage(film.poster, accessibilityLabel: "\(film.title) poster")
                 .aspectRatio(2 / 3, contentMode: .fit)
-                .frame(width: sizeClass == .regular ? 240 : 200)
+                .frame(width: sizeClass == .regular ? 240 : 210)
                 .clipShape(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous).strokeBorder(.white.opacity(0.1)))
-                .shadow(color: .black.opacity(0.55), radius: 28, y: 16)
+                .tiltEffect(cornerRadius: palette.cornerRadius.large)
             VStack(spacing: Spacing.xs) {
                 Text(film.title)
                     .font(.largeTitle.weight(.bold))
@@ -94,19 +126,16 @@ struct FilmDetailView: View {
         .frame(maxWidth: .infinity)
         .background(alignment: .top) {
             ArtworkImage(film.backdrop)
-                .overlay(
-                    LinearGradient(
-                        stops: [
-                            // Light shade at the very top keeps the back and share buttons readable.
-                            .init(color: palette.background.opacity(0.35), location: 0),
-                            .init(color: tint.opacity(0.15), location: 0.35),
-                            .init(color: palette.background.opacity(0.75), location: 0.8),
-                            .init(color: palette.background, location: 1),
-                        ],
-                        startPoint: .top, endPoint: .bottom
-                    )
-                )
+                // Light shade at the very top keeps the back and share buttons readable.
+                .overlay(LinearGradient(colors: [palette.background.opacity(0.4), .clear], startPoint: .top, endPoint: .center))
+                // Fade the artwork out into the film-coloured page rather than to a flat colour.
+                .mask(LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: 0.45), .init(color: .clear, location: 1)],
+                                     startPoint: .top, endPoint: .bottom))
                 .clipped()
+                // Parallax: the artwork scrolls at a little over half speed. Runs on the GPU, no re-layout.
+                .visualEffect { content, proxy in
+                    content.offset(y: -proxy.frame(in: .scrollView).minY * 0.45)
+                }
                 // Extend the image upwards past the hero's own frame: behind the navigation bar
                 // and status bar to the top of the screen. Anything above the screen is never seen.
                 .padding(.top, -Self.heroBleed)
@@ -154,16 +183,18 @@ struct FilmDetailView: View {
         .pagePadding()
     }
 
-    /// Two-by-two facts in one card, so long values (formats) wrap instead of running off screen.
+    /// Facts as one swipeable row, label over value, no box around them.
     private var facts: some View {
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: Spacing.m, alignment: .topLeading), GridItem(.flexible(), alignment: .topLeading)], alignment: .leading, spacing: Spacing.m) {
-            StatItem(icon: "clock.fill", label: "Runtime", value: app.formatters.runtime(film.runtimeMinutes), spokenValue: app.formatters.spokenRuntime(film.runtimeMinutes))
-            StatItem(icon: "shield.lefthalf.filled", label: "Certificate", value: film.certificate)
-            if let g = film.genres.first { StatItem(icon: "theatermasks.fill", label: "Genre", value: g) }
-            if !film.formats.isEmpty { StatItem(icon: "film", label: "Formats", value: film.formats.joined(separator: ", ")) }
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .top, spacing: Spacing.xl) {
+                StatItem(icon: "clock.fill", label: "Runtime", value: app.formatters.runtime(film.runtimeMinutes), spokenValue: app.formatters.spokenRuntime(film.runtimeMinutes)).fixedSize()
+                if let g = film.genres.first { StatItem(icon: "theatermasks.fill", label: "Genre", value: g).fixedSize() }
+                StatItem(icon: "shield.lefthalf.filled", label: "Certificate", value: film.certificate).fixedSize()
+                ForEach(film.formats, id: \.self) { f in StatItem(icon: "film", label: "Format", value: f).fixedSize() }
+            }
+            .pagePadding()
         }
-        .cardStyle()
-        .pagePadding()
+        .scrollClipDisabled()
     }
 
     @ViewBuilder
