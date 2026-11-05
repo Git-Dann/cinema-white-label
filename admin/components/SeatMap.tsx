@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react';
 import type { AuditoriumLayout } from '@cinema/contracts';
 import { CANVAS_W, SEAT_TYPE_COLOURS, SEAT_TYPE_LABELS } from '@/lib/layout-tools';
 
@@ -24,13 +25,65 @@ export function SeatMap({
   issueSeatIds,
   onSeatClick,
   onBackgroundClick,
+  drag,
 }: {
   layout: AuditoriumLayout;
   selected?: Set<string>;
   issueSeatIds?: Set<string>;
   onSeatClick?: (id: string, additive: boolean) => void;
   onBackgroundClick?: () => void;
+  /** Pointer dragging of seats. Deltas are in layout units (fractions of the canvas width), snapped to `snap` unless Alt is held. */
+  drag?: { start: (id: string, additive: boolean) => void; move: (dx: number, dy: number) => void; end: () => void; snap: number };
 }) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  // Active drag. Measured in screen pixels from the press point and converted with the
+  // scale at that moment, so a page reflow mid-drag (the inspector opening) cannot make seats jump.
+  const active = useRef<{ id: string; additive: boolean; cx: number; cy: number; perPx: number; ax: number; ay: number; started: boolean; pointer: number } | null>(null);
+  const suppressClick = useRef(false);
+
+  function onPointerDown(e: React.PointerEvent, id: string) {
+    if (!drag || e.button !== 0) return;
+    const m = svgRef.current?.getScreenCTM();
+    if (!m || !m.a) return;
+    active.current = { id, additive: e.shiftKey || e.metaKey || e.ctrlKey, cx: e.clientX, cy: e.clientY, perPx: 1 / (m.a * CANVAS_W), ax: 0, ay: 0, started: false, pointer: e.pointerId };
+  }
+
+  function onPointerMove(e: React.PointerEvent) {
+    const a = active.current;
+    if (!drag || !a || e.pointerId !== a.pointer) return;
+    const px = e.clientX - a.cx;
+    const py = e.clientY - a.cy;
+    if (!a.started) {
+      // About 4 pixels before a press becomes a drag, so clicks stay clicks.
+      if (Math.hypot(px, py) < 4) return;
+      a.started = true;
+      svgRef.current?.setPointerCapture(e.pointerId);
+      drag.start(a.id, a.additive);
+    }
+    let tx = px * a.perPx;
+    let ty = py * a.perPx;
+    if (!e.altKey && drag.snap > 0) {
+      tx = Math.round(tx / drag.snap) * drag.snap;
+      ty = Math.round(ty / drag.snap) * drag.snap;
+    }
+    const dx = tx - a.ax;
+    const dy = ty - a.ay;
+    if (Math.abs(dx) < 1e-9 && Math.abs(dy) < 1e-9) return;
+    a.ax = tx;
+    a.ay = ty;
+    drag.move(dx, dy);
+  }
+
+  function onPointerUp(e: React.PointerEvent) {
+    const a = active.current;
+    if (!a || e.pointerId !== a.pointer) return;
+    if (a.started) {
+      suppressClick.current = true;
+      drag?.end();
+      if (svgRef.current?.hasPointerCapture(e.pointerId)) svgRef.current.releasePointerCapture(e.pointerId);
+    }
+    active.current = null;
+  }
   const W = CANVAS_W;
   const H = W / layout.aspectRatio;
   const s = layout.screen;
@@ -52,11 +105,19 @@ export function SeatMap({
 
   return (
     <svg
-      className="seat-map"
+      ref={svgRef}
+      className={drag ? 'seat-map draggable' : 'seat-map'}
       viewBox={`0 0 ${W} ${H}`}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
       role="img"
       aria-label={`${layout.name}: ${layout.seats.length} seats in ${layout.rows.length} rows`}
       onClick={(e) => {
+        if (suppressClick.current) {
+          suppressClick.current = false;
+          return;
+        }
         if (e.target === e.currentTarget || (e.target as Element).getAttribute('data-bg') === '1') onBackgroundClick?.();
       }}
     >
@@ -86,10 +147,16 @@ export function SeatMap({
             transform={`translate(${seat.x * W} ${seat.y * W}) rotate(${seat.rotation})`}
             className={onSeatClick ? 'seat clickable' : 'seat'}
             data-seat-id={seat.id}
+            onPointerDown={drag ? (e) => onPointerDown(e, seat.id) : undefined}
             onClick={
               onSeatClick
                 ? (e) => {
                     e.stopPropagation();
+                    // The click that ends a drag is not a selection click.
+                    if (suppressClick.current) {
+                      suppressClick.current = false;
+                      return;
+                    }
                     onSeatClick(seat.id, e.shiftKey || e.metaKey || e.ctrlKey);
                   }
                 : undefined

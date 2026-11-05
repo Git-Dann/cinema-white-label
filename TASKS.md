@@ -18,7 +18,8 @@ Prioritised. Phase numbers follow the master specification.
 - [x] App Intents and Spotlight.
 - [x] Admin UI for seat categories + pricing grid, food and drink, vouchers, and a visual auditorium layout editor (draft, validate, publish).
 - [x] Admin: promotions content (API, admin page, iOS Offers section), booking fee and format supplement editing.
-- [ ] Admin: layout editor undo/drag/features.
+- [x] Admin: layout editor undo/redo and drag to move seats.
+- [ ] Admin: layout editor feature editing (aisles, entrances, exits) and drag for features.
 - [ ] Loyalty earn/burn and memberships (models exist); gift cards pending operator sign-off.
 - [ ] Brand layer between operator and venues (multi-brand operators).
 - [x] Live Activities + widget extension target (local updates, no push).

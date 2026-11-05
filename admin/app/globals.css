@@ -1802,3 +1802,13 @@ textarea:disabled {
 .help-warning {
   color: var(--warning);
 }
+
+.seat-map.draggable .seat.clickable {
+  cursor: grab;
+}
+.seat-map.draggable:active .seat.clickable {
+  cursor: grabbing;
+}
+.seat-map.draggable {
+  touch-action: none;
+}

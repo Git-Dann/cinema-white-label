@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createHistory, record, redo, undo } from '@/lib/history';
 import type { AuditoriumLayout, Seat, SeatType } from '@cinema/contracts';
 import { ACCESS_FEATURES } from '@cinema/contracts';
 import { api, ApiError, errorDetails, errorMessage, LayoutIssueDto, LayoutValidation, LayoutVersionDetail, SeatCategoryDto, tenantPath } from '@/lib/api';
@@ -113,7 +114,8 @@ export function LayoutEditor({
   const { tenant, can } = useSession();
   const readOnly = detail.status !== 'DRAFT' || !can.canEditLayouts;
   const isDraft = detail.status === 'DRAFT';
-  const [geometry, setGeometry] = useState<AuditoriumLayout>(detail.geometry);
+  const [history, setHistory] = useState(() => createHistory<AuditoriumLayout>(detail.geometry));
+  const geometry = history.present;
   const [saved, setSaved] = useState<AuditoriumLayout>(detail.geometry);
   const [selected, setSelected] = useState<string[]>([]);
   const [issues, setIssues] = useState<LayoutIssueDto[]>(detail.issues);
@@ -166,10 +168,66 @@ export function LayoutEditor({
   const issueSeatIds = useMemo(() => new Set(issues.map((i) => i.seatId).filter((x): x is string => !!x)), [issues]);
   const wheelchairSeats = useMemo(() => geometry.seats.filter((s) => s.type === 'wheelchair'), [geometry.seats]);
 
-  const edit = useCallback((fn: (l: AuditoriumLayout) => AuditoriumLayout) => {
-    setGeometry((g) => fn(g));
+  /** Every geometry change goes through here so it can be undone. */
+  const edit = useCallback((fn: (l: AuditoriumLayout) => AuditoriumLayout, coalesce?: string, windowMs?: number) => {
+    setHistory((h) => record(h, fn(h.present), { coalesce, windowMs }));
     setMsg({});
   }, []);
+  const canUndo = !readOnly && history.past.length > 0;
+  const canRedo = !readOnly && history.future.length > 0;
+  function doUndo() {
+    if (!canUndo) return;
+    setHistory(undo);
+    // Seats that no longer exist cannot stay selected.
+    setSelected((cur) => cur.filter((id) => history.past[history.past.length - 1].seats.some((s) => s.id === id)));
+  }
+  function doRedo() {
+    if (!canRedo) return;
+    setHistory(redo);
+    setSelected((cur) => cur.filter((id) => history.future[0].seats.some((s) => s.id === id)));
+  }
+
+  // Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z (or Ctrl+Y) anywhere in the editor, except while typing in a field.
+  useEffect(() => {
+    if (readOnly) return;
+    const h = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      if (!(e.metaKey || e.ctrlKey)) return;
+      const k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        doUndo();
+      } else if ((k === 'z' && e.shiftKey) || k === 'y') {
+        e.preventDefault();
+        doRedo();
+      }
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  });
+
+  // ---- Dragging selected seats ----
+  const dragSet = useRef<Set<string> | null>(null);
+  const dragId = useRef(0);
+  function onDragStart(id: string, additive: boolean) {
+    if (readOnly) return;
+    // Dragging an unselected seat selects it (and only it, unless adding).
+    const ids = selSet.has(id) ? selected : additive ? [...selected, id] : [id];
+    if (!selSet.has(id)) setSelected(ids);
+    dragSet.current = new Set(ids);
+    dragId.current += 1;
+    canvasRef.current?.focus({ preventScroll: true });
+  }
+  function onDrag(dx: number, dy: number) {
+    if (!dragSet.current) return;
+    const ids = dragSet.current;
+    // One drag is one undo step, however long it takes.
+    edit((l) => nudgeSeats(l, ids, dx, dy), `drag-${dragId.current}`, Number.POSITIVE_INFINITY);
+  }
+  function onDragEnd() {
+    dragSet.current = null;
+  }
   const editSelected = (fn: (s: Seat) => Seat) => edit((l) => mapSeats(l, selSet, fn));
 
   function onSeatClick(id: string, additive: boolean) {
@@ -195,7 +253,7 @@ export function LayoutEditor({
     const d: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
     if (d[e.key]) {
       e.preventDefault();
-      edit((l) => nudgeSeats(l, selSet, d[e.key][0], d[e.key][1]));
+      edit((l) => nudgeSeats(l, selSet, d[e.key][0], d[e.key][1]), `nudge-${selected.join(',')}`);
     }
   }
 
@@ -342,13 +400,21 @@ export function LayoutEditor({
         <div className="editor-actions">
           {isDraft && can.canEditLayouts && (
             <>
+              <span className="row" role="group" aria-label="History">
+                <button className="btn btn-ghost btn-sm" onClick={doUndo} disabled={!canUndo || !!busy} title="Undo (Ctrl or ⌘ + Z)" aria-keyshortcuts="Control+Z Meta+Z">
+                  Undo
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={doRedo} disabled={!canRedo || !!busy} title="Redo (Shift + Ctrl or ⌘ + Z)" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y">
+                  Redo
+                </button>
+              </span>
               <button className="btn btn-ghost btn-danger" onClick={deleteDraft} disabled={!!busy}>
                 {busy === 'delete' ? 'Deleting…' : 'Delete draft'}
               </button>
               <button
                 className="btn btn-ghost"
                 onClick={() => {
-                  setGeometry(saved);
+                  edit(() => saved);
                   setSelected([]);
                 }}
                 disabled={!dirty || !!busy}
@@ -399,13 +465,20 @@ export function LayoutEditor({
             onKeyDown={onKeyDown}
             aria-label={readOnly ? 'Seat map. Click a seat to inspect it.' : 'Seat map editor. Click seats to select; Delete removes, arrow keys move selected seats.'}
           >
-            <SeatMap layout={geometry} selected={selSet} issueSeatIds={issueSeatIds} onSeatClick={onSeatClick} onBackgroundClick={() => setSelected([])} />
+            <SeatMap
+              layout={geometry}
+              selected={selSet}
+              issueSeatIds={issueSeatIds}
+              onSeatClick={onSeatClick}
+              onBackgroundClick={() => setSelected([])}
+              drag={readOnly ? undefined : { start: onDragStart, move: onDrag, end: onDragEnd, snap: SMALL_STEP }}
+            />
           </div>
           <div className="canvas-foot">
             <SeatLegend layout={geometry} />
             <p className="help">
               Click a seat to select it; Shift-click to select more.
-              {!readOnly && ' Delete removes selected seats; arrow keys move them (hold Shift for bigger steps).'} Seats with issues are outlined in red.
+              {!readOnly && ' Drag to move selected seats (hold Alt to move freely, off the grid). Arrow keys nudge them (Shift for bigger steps); Delete removes them. Undo with Ctrl or ⌘ + Z.'} Seats with issues are outlined in red.
             </p>
           </div>
         </section>
