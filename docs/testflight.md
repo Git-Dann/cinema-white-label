@@ -1,6 +1,8 @@
-# Getting the demo app on TestFlight
+# Getting the app on TestFlight
 
-The **Northlight Demo** scheme archives a release build that always runs on the bundled demo data: fictional films, seat maps, food, offers, 640 demo points and memberships, all offline. No backend is needed, payments are simulated and the app says so. Internal TestFlight testing needs no App Review and costs nothing beyond the Apple Developer membership.
+Automatic TestFlight uploads use the **Northlight** release build, which talks to the hosted API (`https://cinema-api-flame.vercel.app`). Payments are simulated and labelled.
+
+The **Northlight Demo** scheme is still there for showing the app offline: it archives a release build that always runs on the bundled demo data: fictional films, seat maps, food, offers, 640 demo points and memberships, all offline. No backend is needed, payments are simulated and the app says so. Internal TestFlight testing needs no App Review and costs nothing beyond the Apple Developer membership.
 
 ## One-off setup (about 15 minutes)
 
@@ -34,7 +36,7 @@ The **Northlight Demo** scheme archives a release build that always runs on the 
 
 ## Automatic uploads from GitHub (recommended)
 
-`.github/workflows/testflight.yml` archives the Northlight Demo build and uploads it to TestFlight whenever app code is pushed (and on demand from the Actions tab). Build numbers come from the workflow run number, so you never bump them by hand. It is free on a public repository.
+`.github/workflows/testflight.yml` archives the **Northlight** release build, which uses the hosted API at `https://cinema-api-flame.vercel.app` (payments are still simulated), and uploads it to TestFlight whenever app code is pushed (and on demand from the Actions tab). Build numbers come from the workflow run number, so you never bump them by hand. It is free on a public repository.
 
 One-off setup:
 
