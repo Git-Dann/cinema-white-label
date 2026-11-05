@@ -14,8 +14,10 @@
 .hero-phones { container-type: size; --ground-bg: #0b3d44;
   background: radial-gradient(70% 90% at 50% 0%, #1b6b6f 0%, #0f4c53 34%, #0a3238 64%, #071f24 100%); }
 .hero-phones__row { position: absolute; inset: 0; z-index: 1; display: flex; justify-content: center; align-items: flex-start; gap: clamp(16px, 4cqw, 56px); padding-top: clamp(20px, 7cqh, 40px); }
-.hero-phone { flex: none; padding: 3px; border-radius: 30px; }
-.hero-phone > .demo { width: 100%; border-radius: 27px; transition: background-color .5s ease, color .5s ease; }
+/* the body and the screen are rounded in proportion to the phone, so the corners always nest
+   (the screen is zoomed with the phone, a fixed radius on the body would fall behind it) */
+.hero-phone { flex: none; padding: 1.4%; border-radius: 15% / 7%; }
+.hero-phone > .demo { width: 100%; border-radius: 13.6% / 6.3%; transition: background-color .5s ease, color .5s ease; }
 .hero-phone > .demo * { transition: background-color .5s ease, color .5s ease, box-shadow .5s ease; }
 /* the phones always rise out of the window and are cut by its fade: their height runs past the window's */
 .hero-phones__row { --pw: clamp(200px, min(56cqh, 30cqw), 420px); }
