@@ -3,6 +3,7 @@
 import { KeyboardEvent, MouseEvent, useEffect, useState } from 'react';
 import { api, errorMessage, FilmAsset, mediaUrl, tenantPath } from '@/lib/api';
 import { ErrorNote, SuccessNote } from './ui';
+import { SafeImage } from './SafeImage';
 
 const CROPS = [
   { label: '2:3 poster', ratio: '2 / 3', width: 96 },
@@ -76,8 +77,7 @@ export function FocalEditor({ tenant, asset, canEdit, onSaved }: { tenant: strin
           aria-label={`Focal point editor. Current point ${Math.round(focal.x * 100)}% across, ${Math.round(focal.y * 100)}% down. Click the image or use arrow keys to move it; hold Shift for larger steps.`}
           style={{ aspectRatio: `${asset.width} / ${asset.height}`, width: `min(100%, ${Math.round((360 * asset.width) / asset.height)}px)` }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={src} alt="" draggable={false} />
+          <SafeImage src={src} alt="" draggable={false} fallback={<span className="image-fallback">Image unavailable. Try again shortly.</span>} />
           <span className="crosshair" style={{ left: `${focal.x * 100}%`, top: `${focal.y * 100}%` }} aria-hidden="true" />
         </div>
         <p className="help">
@@ -90,8 +90,7 @@ export function FocalEditor({ tenant, asset, canEdit, onSaved }: { tenant: strin
           {CROPS.map((c) => (
             <figure key={c.label} className="crop">
               <div className="crop-frame" style={{ aspectRatio: c.ratio, width: c.width }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt="" style={{ objectPosition: pos }} />
+                <SafeImage src={src} alt="" style={{ objectPosition: pos }} />
               </div>
               <figcaption>{c.label}</figcaption>
             </figure>

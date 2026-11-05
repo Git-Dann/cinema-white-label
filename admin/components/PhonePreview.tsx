@@ -1,6 +1,7 @@
 'use client';
 
 import type { ResolvedTheme, SemanticTokens } from '@cinema/contracts';
+import { SafeImage } from './SafeImage';
 
 export interface PreviewFilm {
   id: string;
@@ -74,14 +75,16 @@ export function PhonePreview({
 
         <div className="phone-scroll">
           <div className="phone-header">
-            {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={logoUrl} alt="" className="phone-logo" />
-            ) : (
-              <span className="phone-wordmark" style={{ color: t.textPrimary }}>
-                {wordmark || 'Wordmark'}
-              </span>
-            )}
+            <SafeImage
+              src={logoUrl}
+              alt=""
+              className="phone-logo"
+              fallback={
+                <span className="phone-wordmark" style={{ color: t.textPrimary }}>
+                  {wordmark || 'Wordmark'}
+                </span>
+              }
+            />
             <span className="phone-avatar" style={{ background: t.surfaceElevated, color: t.textSecondary, borderColor: t.divider }}>
               AB
             </span>
@@ -101,10 +104,7 @@ export function PhonePreview({
                   className="phone-poster-img"
                   style={{ borderRadius: r.small, background: f.dominantColor ?? t.surfaceElevated }}
                 >
-                  {f.posterUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={f.posterUrl} alt="" style={{ objectPosition: `${f.focal.x * 100}% ${f.focal.y * 100}%` }} />
-                  )}
+                  <SafeImage src={f.posterUrl} alt="" style={{ objectPosition: `${f.focal.x * 100}% ${f.focal.y * 100}%` }} />
                 </div>
                 <div className="phone-poster-title" style={{ color: t.textPrimary }}>
                   {f.title}

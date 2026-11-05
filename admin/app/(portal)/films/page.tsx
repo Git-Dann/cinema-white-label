@@ -6,6 +6,7 @@ import { formatDate } from '@/lib/format';
 import { useSession, useTenantData } from '@/lib/session';
 import { ErrorNote, Loading, PageHeader, SuccessNote } from '@/components/ui';
 import { FocalEditor } from '@/components/FocalEditor';
+import { SafeImage } from '@/components/SafeImage';
 
 const CERTS = ['U', 'PG', '12A', '12', '15', '18', 'TBC'] as const;
 
@@ -191,8 +192,7 @@ export default function FilmsPage() {
                         onClick={() => setAssetId(a.id)}
                         aria-label={`${a.kind.toLowerCase()} ${a.width}×${a.height}${a.isPreferred ? ', preferred' : ''}`}
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={mediaUrl(a.url, 160)!} alt="" />
+                        <SafeImage src={mediaUrl(a.url, 160)} alt="" fallback={<span className="thumb-fallback" />} />
                         <span>
                           {a.kind.toLowerCase()}
                           {a.isPreferred ? ' · preferred' : ''}
@@ -225,15 +225,13 @@ export default function FilmsPage() {
           <li key={f.id}>
             <button className={`film-card${selectedId === f.id ? ' selected' : ''}`} onClick={() => select(f)} aria-label={`Edit ${f.title}`}>
               <div className="film-poster" style={{ background: f.poster?.dominantColor ?? 'var(--surface-2)' }}>
-                {f.poster && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={mediaUrl(f.poster.url, 342)!}
-                    alt=""
-                    loading="lazy"
-                    style={{ objectPosition: `${f.poster.focalPoint.x * 100}% ${f.poster.focalPoint.y * 100}%` }}
-                  />
-                )}
+                <SafeImage
+                  src={f.poster ? mediaUrl(f.poster.url, 342) : null}
+                  alt=""
+                  loading="lazy"
+                  style={f.poster ? { objectPosition: `${f.poster.focalPoint.x * 100}% ${f.poster.focalPoint.y * 100}%` } : undefined}
+                  fallback={<span className="poster-fallback">{f.title}</span>}
+                />
               </div>
               <div className="film-meta">
                 <div className="film-title">{f.title}</div>

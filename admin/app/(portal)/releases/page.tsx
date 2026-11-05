@@ -6,6 +6,7 @@ import { api, errorMessage, mediaUrl, Release, tenantPath } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import { useSession, useTenantData } from '@/lib/session';
 import { ErrorNote, Loading, PageHeader, StatusBadge, SuccessNote } from '@/components/ui';
+import { SafeImage } from '@/components/SafeImage';
 
 export default function ReleasesPage() {
   const { tenant, can } = useSession();
@@ -130,8 +131,7 @@ export default function ReleasesPage() {
                 <dt>Logo</dt>
                 <dd>
                   {live.branding.logoDarkUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img className="live-logo" src={mediaUrl(live.branding.logoDarkUrl)!} alt={`${live.branding.wordmark} logo`} style={{ background: live.theme.dark.background }} />
+                    <SafeImage className="live-logo" src={mediaUrl(live.branding.logoDarkUrl)} alt={`${live.branding.wordmark} logo`} style={{ background: live.theme.dark.background }} fallback={live.branding.wordmark} />
                   ) : (
                     '—'
                   )}
