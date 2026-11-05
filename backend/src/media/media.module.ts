@@ -14,8 +14,10 @@ import { LocalMediaStorage, MediaStorage } from './storage';
 /** Where fixture artwork and uploads live. In production this is object storage + CDN. */
 export const MEDIA_ROOTS = {
   fixture: resolve(__dirname, '../../../shared/fixtures/artwork'),
-  upload: resolve(__dirname, '../../.media/uploads'),
-  cache: resolve(__dirname, '../../.media-cache'),
+  // Serverless hosts only allow writes under /tmp, which is not kept between
+  // instances: fine for the rendition cache, temporary for uploads (see docs/hosting.md).
+  upload: process.env.MEDIA_UPLOAD_DIR ?? (process.env.VERCEL ? '/tmp/media/uploads' : resolve(__dirname, '../../.media/uploads')),
+  cache: process.env.MEDIA_CACHE_DIR ?? (process.env.VERCEL ? '/tmp/media-cache' : resolve(__dirname, '../../.media-cache')),
 };
 
 export const mediaStorage: MediaStorage = new LocalMediaStorage({ fixture: MEDIA_ROOTS.fixture, upload: MEDIA_ROOTS.upload });
