@@ -207,7 +207,9 @@ public struct StatItem: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Label(label, systemImage: icon).font(.subheadline).foregroundStyle(palette.textMuted).lineLimit(1)
+            // Fixed icon box so every item's label and value sit on the same lines, whatever the symbol.
+            Label { Text(label) } icon: { Image(systemName: icon).frame(width: 20, height: 18) }
+                .font(.subheadline).foregroundStyle(palette.textMuted).lineLimit(1)
             Text(value).font(.title3.weight(.bold)).foregroundStyle(palette.textPrimary).lineLimit(2).minimumScaleFactor(0.8)
         }
         .accessibilityElement(children: .ignore)
