@@ -2333,6 +2333,8 @@ dialog.sheet form {
   .choice-head {
     grid-template-columns: 1fr;
   }
+}
+
 /* Cinema scope */
 .scope-note {
   margin: calc(-1 * var(--s3)) 0 var(--s3);
