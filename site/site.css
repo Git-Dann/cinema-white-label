@@ -7,22 +7,30 @@
 .device > img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% var(--shot-y, 0%); border-radius: 11% / 5%; }
 .device::before { content: ""; position: absolute; z-index: 1; top: 2.6%; left: 50%; translate: -50% 0; width: 30%; height: 2.4%; border-radius: 99px; background: #000; }
 
-/* hero: the phone stands on the effect, cut by the frame's foot */
-.hero-stage { display: flex; justify-content: flex-end; align-items: flex-start; padding-right: var(--s-8);
-  /* a lit studio sweep in the sky tones (backgrounds.md), still: one light, no grain, no motion */
-  background: radial-gradient(60% 50% at 62% 38%, #e3ebf2 0%, #d3dfe8 30%, #c3d3de 58%, #b4c7d4 82%, #a9bfcd 100%); }
-/* the phone is sized from the frame itself (container units), so a tall window gets a taller phone,
-   never a fixed phone pinned to the top of an empty frame: about 78% of the frame's height, 7% down */
-.hero-stage { container-type: size; }
-.device--hero { position: relative; z-index: 1; width: min(76cqw, 34cqh, 440px); margin-top: 7cqh; flex: none; }
-.hero .ly-float { width: min(232px, calc(100% - 2 * var(--s-5))); }
-@media (max-width: 1023px) {
-  .hero-stage { min-height: 280px; justify-content: center; padding-right: 0; }
-  .hero-stage { container-type: normal; }
-  .device--hero { width: min(64%, 300px); margin-top: var(--s-6); }
-  .hero .ly-float { display: none; }
+/* hero (centred, on the deep ground): three phones rise out of the lit window and fade at its foot.
+   The centre phone is the largest; the side ones step back. Sized from the window (container units). */
+.hero--centred .hero__own { color: #2DD4BF; }
+.hero--centred .pill { background: color-mix(in oklab, var(--ink) 8%, transparent); border-color: color-mix(in oklab, var(--ink) 18%, transparent); color: var(--ink); }
+.hero-phones { container-type: size; --ground-bg: #0b3d44;
+  background: radial-gradient(70% 90% at 50% 0%, #1b6b6f 0%, #0f4c53 34%, #0a3238 64%, #071f24 100%); }
+.hero-phones__row { position: absolute; inset: 0; z-index: 1; display: flex; justify-content: center; align-items: flex-start; gap: clamp(16px, 4cqw, 56px); padding-top: clamp(20px, 7cqh, 40px); }
+.hero-phone { flex: none; padding: 3px; border-radius: 30px; }
+.hero-phone > .demo { width: 100%; border-radius: 27px; transition: background-color .5s ease, color .5s ease; }
+.hero-phone > .demo * { transition: background-color .5s ease, color .5s ease, box-shadow .5s ease; }
+/* the phones always rise out of the window and are cut by its fade: their height runs past the window's */
+.hero-phones__row { --pw: clamp(200px, min(56cqh, 30cqw), 420px); }
+/* a window close to square (a tablet held upright): the side phones tuck behind the centre one, fanned,
+   so the centre phone can be tall enough to rise out of the window */
+@container (max-aspect-ratio: 13 / 10) {
+  .hero-phones__row { --pw: clamp(200px, min(60cqh, 46cqw), 420px); }
+  .hero-phone--main { position: relative; z-index: 2; }
+  .hero-phone--side { position: relative; z-index: 1; margin-inline: calc(var(--pw) * -.3); }
 }
-@media (max-width: 639px) { .hero .ly-float { display: none; } }
+.hero-phone--main { width: var(--pw); }
+.hero-phone--side { width: calc(var(--pw) * .84); margin-top: calc(var(--pw) * .16); opacity: .92; }
+@container (max-width: 700px) { .hero-phone--side { display: none; } }
+.hero-phones.hero__window > .loop-pause { position: absolute; z-index: 6; top: 12px; right: 12px; bottom: auto; left: auto; }  /* above the fade at the window's foot */
+@media (prefers-reduced-motion: reduce) { .hero-phone > .demo, .hero-phone > .demo * { transition: none; } }
 
 /* nav cards: the captures crop to their point */
 /* nav cards: each picture whole on the lit ground (a phone rising from the foot, the portal's
@@ -212,9 +220,7 @@ main > section.section.section:is(.bg-band, .bg-dots):not(.section--hero) { disp
   .remote-shot { min-height: 360px; }
 }
 
-/* Onest sets wide: at 72px a 45-character h1 (the split hero's maxChars) takes 4 lines in 519px, so
-   the hero's scale steps down to 0.84 (60px at 1440) to keep the stress test within 3 lines */
-.hero--split { --ly-h1: calc(0.84 * clamp(40px, 3.048vw + 28.11px, 72px)); }
+
 #journey { --h: 2; }
 @media (min-width: 640px) and (max-width: 1023px) { #journey { --h: 1; } }
 
@@ -306,3 +312,13 @@ main > section.section.section:is(.bg-band, .bg-dots):not(.section--hero) { disp
   .demo-phone { width: 180px; }
   .rel__list li:nth-child(n+2) { display: grid; }
 }
+
+/* ---------- connect: MCP, coming soon ---------- */
+.connect__tag { justify-self: start; }
+.connect__frame { margin-top: var(--s-7); padding: 0; background: var(--g-alt, #ebf0ee); border: 0; }
+.connect__frame::before { display: none; }
+.connect__frame .dg { width: 100%; height: 100%; }
+.connect__cols { margin-top: var(--s-6); }
+.connect__cols h3 { font-size: var(--t-card); }
+.connect__cols p { margin-top: var(--s-2); color: var(--ink); }
+.demo__card--offer { grid-template-columns: 1fr; }
