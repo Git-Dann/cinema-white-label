@@ -1,12 +1,12 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { writeFileSync } from 'fs';
+import { existsSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { AppModule } from '../src/app.module';
 import { openApiDocument } from '../src/bootstrap';
 
 async function main() {
-  process.loadEnvFile?.(join(__dirname, '../.env'));
+  if (existsSync(join(__dirname, '../.env'))) process.loadEnvFile?.(join(__dirname, '../.env'));
   const app = await NestFactory.create(AppModule, { logger: false, abortOnError: false });
   const doc = openApiDocument(app);
   const out = join(__dirname, '../../shared/openapi/openapi.json');

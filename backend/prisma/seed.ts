@@ -5,7 +5,7 @@
  */
 import { PrismaClient, Prisma } from '@prisma/client';
 import { AuditoriumLayout, validateLayout } from '@cinema/contracts';
-import { mkdirSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import sharp from 'sharp';
 import { FixtureFilmProvider } from '../src/catalogue/providers/adapters';
@@ -23,7 +23,8 @@ import { CONCESSIONS, VOUCHERS } from '../src/fixtures/commerce';
 import { DEFAULT_SEAT_CATEGORIES } from '@cinema/contracts';
 import { TENANTS } from '../src/fixtures/tenants';
 
-process.loadEnvFile?.(join(__dirname, '../.env'));
+// Local convenience only: CI and production provide environment variables directly.
+if (existsSync(join(__dirname, '../.env'))) process.loadEnvFile?.(join(__dirname, '../.env'));
 
 const prisma = new PrismaService();
 const SHOW_TIMES = ['12:30', '15:20', '18:10', '20:50'];
