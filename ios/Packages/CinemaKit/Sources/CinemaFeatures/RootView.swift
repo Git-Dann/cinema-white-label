@@ -17,7 +17,7 @@ public struct RootView: View {
 
     public var body: some View {
         TabView(selection: $tab) {
-            Tab("Home", systemImage: "star.fill", value: AppTab.home) {
+            Tab("Home", systemImage: "house.fill", value: AppTab.home) {
                 NavigationStack { HomeView() }
             }
             Tab("Films", systemImage: "film.stack", value: AppTab.films) {
@@ -35,7 +35,8 @@ public struct RootView: View {
             }
         }
         .tabViewStyle(.sidebarAdaptable)
-        // The tab bar stays full size: a minimised bubble sat on top of posters.
+        // The tab bar shrinks while scrolling down and returns on scroll up.
+        .tabBarMinimizeBehavior(.onScrollDown)
         .environment(app)
         .environment(\.mediaBaseURL, app.mediaBaseURL)
         .environment(\.startBooking, StartBookingAction { booking = $0 })

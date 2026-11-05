@@ -113,6 +113,48 @@ public struct Membership: Codable, Sendable, Hashable {
 }
 
 /// What the app may offer a customer for a plan, given their current membership.
+/// One membership benefit as shown on plan cards: a symbol, a short headline and a line of detail.
+public struct MembershipBenefit: Hashable, Sendable {
+    public let symbol: String
+    public let title: String
+    public let detail: String
+}
+
+public extension MembershipPlan.Entitlements {
+    /// Benefits with icons and plain-English detail, strongest first. Only non-trivial benefits are listed.
+    var benefitItems: [MembershipBenefit] {
+        var out: [MembershipBenefit] = []
+        if ticketDiscountPercent > 0 {
+            out.append(.init(symbol: "ticket.fill", title: "\(ticketDiscountPercent)% off tickets", detail: "Every film, every screening"))
+        }
+        if bookingFeeWaived {
+            out.append(.init(symbol: "creditcard.fill", title: "No booking fees", detail: "Pay the ticket price, nothing more"))
+        }
+        if foodDiscountPercent > 0 {
+            out.append(.init(symbol: "popcorn.fill", title: "\(foodDiscountPercent)% off food and drink", detail: "Snacks with your booking or at your seat"))
+        }
+        if pointsMultiplier > 1 {
+            let m = pointsMultiplier.rounded() == pointsMultiplier ? String(Int(pointsMultiplier)) : String(format: "%.1f", pointsMultiplier)
+            out.append(.init(symbol: "sparkles", title: "\(m)× points", detail: "Earn rewards faster on everything"))
+        }
+        return out
+    }
+
+    /// Rough strength of a plan, used to pick the one to feature.
+    var weight: Double { Double(ticketDiscountPercent) + Double(foodDiscountPercent) * 0.5 + (bookingFeeWaived ? 10 : 0) + (pointsMultiplier - 1) * 10 }
+}
+
+public extension Array where Element == MembershipPlan {
+    /// The plan to feature as "best value": the strongest, when there is more than one plan.
+    var featuredPlanID: String? {
+        guard count > 1 else { return nil }
+        return self.max { $0.entitlements.weight < $1.entitlements.weight }?.id
+    }
+
+    /// The cheapest plan, for "from £x a month" copy.
+    var cheapest: MembershipPlan? { self.min { $0.priceMinor < $1.priceMinor } }
+}
+
 public enum MembershipOffer: Equatable, Sendable {
     case join
     case renew

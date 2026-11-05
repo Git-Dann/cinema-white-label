@@ -34,8 +34,12 @@ struct AccountView: View {
                     }
                 } header: { Text(program.name) } footer: { Text(program.summary(formatters: app.formatters)) }
             }
-            if !app.membershipPlans.isEmpty || app.membership != nil {
-                MembershipSection()
+            if !app.membershipPlans.isEmpty || app.membership?.isActive == true {
+                Section {
+                    MembershipHero()
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                }
             }
             if app.config.allThemes.count > 1 {
                 Section {
@@ -51,8 +55,8 @@ struct AccountView: View {
                          : "Themes follow your device's light and dark setting unless the theme is designed for one appearance.")
                 }
             }
-            Section("Favourite cinemas") {
-                if app.favouriteVenues.isEmpty { Text("Tap the star next to a cinema to add it here.").foregroundStyle(palette.textMuted) }
+            Section("Your cinemas") {
+                if app.favouriteVenues.isEmpty { Text("Tap the house next to a cinema to add it here.").foregroundStyle(palette.textMuted) }
                 ForEach(app.favouriteVenues) { Text($0.name) }
             }
             Section {
@@ -87,124 +91,6 @@ struct AccountView: View {
         .navigationTitle("Account")
         .task { await app.loadAccount() }
         .refreshable { await app.loadAccount() }
-    }
-}
-
-/// Current membership (with renewal) or the plans on sale.
-struct MembershipSection: View {
-    @Environment(AppModel.self) private var app
-    @Environment(\.palette) private var palette
-    @State private var buying: MembershipPlan?
-
-    var body: some View {
-        Section {
-            if let m = app.membership, m.isActive {
-                VStack(alignment: .leading, spacing: 4) {
-                    Label(m.plan.name, systemImage: "checkmark.seal.fill").font(.headline).foregroundStyle(palette.textPrimary)
-                    Text("Active until \(app.formatters.longDate(m.currentPeriodEnd, timeZone: app.config.tenant.timeZone))")
-                        .font(.subheadline).foregroundStyle(palette.textSecondary)
-                    Text(m.plan.entitlements.benefits.joined(separator: " · ")).font(.footnote).foregroundStyle(palette.textMuted)
-                }
-                .accessibilityElement(children: .combine)
-            }
-            ForEach(app.membershipPlans) { plan in
-                let offer = MembershipOffer.offer(for: plan, current: app.membership)
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(plan.name).font(.headline).foregroundStyle(palette.textPrimary)
-                        Spacer()
-                        Text(plan.priceLabel(formatters: app.formatters)).font(.subheadline.monospacedDigit()).foregroundStyle(palette.textSecondary)
-                    }
-                    ForEach(plan.entitlements.benefits, id: \.self) { b in
-                        Label(b, systemImage: "checkmark").font(.subheadline).foregroundStyle(palette.textSecondary)
-                    }
-                    switch offer {
-                    case .join:
-                        Button("Join \(plan.name)") { buying = plan }.buttonStyle(.borderedProminent).tint(palette.actionPrimary)
-                    case .renew:
-                        Button("Renew for another \(plan.interval == "year" ? "year" : "month")") { buying = plan }.buttonStyle(.bordered)
-                    case .unavailable(let until):
-                        Text("Available after your current membership ends on \(app.formatters.shortDate(until, timeZone: app.config.tenant.timeZone)).")
-                            .font(.footnote).foregroundStyle(palette.textMuted)
-                    }
-                }
-                .padding(.vertical, 4)
-            }
-        } header: {
-            Text("Membership")
-        } footer: {
-            Text("Memberships renew manually: buy each \(app.membershipPlans.first?.interval == "year" ? "year" : "month") yourself. Automatic renewal arrives with card payments.")
-        }
-        .sheet(item: $buying) { MembershipPurchaseSheet(plan: $0) }
-    }
-}
-
-/// Confirms a membership purchase. Payments are simulated until a payment provider is configured.
-struct MembershipPurchaseSheet: View {
-    let plan: MembershipPlan
-    @Environment(AppModel.self) private var app
-    @Environment(\.palette) private var palette
-    @Environment(\.dismiss) private var dismiss
-    @State private var busy = false
-    @State private var error: String?
-    /// One key per sheet, so retrying the same tap after a network error is not charged twice.
-    @State private var key = UUID().uuidString
-    #if DEBUG
-    @State private var simulateDecline = false
-    #endif
-
-    var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    Text(plan.description).foregroundStyle(palette.textSecondary)
-                    ForEach(plan.entitlements.benefits, id: \.self) { Label($0, systemImage: "checkmark") }
-                }
-                Section {
-                    LabeledContent("Price", value: plan.priceLabel(formatters: app.formatters))
-                    LabeledContent("Renewal", value: "Manual")
-                }
-                Section {
-                    InfoBanner(.info, "Development build: payment is simulated and no money is taken.").listRowBackground(Color.clear)
-                    #if DEBUG
-                    Toggle("Simulate a declined payment", isOn: $simulateDecline)
-                    #endif
-                    if let error { Text(error).foregroundStyle(palette.error) }
-                }
-            }
-            .scrollContentBackground(.hidden)
-            .background(palette.background)
-            .navigationTitle(plan.name)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
-            .safeAreaInset(edge: .bottom) {
-                Button(busy ? "Paying…" : "Pay \(app.formatters.money(plan.priceMinor))") { Task { await buy() } }
-                    .buttonStyle(.cinemaPrimary)
-                    .disabled(busy)
-                    .bottomActionPadding()
-            }
-        }
-    }
-
-    private func buy() async {
-        busy = true
-        defer { busy = false }
-        error = nil
-        do {
-            #if DEBUG
-            try await app.buyMembership(plan, simulateDecline: simulateDecline, idempotencyKey: key)
-            #else
-            try await app.buyMembership(plan, idempotencyKey: key)
-            #endif
-            AccessibilityNotification.Announcement("You're a \(plan.name) member").post()
-            dismiss()
-        } catch let e as APIError {
-            error = e.message
-            // A decline is a final answer for this key; a new attempt gets a new one.
-            if e.code == .paymentDeclined { key = UUID().uuidString }
-        } catch {
-            self.error = "Something went wrong. Try again."
-        }
     }
 }
 
