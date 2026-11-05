@@ -30,9 +30,17 @@ public actor ImagePipeline {
         if let task = inFlight[url] { return await task.value }
         let session = self.session
         let task = Task<UIImage?, Never> {
-            guard let (data, response) = try? await session.data(from: url),
-                  (response as? HTTPURLResponse)?.statusCode == 200,
-                  let image = UIImage(data: data) else { return nil }
+            let data: Data?
+            if url.isFileURL {
+                // Bundled offline artwork (demo mode) has no HTTP response.
+                data = try? Data(contentsOf: url)
+            } else if let (body, response) = try? await session.data(from: url),
+                      (response as? HTTPURLResponse)?.statusCode == 200 {
+                data = body
+            } else {
+                data = nil
+            }
+            guard let data, let image = UIImage(data: data) else { return nil }
             return await image.byPreparingForDisplay() ?? image
         }
         inFlight[url] = task

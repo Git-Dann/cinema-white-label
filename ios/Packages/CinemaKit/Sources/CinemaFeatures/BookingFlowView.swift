@@ -280,7 +280,8 @@ final class LiveAvailability {
                 } catch {}
             }
             // Stream ended or unavailable: poll until it can be re-established.
-            isPolling = true
+            // Only tell the customer when a live stream was expected (not in demo mode).
+            isPolling = url != nil
             for _ in 0..<3 where !Task.isCancelled {
                 if let snapshot = try? await app.service.availability(screeningId: screeningId) {
                     flow.selection.apply(snapshot: snapshot, ownHoldSeatIds: flow.ownHoldSeatIds)

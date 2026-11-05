@@ -54,7 +54,10 @@ public struct SeatMapView: View {
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Seat map, \(model.layout.name). The screen is at the \(screenEdgeDescription).")
             .accessibilityChildren {
-                // Accessibility-only elements; not rendered.
+                // Accessibility-only elements; not rendered. The ZStack gives every
+                // element the map's own coordinate space (a bare ForEach is stacked
+                // vertically, which put the focus frames below the map).
+                ZStack(alignment: .topLeading) {
                 ForEach(model.layout.seats) { seat in
                     let p = viewport.toScreen(Vec2(seat.x, seat.y))
                     let w = max(seat.width * viewport.scale, 12), h = max(seat.height * viewport.scale, 12)
@@ -67,6 +70,8 @@ public struct SeatMapView: View {
                         .accessibilityAddTraits(model.isSelected(seat.id) ? .isSelected : [])
                         .accessibilityAction { toggle(seat) }
                 }
+                }
+                .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
             }
             .onChange(of: geo.size) { _, _ in
                 // Keep the same layout point centred when the display changes (iPhone Duo).
