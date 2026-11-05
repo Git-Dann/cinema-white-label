@@ -104,6 +104,7 @@ struct RewardsCard: View {
                 .font(.footnote.weight(.semibold)).foregroundStyle(palette.actionPrimary)
             }
         }
+        .offset(x: tilt.x * 3, y: tilt.y * 2)
         .padding(Spacing.xl)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
@@ -116,8 +117,17 @@ struct RewardsCard: View {
                         .clipShape(shape)
                 }
                 .overlay { holo.clipShape(shape) }
-                .overlay { sparkles.clipShape(shape) }
+                .overlay { sparkles.offset(x: tilt.x * -6, y: tilt.y * -4).clipShape(shape) }
                 .overlay(shape.strokeBorder(palette.actionPrimary.opacity(0.18)))
+                .overlay {
+                    // Edge that catches the light as the card tilts.
+                    shape.strokeBorder(
+                        LinearGradient(colors: [.clear, palette.textPrimary.opacity(0.45), .clear, palette.actionPrimary.opacity(0.5), .clear],
+                                       startPoint: .topLeading,
+                                       endPoint: UnitPoint(x: 0.6 + tilt.x * 0.4, y: 0.6 + tilt.y * 0.4)),
+                        lineWidth: 1)
+                    .opacity(reduceMotion ? 0.4 : 0.9)
+                }
         }
         .rotation3DEffect(.degrees(tilt.y * -4), axis: (x: 1, y: 0, z: 0), perspective: 0.5)
         .rotation3DEffect(.degrees(tilt.x * 5), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
