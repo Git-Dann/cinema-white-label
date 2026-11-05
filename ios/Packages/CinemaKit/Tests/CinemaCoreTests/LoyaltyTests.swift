@@ -118,4 +118,19 @@ struct LoyaltyTests {
         _ = try await service.cancelBooking(id: booking.id)
         #expect(try await service.loyalty().points == 640)
     }
+
+    @Test func membershipBenefitsReadStrongestFirstWithSymbols() {
+        let e = MembershipPlan.Entitlements(ticketDiscountPercent: 25, foodDiscountPercent: 15, bookingFeeWaived: true, pointsMultiplier: 2)
+        #expect(e.benefitItems.map(\.title) == ["25% off tickets", "No booking fees", "15% off food and drink", "2× points"])
+        #expect(e.benefitItems.map(\.symbol) == ["ticket.fill", "creditcard.fill", "popcorn.fill", "sparkles"])
+        #expect(MembershipPlan.Entitlements().benefitItems.isEmpty)
+    }
+
+    @Test func featuresTheStrongestPlanOnlyWhenThereIsAChoice() {
+        let plus = MembershipPlan(id: "plus", name: "Plus", description: "", priceMinor: 699, interval: "month", entitlements: .init(ticketDiscountPercent: 10, bookingFeeWaived: true))
+        let premiere = MembershipPlan(id: "premiere", name: "Premiere", description: "", priceMinor: 1499, interval: "month", entitlements: .init(ticketDiscountPercent: 25, foodDiscountPercent: 15, bookingFeeWaived: true, pointsMultiplier: 2))
+        #expect([plus, premiere].featuredPlanID == "premiere")
+        #expect([plus].featuredPlanID == nil)
+        #expect([premiere, plus].cheapest?.id == "plus")
+    }
 }
