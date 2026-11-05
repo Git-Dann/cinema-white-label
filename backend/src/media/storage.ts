@@ -1,3 +1,4 @@
+import type { PrismaClient } from '@prisma/client';
 import { mkdirSync } from 'fs';
 import { readFile, writeFile } from 'fs/promises';
 import { dirname, resolve } from 'path';
@@ -34,6 +35,32 @@ export class LocalMediaStorage implements MediaStorage {
     const p = this.path(storageKey);
     mkdirSync(dirname(p), { recursive: true });
     await writeFile(p, data);
+  }
+}
+
+/** The slice of Prisma used for upload bytes. */
+export type BlobStore = Pick<PrismaClient, 'mediaBlob'>;
+
+/**
+ * Fixture artwork ships with the app and is read from disk. Operator uploads
+ * (keys starting "upload/") live in the database so they survive serverless
+ * hosts; uploads saved to disk before this change are still read from there.
+ */
+export class RoutedMediaStorage implements MediaStorage {
+  constructor(private readonly db: BlobStore, private readonly local: MediaStorage) {}
+
+  async read(storageKey: string) {
+    if (storageKey.startsWith('upload/')) {
+      const row = await this.db.mediaBlob.findUnique({ where: { storageKey } });
+      if (row) return Buffer.from(row.data);
+    }
+    return this.local.read(storageKey);
+  }
+
+  async write(storageKey: string, data: Buffer) {
+    if (!storageKey.startsWith('upload/')) return this.local.write(storageKey, data);
+    const bytes = new Uint8Array(data);
+    await this.db.mediaBlob.upsert({ where: { storageKey }, create: { storageKey, data: bytes }, update: { data: bytes } });
   }
 }
 

@@ -9,7 +9,7 @@ import { Clock } from '../common/clock';
 import { Errors } from '../common/errors';
 import { PrismaService } from '../common/prisma.service';
 import { RENDITION_WIDTHS } from '../catalogue/film-dto';
-import { LocalMediaStorage, MediaStorage } from './storage';
+import { BlobStore, LocalMediaStorage, MediaStorage, RoutedMediaStorage } from './storage';
 
 /** Where fixture artwork and uploads live. In production this is object storage + CDN. */
 export const MEDIA_ROOTS = {
@@ -20,7 +20,12 @@ export const MEDIA_ROOTS = {
   cache: process.env.MEDIA_CACHE_DIR ?? (process.env.VERCEL ? '/tmp/media-cache' : resolve(__dirname, '../../.media-cache')),
 };
 
-export const mediaStorage: MediaStorage = new LocalMediaStorage({ fixture: MEDIA_ROOTS.fixture, upload: MEDIA_ROOTS.upload });
+const localStorage = new LocalMediaStorage({ fixture: MEDIA_ROOTS.fixture, upload: MEDIA_ROOTS.upload });
+
+/** Storage for a given database client: fixtures from disk, uploads in the database. */
+export function mediaStorage(db: BlobStore): MediaStorage {
+  return new RoutedMediaStorage(db, localStorage);
+}
 
 /**
  * Image delivery: serves sized renditions (never upscaled, never stretched),
@@ -49,7 +54,7 @@ export class MediaController {
     if (existsSync(cacheFile)) {
       body = await readFile(cacheFile);
     } else {
-      const src = await mediaStorage.read(asset.storageKey);
+      const src = await mediaStorage(this.prisma).read(asset.storageKey);
       const pipeline = sharp(src).resize({ width, withoutEnlargement: true });
       body = isPng ? await pipeline.png().toBuffer() : await pipeline.jpeg({ quality: 82, progressive: true, mozjpeg: true }).toBuffer();
       await writeFile(cacheFile, body);

@@ -324,6 +324,8 @@ export interface Concession {
   modifierGroups: ModifierGroup[];
   bundleItems: string[];
   sortOrder: number;
+  imageAssetId: string | null;
+  image: ImageRef | null;
 }
 
 export interface Voucher {

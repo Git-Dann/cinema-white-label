@@ -277,6 +277,16 @@ enum AssetKind {
   BANNER
   TRAILER_THUMBNAIL
   LOGO
+  PRODUCT
+}
+
+/// Bytes of operator uploads. Kept in the database so uploads survive on
+/// serverless hosts, where the filesystem is temporary. Images are resized
+/// before storage, so rows stay small. Fixture artwork is read from disk.
+model MediaBlob {
+  storageKey String   @id
+  data       Bytes
+  createdAt  DateTime @default(now())
 }
 
 model MediaAsset {
