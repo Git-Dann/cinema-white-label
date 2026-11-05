@@ -18,7 +18,7 @@ final class ScreenshotTests: XCTestCase {
         let a = XCTAttachment(screenshot: app.screenshot())
         a.name = String(format: "%02d-%@", step, name)
         a.lifetime = .keepAlways
-        add(a)
+        self.add(a)
     }
 
     private func element(_ query: XCUIElementQuery, _ format: String, timeout: TimeInterval = 15) -> XCUIElement {
@@ -64,9 +64,9 @@ final class ScreenshotTests: XCTestCase {
         let popcorn = element(app.buttons, "label BEGINSWITH 'Sweet popcorn'")
         shot("food")
         popcorn.tap()
-        let add = element(app.buttons, "label BEGINSWITH 'Add'")
+        let addButton = element(app.buttons, "label BEGINSWITH 'Add'")
         shot("food-options")
-        add.tap()
+        addButton.tap()
         sleep(1)
         element(app.buttons, "label BEGINSWITH 'Continue'").tap()
 
@@ -85,7 +85,7 @@ final class ScreenshotTests: XCTestCase {
         step += 1
         island.name = String(format: "%02d-%@", step, "dynamic-island")
         island.lifetime = .keepAlways
-        add(island)
+        self.add(island)
         app.activate()
         sleep(1)
 
