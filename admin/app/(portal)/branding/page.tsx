@@ -9,6 +9,7 @@ import { ErrorNote, Loading, PageHeader, SuccessNote } from '@/components/ui';
 import { PhonePreview, PreviewFilm } from '@/components/PhonePreview';
 import { ContrastReport } from '@/components/ContrastReport';
 import { SafeImage } from '@/components/SafeImage';
+import { readFileBase64 } from '@/lib/files';
 
 type BrandingFields = Pick<Draft, 'themeId' | 'paletteId' | 'appearancePolicy' | 'availableThemes' | 'wordmark' | 'logoLightAssetId' | 'logoDarkAssetId' | 'features'>;
 
@@ -48,15 +49,6 @@ function pick(d: Draft): BrandingFields {
     logoDarkAssetId: d.logoDarkAssetId,
     features: d.features,
   };
-}
-
-function readFileBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result).replace(/^data:[^;]+;base64,/, ''));
-    reader.onerror = () => reject(new Error('Could not read the file'));
-    reader.readAsDataURL(file);
-  });
 }
 
 export default function BrandingPage() {

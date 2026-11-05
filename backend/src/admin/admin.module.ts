@@ -55,7 +55,7 @@ const paletteBody = z.object({
 const previewBody = z.object({ draft: draftSchema.partial().default({}), palette: paletteBody.optional() });
 const publishBody = z.object({ note: z.string().max(200).optional(), scheduledFor: z.string().datetime().optional() });
 const uploadBody = z.object({
-  kind: z.enum(['LOGO', 'POSTER', 'BACKDROP', 'BANNER']),
+  kind: z.enum(['LOGO', 'POSTER', 'BACKDROP', 'BANNER', 'PRODUCT']),
   filmId: z.string().optional(),
   dataBase64: z.string().max(14_000_000),
   attribution: z.string().max(200).optional(),
@@ -179,17 +179,20 @@ export class AdminBrandingController {
     if (!meta.width || !meta.height || meta.width > 6000 || meta.height > 6000) throw Errors.validation('Image dimensions are not supported');
     if (b.filmId && !(await this.prisma.film.findFirst({ where: { id: b.filmId, tenantId: t.id } }))) throw Errors.notFound('Film');
     const isLogo = b.kind === 'LOGO';
-    const out = isLogo ? await sharp(input).png().toBuffer() : await sharp(input).rotate().jpeg({ quality: 90 }).toBuffer();
+    // Cap stored size (uploads live in the database); renditions top out at 1600px anyway.
+    const resized = sharp(input).rotate().resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true });
+    const out = isLogo ? await resized.png().toBuffer() : await resized.jpeg({ quality: 88, mozjpeg: true }).toBuffer();
+    const finalMeta = await sharp(out).metadata();
     const name = `${randomUUID()}.${isLogo ? 'png' : 'jpg'}`;
-    await mediaStorage.write(`upload/${t.id}/${name}`, out);
+    await mediaStorage(this.prisma).write(`upload/${t.id}/${name}`, out);
     const stats = await sharp(out).stats();
     const d = stats.dominant;
     const asset = await this.prisma.mediaAsset.create({
       data: {
         tenantId: t.id, filmId: b.filmId ?? null, kind: b.kind, provider: 'operator', sourceRef: `upload:${name}`, storageKey: `upload/${t.id}/${name}`,
-        width: meta.width, height: meta.height, mimeType: isLogo ? 'image/png' : 'image/jpeg', attribution: b.attribution ?? null, licenceRef: b.licenceRef ?? null,
+        width: finalMeta.width ?? meta.width, height: finalMeta.height ?? meta.height, mimeType: isLogo ? 'image/png' : 'image/jpeg', attribution: b.attribution ?? null, licenceRef: b.licenceRef ?? null,
         dominantColor: `#${[d.r, d.g, d.b].map((x) => x.toString(16).padStart(2, '0')).join('')}`.toUpperCase(),
-        approvedContexts: isLogo ? ['branding'] : ['list', 'detail'],
+        approvedContexts: isLogo ? ['branding'] : b.kind === 'PRODUCT' ? ['menu'] : ['list', 'detail'],
       },
     });
     await this.audit.record({ tenantId: t.id, actorId: a.sub, action: 'media.upload', entityType: 'MediaAsset', entityId: asset.id, data: { kind: b.kind, filmId: b.filmId } });

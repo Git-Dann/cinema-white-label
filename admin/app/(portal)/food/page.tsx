@@ -1,7 +1,9 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
-import { api, Concession, errorDetails, errorMessage, ModifierGroup, StockStatus, tenantPath, Venue } from '@/lib/api';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { api, Concession, errorDetails, errorMessage, mediaUrl, ModifierGroup, StockStatus, tenantPath, Venue } from '@/lib/api';
+import { MAX_UPLOAD_BYTES, readFileBase64 } from '@/lib/files';
+import { SafeImage } from '@/components/SafeImage';
 import { useSession, useTenantData } from '@/lib/session';
 import { formatMoney, inputToMinor, minorToInput } from '@/lib/format';
 import { ApiErrorNote, ErrorNote, Loading, PageHeader, ReadOnlyNote, SuccessNote } from '@/components/ui';
@@ -37,6 +39,8 @@ interface ProductForm {
   bundleItems: string;
   sortOrder: string;
   groups: GroupForm[];
+  imageAssetId: string | null;
+  imageUrl: string | null;
 }
 
 const EMPTY: ProductForm = {
@@ -54,6 +58,8 @@ const EMPTY: ProductForm = {
   bundleItems: '',
   sortOrder: '0',
   groups: [],
+  imageAssetId: null,
+  imageUrl: null,
 };
 
 const STOCK_LABEL: Record<StockStatus, string> = { inStock: 'In stock', low: 'Low stock', out: 'Out of stock' };
@@ -89,6 +95,8 @@ function toForm(p: Concession): ProductForm {
     dietary: p.dietary.join(', '),
     bundleItems: p.bundleItems.join(', '),
     sortOrder: String(p.sortOrder),
+    imageAssetId: p.imageAssetId,
+    imageUrl: p.image?.url ?? null,
     groups: p.modifierGroups.map((g) => ({
       key: nextKey(),
       id: g.id,
@@ -147,6 +155,7 @@ function toBody(f: ProductForm): { body?: Record<string, unknown>; error?: strin
       modifierGroups: groups,
       bundleItems: list(f.bundleItems),
       sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+      imageAssetId: f.imageAssetId,
     },
   };
 }
@@ -160,12 +169,30 @@ export default function FoodPage() {
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<ApiErr>(null);
   const [msg, setMsg] = useState<{ ok?: string; error?: string }>({});
+  const [uploading, setUploading] = useState(false);
+  const [category, setCategory] = useState<string>('all');
+  const [query, setQuery] = useState('');
+  const dialog = useRef<HTMLDialogElement>(null);
 
   const grouped = useMemo(() => {
     const m = new Map<string, Concession[]>();
     for (const p of products.data ?? []) m.set(p.category, [...(m.get(p.category) ?? []), p]);
     return [...m.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [products.data]);
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return grouped
+      .filter(([c]) => category === 'all' || c === category)
+      .map(([c, items]) => [c, q ? items.filter((p) => `${p.name} ${p.sku}`.toLowerCase().includes(q)) : items] as const)
+      .filter(([, items]) => items.length > 0);
+  }, [grouped, category, query]);
+
+  useEffect(() => {
+    const d = dialog.current;
+    if (!d) return;
+    if (editing && !d.open) d.showModal();
+    if (!editing && d.open) d.close();
+  }, [editing]);
   const venueName = (id: string | null) => (id ? venues.data?.find((v) => v.id === id)?.name ?? 'One cinema' : 'All cinemas');
   const cur = 'GBP';
 
@@ -180,7 +207,22 @@ export default function FoodPage() {
     setForm(toForm(p));
     setFormError(null);
     setMsg({});
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function uploadImage(file: File | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return setFormError({ message: 'Choose a JPEG, PNG or WebP image.', details: [] });
+    if (file.size > MAX_UPLOAD_BYTES) return setFormError({ message: 'That image is over 10 MB. Choose a smaller one.', details: [] });
+    setUploading(true);
+    setFormError(null);
+    try {
+      const res = await api<{ id: string; url: string }>(tenantPath(tenant, '/media'), { method: 'POST', body: { kind: 'PRODUCT', dataBase64: await readFileBase64(file) } });
+      setForm((f) => ({ ...f, imageAssetId: res.id, imageUrl: res.url }));
+    } catch (err) {
+      setFormError({ message: errorMessage(err), details: errorDetails(err) });
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function submit(e: FormEvent) {
@@ -223,7 +265,7 @@ export default function FoodPage() {
     try {
       await api(tenantPath(tenant, `/concessions/${p.id}`), { method: 'DELETE' });
       setMsg({ ok: `${p.name} deleted.` });
-      if (editing !== 'new' && editing?.id === p.id) setEditing(null);
+      setEditing(null);
       products.reload();
     } catch (err) {
       setMsg({ error: errorMessage(err) });
@@ -252,12 +294,39 @@ export default function FoodPage() {
       <ErrorNote message={msg.error ?? products.error} />
       <SuccessNote message={msg.ok} />
 
-      {editing && (
-        <section className="card" aria-labelledby="p-form-title">
-          <h2 id="p-form-title" className="h3">
-            {editing === 'new' ? 'New product' : `Edit ${editing.name}`}
-          </h2>
+      <dialog ref={dialog} className="sheet" aria-labelledby="p-form-title" onClose={() => setEditing(null)} onCancel={() => setEditing(null)}>
+        {editing && (
           <form onSubmit={submit} noValidate>
+            <div className="sheet-head">
+              <h2 id="p-form-title" className="h3">
+                {editing === 'new' ? 'New product' : `Edit ${editing.name}`}
+              </h2>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(null)} aria-label="Close">
+                Close
+              </button>
+            </div>
+
+            <div className="image-field">
+              <div className="image-field-preview">
+                <SafeImage src={mediaUrl(form.imageUrl, 780)} alt="" fallback={<ProductPlaceholder name={form.name || 'New product'} />} />
+              </div>
+              <div className="image-field-side">
+                <div className="label">Photo</div>
+                <p className="help">Shown on the menu in the app. Landscape works best, around 1200 × 900. JPEG, PNG or WebP up to 10 MB.</p>
+                <div className="row gap-1 mt-2">
+                  <label className={`btn btn-sm file-btn${uploading ? ' disabled' : ''}`}>
+                    {uploading ? 'Uploading…' : form.imageAssetId ? 'Replace photo' : 'Upload photo'}
+                    <input type="file" accept="image/jpeg,image/png,image/webp" className="visually-hidden" disabled={uploading} onChange={(e) => uploadImage(e.target.files?.[0])} />
+                  </label>
+                  {form.imageAssetId && (
+                    <button type="button" className="btn btn-sm btn-ghost" onClick={() => setForm({ ...form, imageAssetId: null, imageUrl: null })}>
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="form-grid cols-3">
               <div className="field">
                 <label htmlFor="p-name">Name</label>
@@ -342,160 +411,180 @@ export default function FoodPage() {
               </div>
             </div>
 
-            <fieldset className="plain mb-3">
-              <legend className="h4">Modifier groups</legend>
-              <p className="help mb-2">Choices such as size or flavour. Minimum 0 makes the choice optional.</p>
+            <fieldset className="plain choices">
+              <legend className="choices-title">Choices</legend>
+              <p className="help">Options customers pick when they add this item, such as size or flavour.</p>
               {form.groups.map((g, gi) => (
-                <div className="group-editor" key={g.key} role="group" aria-label={`Modifier group ${gi + 1}`}>
-                  <div className="form-grid cols-4">
-                    <div className="field span-2">
-                      <label htmlFor={`g-${g.key}-name`}>Group name</label>
-                      <input id={`g-${g.key}-name`} maxLength={40} value={g.name} onChange={(e) => updateGroup(g.key, { name: e.target.value, id: g.id && g.id !== slugify(g.name) ? g.id : slugify(e.target.value) })} />
+                <div className="choice-group" key={g.key} role="group" aria-label={`Choice ${gi + 1}`}>
+                  <div className="choice-head">
+                    <div className="field compact choice-name">
+                      <label htmlFor={`g-${g.key}-name`}>Choice name</label>
+                      <input id={`g-${g.key}-name`} maxLength={40} placeholder="Size" value={g.name} onChange={(e) => updateGroup(g.key, { name: e.target.value, id: g.id && g.id !== slugify(g.name) ? g.id : slugify(e.target.value) })} />
                     </div>
-                    <div className="field">
-                      <label htmlFor={`g-${g.key}-min`}>Minimum</label>
-                      <input id={`g-${g.key}-min`} type="number" min={0} max={10} value={g.min} onChange={(e) => updateGroup(g.key, { min: e.target.value })} />
-                    </div>
-                    <div className="field">
-                      <label htmlFor={`g-${g.key}-max`}>Maximum</label>
-                      <input id={`g-${g.key}-max`} type="number" min={1} max={10} value={g.max} onChange={(e) => updateGroup(g.key, { max: e.target.value })} />
+                    <div className="field compact choice-rule">
+                      <span className="label" id={`g-${g.key}-rule`}>Customers pick</span>
+                      <div className="choice-rule-inputs" role="group" aria-labelledby={`g-${g.key}-rule`}>
+                        <input aria-label="At least" type="number" min={0} max={10} value={g.min} onChange={(e) => updateGroup(g.key, { min: e.target.value })} />
+                        <span className="muted">to</span>
+                        <input aria-label="At most" type="number" min={1} max={10} value={g.max} onChange={(e) => updateGroup(g.key, { max: e.target.value })} />
+                      </div>
                     </div>
                   </div>
-                  {g.options.map((o, oi) => (
-                    <div className="option-row" key={o.key}>
-                      <div className="field">
-                        <label htmlFor={`o-${o.key}-name`}>Option {oi + 1}</label>
-                        <input id={`o-${o.key}-name`} maxLength={40} value={o.name} onChange={(e) => updateOption(g.key, o.key, { name: e.target.value, id: o.id && o.id !== slugify(o.name) ? o.id : slugify(e.target.value) })} />
-                      </div>
-                      <div className="field">
-                        <label htmlFor={`o-${o.key}-price`}>Extra cost</label>
+                  <p className="help choice-summary">{ruleSummary(g)}</p>
+
+                  <div className="choice-options" role="table" aria-label={`${g.name || 'Choice'} options`}>
+                    <div className="choice-option choice-option-head" role="row">
+                      <span role="columnheader">Option</span>
+                      <span role="columnheader">Extra cost</span>
+                      <span role="columnheader" className="visually-hidden">Remove</span>
+                    </div>
+                    {g.options.map((o, oi) => (
+                      <div className="choice-option" role="row" key={o.key}>
+                        <input aria-label={`Option ${oi + 1} name`} maxLength={40} placeholder={oi === 0 ? 'Regular' : 'Large'} value={o.name} onChange={(e) => updateOption(g.key, o.key, { name: e.target.value, id: o.id && o.id !== slugify(o.name) ? o.id : slugify(e.target.value) })} />
                         <div className="money-input">
                           <span aria-hidden="true">£</span>
-                          <input id={`o-${o.key}-price`} inputMode="decimal" placeholder="0.00" value={o.price} onChange={(e) => updateOption(g.key, o.key, { price: e.target.value })} />
+                          <input aria-label={`Option ${oi + 1} extra cost`} inputMode="decimal" placeholder="0.00" value={o.price} onChange={(e) => updateOption(g.key, o.key, { price: e.target.value })} />
                         </div>
+                        <button type="button" className="icon-btn" aria-label={`Remove option ${o.name || oi + 1}`} onClick={() => updateGroup(g.key, { options: g.options.filter((x) => x.key !== o.key) })}>
+                          ×
+                        </button>
                       </div>
-                      <button type="button" className="btn btn-sm btn-ghost" aria-label={`Remove option ${o.name || oi + 1}`} onClick={() => updateGroup(g.key, { options: g.options.filter((x) => x.key !== o.key) })}>
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                  <div className="row gap-1 mt-2">
-                    <button type="button" className="btn btn-sm" onClick={() => updateGroup(g.key, { options: [...g.options, { key: nextKey(), id: '', name: '', price: '' }] })}>
-                      Add option
+                    ))}
+                  </div>
+
+                  <div className="choice-foot">
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => updateGroup(g.key, { options: [...g.options, { key: nextKey(), id: '', name: '', price: '' }] })}>
+                      + Add option
                     </button>
-                    <button type="button" className="btn btn-sm btn-danger" onClick={() => setForm((f) => ({ ...f, groups: f.groups.filter((x) => x.key !== g.key) }))}>
-                      Remove group
+                    <button type="button" className="btn btn-ghost btn-sm btn-danger" onClick={() => setForm((f) => ({ ...f, groups: f.groups.filter((x) => x.key !== g.key) }))}>
+                      Remove choice
                     </button>
                   </div>
                 </div>
               ))}
               <button
                 type="button"
-                className="btn btn-sm"
+                className="add-choice"
                 disabled={form.groups.length >= 6}
                 onClick={() => setForm((f) => ({ ...f, groups: [...f.groups, { key: nextKey(), id: '', name: '', min: '1', max: '1', options: [{ key: nextKey(), id: '', name: '', price: '' }] }] }))}
               >
-                Add modifier group
+                + Add a choice
+                <span className="muted">e.g. size, flavour or toppings</span>
               </button>
             </fieldset>
 
             <ApiErrorNote error={formError} />
-            <div className="row gap-1">
-              <button type="submit" className="btn btn-primary" disabled={busy}>
-                {busy ? 'Saving…' : editing === 'new' ? 'Create product' : 'Save changes'}
-              </button>
+            <div className="sheet-foot">
+              {editing !== 'new' && (
+                <button type="button" className="btn btn-ghost btn-danger" onClick={() => remove(editing)}>
+                  Delete product
+                </button>
+              )}
+              <span className="grow" />
               <button type="button" className="btn btn-ghost" onClick={() => setEditing(null)}>
                 Cancel
               </button>
+              <button type="submit" className="btn btn-primary" disabled={busy || uploading}>
+                {busy ? 'Saving…' : editing === 'new' ? 'Create product' : 'Save changes'}
+              </button>
             </div>
           </form>
-        </section>
+        )}
+      </dialog>
+
+      {products.loading && !products.data && <Loading />}
+      {products.data && products.data.length === 0 && <p className="muted">No products yet. Add your first one to start selling food and drink in the app.</p>}
+
+      {grouped.length > 0 && (
+        <div className="menu-toolbar">
+          <div className="chips" role="group" aria-label="Category">
+            {[['all', 'All'] as const, ...grouped.map(([c]) => [c, c] as const)].map(([value, label]) => (
+              <button key={value} className={`chip${category === value ? ' selected' : ''}`} aria-pressed={category === value} onClick={() => setCategory(value)}>
+                {label}
+                <span className="chip-count">{value === 'all' ? products.data?.length : grouped.find(([c]) => c === value)?.[1].length}</span>
+              </button>
+            ))}
+          </div>
+          <input type="search" className="menu-search" placeholder="Search products" aria-label="Search products" value={query} onChange={(e) => setQuery(e.target.value)} />
+        </div>
       )}
 
-      <section className="card" aria-label="Products">
-        {products.loading && !products.data && <Loading />}
-        {products.data && products.data.length === 0 && <p className="muted">No products yet.</p>}
-        {grouped.map(([category, items]) => (
-          <div className="product-category" key={category}>
-            <h2 className="h4">{category}</h2>
-            <div className="table-wrap">
-              <table className="table product-table">
-                <colgroup>
-                  <col />
-                  <col className="c-venue" />
-                  <col className="c-price" />
-                  <col className="c-stock" />
-                  <col className="c-avail" />
-                  <col className="c-actions" />
-                </colgroup>
-                <thead>
-                  <tr>
-                    <th scope="col">Product</th>
-                    <th scope="col">Sold at</th>
-                    <th scope="col">Price</th>
-                    <th scope="col">Stock</th>
-                    <th scope="col">Available</th>
-                    <th scope="col">
-                      <span className="visually-hidden">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((p) => (
-                    <tr key={p.id}>
-                      <td>
-                        <div className="strong">{p.name}</div>
-                        <div className="muted small">
-                          {p.sku}
-                          {p.modifierGroups.length > 0 && ` · ${p.modifierGroups.map((g) => g.name).join(', ')}`}
-                          {p.bundleItems.length > 0 && ` · ${p.bundleItems.join(', ')}`}
-                        </div>
-                        {(p.dietary.length > 0 || p.allergens.length > 0) && (
-                          <div className="tags">
-                            {p.dietary.map((d) => (
-                              <span key={d} className="badge badge-success">
-                                {d}
-                              </span>
-                            ))}
-                            {p.allergens.map((a) => (
-                              <span key={a} className="badge">
-                                Contains {a.toLowerCase()}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                      <td className="small">{venueName(p.venueId)}</td>
-                      <td className="num nowrap">{formatMoney(p.priceMinor, cur)}</td>
-                      <td>
-                        <span className={`badge ${STOCK_CLASS[p.stockStatus]}`}>{STOCK_LABEL[p.stockStatus]}</span>
-                      </td>
-                      <td>
-                        <label className="switch">
-                          <input type="checkbox" checked={p.available} disabled={!can.canEditConcessions} onChange={() => toggleAvailable(p)} aria-label={`${p.name} available to order`} />
-                          {p.available ? 'On' : 'Off'}
-                        </label>
-                      </td>
-                      <td className="actions">
-                        {can.canEditConcessions && (
-                          <>
-                            <button className="btn btn-sm" onClick={() => startEdit(p)} aria-label={`Edit ${p.name}`}>
-                              Edit
-                            </button>
-                            <button className="btn btn-sm btn-danger" onClick={() => remove(p)} aria-label={`Delete ${p.name}`}>
-                              Delete
-                            </button>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ))}
-      </section>
+      {shown.map(([cat, items]) => (
+        <section className="menu-section" key={cat} aria-labelledby={`cat-${slugify(cat)}`}>
+          <h2 id={`cat-${slugify(cat)}`} className="menu-section-title">
+            {cat} <span className="muted">{items.length}</span>
+          </h2>
+          <ul className="product-grid">
+            {items.map((p) => (
+              <li key={p.id} className={`product-card${p.available ? '' : ' is-off'}`}>
+                <button className="product-media" onClick={() => can.canEditConcessions && startEdit(p)} disabled={!can.canEditConcessions} aria-label={`Edit ${p.name}`}>
+                  <SafeImage src={mediaUrl(p.image?.url, 500)} alt="" loading="lazy" style={{ background: p.image?.dominantColor ?? undefined }} fallback={<ProductPlaceholder name={p.name} />} />
+                  {p.stockStatus !== 'inStock' && <span className={`badge product-flag ${STOCK_CLASS[p.stockStatus]}`}>{STOCK_LABEL[p.stockStatus]}</span>}
+                  {!p.available && <span className="badge product-flag product-flag-right">Hidden</span>}
+                </button>
+                <div className="product-body">
+                  <div className="product-title-row">
+                    <h3 className="product-name">{p.name}</h3>
+                    <span className="product-price num">{formatMoney(p.priceMinor, cur)}</span>
+                  </div>
+                  <p className="product-meta">
+                    {[p.bundleItems.join(', '), p.modifierGroups.length ? `Choose ${p.modifierGroups.map((g) => g.name.toLowerCase()).join(', ')}` : '', p.venueId ? venueName(p.venueId) : '']
+                      .filter(Boolean)
+                      .join(' · ') || p.sku}
+                  </p>
+                  {(p.dietary.length > 0 || p.allergens.length > 0) && (
+                    <div className="tags">
+                      {p.dietary.map((d) => (
+                        <span key={d} className="badge badge-success">
+                          {d}
+                        </span>
+                      ))}
+                      {p.allergens.map((a) => (
+                        <span key={a} className="badge">
+                          {a}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="product-foot">
+                    <label className="switch">
+                      <input type="checkbox" checked={p.available} disabled={!can.canEditConcessions} onChange={() => toggleAvailable(p)} aria-label={`${p.name} on the menu`} />
+                      {p.available ? 'On menu' : 'Hidden'}
+                    </label>
+                    {can.canEditConcessions && (
+                      <button className="btn btn-sm" onClick={() => startEdit(p)} aria-label={`Edit ${p.name}`}>
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+      {grouped.length > 0 && shown.length === 0 && <p className="muted">No products match “{query}”.</p>}
     </>
+  );
+}
+
+/** Plain-English reading of a choice's minimum and maximum. */
+function ruleSummary(g: GroupForm): string {
+  const min = Number.parseInt(g.min, 10);
+  const max = Number.parseInt(g.max, 10);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return 'Enter how many options customers pick.';
+  if (min > max) return 'The first number must not be more than the second.';
+  if (max > g.options.length) return `Add more options: customers can pick up to ${max} but there are only ${g.options.length}.`;
+  if (min === 0) return max === 1 ? 'Optional. Customers can pick one.' : `Optional. Customers can pick up to ${max}.`;
+  if (min === max) return min === 1 ? 'Required. Customers pick exactly one.' : `Required. Customers pick exactly ${min}.`;
+  return `Required. Customers pick between ${min} and ${max}.`;
+}
+
+/** Shown when a product has no photo (or it fails to load): the name on a soft tile, never a broken image. */
+function ProductPlaceholder({ name }: { name: string }) {
+  return (
+    <span className="product-placeholder" aria-hidden="true">
+      <span>{name.charAt(0).toUpperCase()}</span>
+    </span>
   );
 }

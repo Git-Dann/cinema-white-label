@@ -1,3 +1,4 @@
+import { imageRef } from '../catalogue/film-dto';
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma, Tenant } from '@prisma/client';
@@ -52,6 +53,8 @@ const concessionBody = z.object({
   modifierGroups: z.array(modifierGroupSchema).max(6).default([]),
   bundleItems: z.array(z.string().max(60)).max(8).default([]),
   sortOrder: z.number().int().default(0),
+  /** A PRODUCT image uploaded through POST media, or null for none. */
+  imageAssetId: z.string().nullable().default(null),
 });
 
 const voucherBody = z
@@ -234,7 +237,20 @@ export class AdminCommerceController {
 
   @Get('concessions')
   async concessions(@CurrentTenant() t: Tenant) {
-    return this.prisma.concessionProduct.findMany({ where: { tenantId: t.id }, orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }] });
+    const rows = await this.prisma.concessionProduct.findMany({ where: { tenantId: t.id }, orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }] });
+    return this.withImages(t, rows);
+  }
+
+  private async withImages<T extends { imageAssetId: string | null }>(t: Tenant, rows: T[]) {
+    const ids = rows.map((r) => r.imageAssetId).filter((x): x is string => !!x);
+    const assets = ids.length ? await this.prisma.mediaAsset.findMany({ where: { tenantId: t.id, id: { in: ids } } }) : [];
+    return rows.map((r) => ({ ...r, image: imageRef(assets.find((a) => a.id === r.imageAssetId)) }));
+  }
+
+  private async assertProductImage(t: Tenant, imageAssetId: string | null | undefined) {
+    if (!imageAssetId) return;
+    const asset = await this.prisma.mediaAsset.findFirst({ where: { id: imageAssetId, tenantId: t.id } });
+    if (!asset || asset.kind !== 'PRODUCT') throw Errors.validation('Choose an image uploaded for food and drink');
   }
 
   private async assertVenue(t: Tenant, venueId: string | null | undefined) {
@@ -245,6 +261,7 @@ export class AdminCommerceController {
   @Roles('OPERATOR_ADMIN', 'VENUE_MANAGER')
   async createConcession(@CurrentTenant() t: Tenant, @CurrentAdmin() a: AdminClaims, @Body(new ZodPipe(concessionBody)) b: z.infer<typeof concessionBody>) {
     await this.assertVenue(t, b.venueId);
+    await this.assertProductImage(t, b.imageAssetId);
     const row = await this.prisma.concessionProduct
       .create({ data: { ...b, tenantId: t.id, modifierGroups: b.modifierGroups as Prisma.InputJsonValue } })
       .catch((e) => {
@@ -252,7 +269,7 @@ export class AdminCommerceController {
         throw e;
       });
     await this.audit.record({ tenantId: t.id, actorId: a.sub, action: 'concession.create', entityType: 'ConcessionProduct', entityId: row.id, data: b });
-    return row;
+    return (await this.withImages(t, [row]))[0];
   }
 
   @Put('concessions/:id')
@@ -261,9 +278,10 @@ export class AdminCommerceController {
     const existing = await this.prisma.concessionProduct.findFirst({ where: { id, tenantId: t.id } });
     if (!existing) throw Errors.notFound('Product');
     await this.assertVenue(t, b.venueId);
+    await this.assertProductImage(t, b.imageAssetId);
     const row = await this.prisma.concessionProduct.update({ where: { id }, data: { ...b, modifierGroups: b.modifierGroups as Prisma.InputJsonValue | undefined } });
     await this.audit.record({ tenantId: t.id, actorId: a.sub, action: 'concession.update', entityType: 'ConcessionProduct', entityId: id, data: b });
-    return row;
+    return (await this.withImages(t, [row]))[0];
   }
 
   /** Products on past orders are kept (orders store names and prices), so deletion is safe. */

@@ -68,11 +68,15 @@ function main(env = process.env) {
     const { PrismaClient } = require('@prisma/client');
     const prisma = new PrismaClient({ datasources: { db: { url: migrationUrl(env) } } });
     const tenants = await prisma.tenant.count();
-    await prisma.$disconnect();
     if (tenants > 0) {
       console.log(`deploy-db: ${tenants} operators already exist; not seeding.`);
+      // Demo products from before menu artwork existed get it now; products with an image are never touched.
+      const { ensureFixtureProductImages } = require('../dist/fixtures/product-images');
+      console.log(`deploy-db: gave ${await ensureFixtureProductImages(prisma)} demo products their artwork.`);
+      await prisma.$disconnect();
       return;
     }
+    await prisma.$disconnect();
     console.log('deploy-db: empty database; seeding demo data.');
     withRetries(() => run('pnpm db:seed', { ...migrateEnv, WRITE_FIXTURES: 'false' }));
   })().catch((e) => {

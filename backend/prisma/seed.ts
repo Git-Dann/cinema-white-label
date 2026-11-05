@@ -20,6 +20,7 @@ import { ConfigService, TenantDraft } from '../src/tenants/config.service';
 import { FILMS } from '../src/fixtures/films';
 import { curvedLayout, luxeLayout, premiereLayout, standardLayout } from '../src/fixtures/layouts';
 import { CONCESSIONS, VOUCHERS } from '../src/fixtures/commerce';
+import { ensureFixtureProductImages } from '../src/fixtures/product-images';
 import { DEFAULT_SEAT_CATEGORIES } from '@cinema/contracts';
 import { TENANTS } from '../src/fixtures/tenants';
 
@@ -267,6 +268,7 @@ async function main() {
     console.log(`  Published config v${release.version}`);
   }
 
+  console.log(`\nProduct images: ${await ensureFixtureProductImages(prisma)} demo products given artwork`);
   console.log('\nDev logins (admin portal):');
   console.log('  platform@cinema.example / platform-dev-password');
   for (const t of TENANTS) console.log(`  admin@${t.slug}.example / operator-dev-password`);

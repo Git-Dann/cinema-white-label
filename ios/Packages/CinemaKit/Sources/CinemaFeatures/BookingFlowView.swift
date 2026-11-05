@@ -437,6 +437,11 @@ struct FoodScreen: View {
             if p.modifierGroups.isEmpty { Task { await flow.addToBasket(BasketItem(productId: p.id)) } } else { configuring = p }
         } label: {
             HStack(alignment: .top, spacing: Spacing.s) {
+                ArtworkImage(p.image, fallbackTitle: nil)
+                    .frame(width: 72, height: 54)
+                    .clipShape(RoundedRectangle(cornerRadius: palette.cornerRadius.small, style: .continuous))
+                    .opacity(p.isAvailable ? 1 : 0.5)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(p.name).font(.headline).foregroundStyle(palette.textPrimary)
                     if !p.bundleItems.isEmpty { Text(p.bundleItems.joined(separator: " · ")).font(.subheadline).foregroundStyle(palette.textSecondary) }
