@@ -15,7 +15,7 @@ const SCREEN_STROKE = '#C5CDDA';
 const LABEL_FILL = '#8E9AB0';
 const FEATURE_STROKE = '#1F2B42';
 const FEATURE_TEXT = '#5B6577';
-const CANVAS_BG = '#060B14';
+const CANVAS_BG = '#08080B';
 const ISSUE = '#FF5C5C';
 const SELECTED = '#FFFFFF';
 
