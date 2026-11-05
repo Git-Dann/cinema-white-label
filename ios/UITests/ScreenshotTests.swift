@@ -106,6 +106,10 @@ final class ScreenshotTests: XCTestCase {
         sleep(1)
         shot("account-membership")
 
+        // The tab bar minimises while scrolling down; scroll back up so it is full size again.
+        app.swipeDown()
+        sleep(1)
+
         // Films and Cinemas tabs, for the layout review.
         app.tabBars.buttons["Films"].tap()
         sleep(2)
