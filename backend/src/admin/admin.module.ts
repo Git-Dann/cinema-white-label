@@ -17,6 +17,8 @@ import { venueDto } from '../venues/venues.module';
 import { filmDto } from '../catalogue/film-dto';
 import { Clock } from '../common/clock';
 import { TenantsModule } from '../tenants/tenants.module';
+import { AdminCommerceController } from './admin-commerce.controller';
+import { AdminLayoutsController } from './admin-layouts.controller';
 
 const loginBody = z.object({ email: z.string().email(), password: z.string().min(1) });
 
@@ -341,6 +343,6 @@ export class AdminContentController {
 
 @Module({
   imports: [TenantsModule],
-  controllers: [AdminAuthController, AdminBrandingController, AdminContentController],
+  controllers: [AdminAuthController, AdminBrandingController, AdminContentController, AdminCommerceController, AdminLayoutsController],
 })
 export class AdminModule {}

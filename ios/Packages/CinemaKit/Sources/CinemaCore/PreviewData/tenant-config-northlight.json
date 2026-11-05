@@ -114,7 +114,7 @@
     "appearancePolicy": "alwaysDark"
   },
   "tenant": {
-    "id": "cmw2qurfy00017d0ibj43iptn",
+    "id": "cmw37ilgw00017dirym4o2ogd",
     "name": "Northlight Cinemas",
     "slug": "northlight",
     "locale": "en-GB",
@@ -134,7 +134,7 @@
   "branding": {
     "markUrl": null,
     "palette": {
-      "id": "cmw2qurg000037d0inygcl3a4",
+      "id": "cmw37ilh200037dirssld1m9j",
       "name": "Northlight Teal",
       "accent": {
         "dark": "#2DD4BF",
@@ -147,8 +147,8 @@
     },
     "wordmark": "Northlight",
     "splashUrl": null,
-    "logoDarkUrl": "/v1/media/cmw2qurg800097d0ijgzd90y5",
-    "logoLightUrl": "/v1/media/cmw2qurg500077d0iqsr9tilc"
+    "logoDarkUrl": "/v1/media/cmw37ilhd00097dirlb0s6hey",
+    "logoLightUrl": "/v1/media/cmw37ilh900077dircyh8dxie"
   },
   "features": {
     "wallet": true,
