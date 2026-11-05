@@ -38,13 +38,15 @@
 <link rel="modulepreload" href="assets/moments/moments.js">
 <link rel="modulepreload" href="assets/moments/lib.js">
 <link rel="modulepreload" href="assets/moments/pinned-chapters/moment.js">
+<link rel="modulepreload" href="assets/moments/cursor-spotlight/moment.js">
+<link rel="stylesheet" href="assets/diagrams/diagram.css">
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
 <!-- type: software (white-label cinema booking platform: native iPhone app, operator portal, backend)
      deal: hero split, nav nav-cards, close close-word, footer footer-columns, rhythm dark-band, buttons pill,
            mark dots, ground sky, palette teal-on-paper, type onest, radius soft
-     effect: none in the hero at the client's request (the kit adds a pause button to any hero ground, even a still one), so the hero frame is a still CSS light; card ground: painterly-landscape (native bento); the portal's live theme demo carries the page's interaction
+     hero: re-dealt to centred at the client's request; ground deep (the page's one effect), window on the lit ground, moment cursor-spotlight; card ground: painterly-landscape (native bento); the portal's live theme demo carries the page's interaction
      grounds: native bg-dots (portal plain, its blue band removed at the client's request); seats on .ground-inverse (the dark band)
      moments: pinned-chapters in #journey; the hero moment (liquid-type) is not listed by the split hero, so none
      name: Seatfold (coined, see names.json). Every app screen is a real CI simulator capture of the
@@ -86,6 +88,7 @@
       <div class="nav__item"><a class="nav__link" href="#journey">Booking</a></div>
       <div class="nav__item"><a class="nav__link" href="#seats">Seating</a></div>
       <div class="nav__item"><a class="nav__link" href="#native">iPhone</a></div>
+      <div class="nav__item"><a class="nav__link" href="#connect">Connect</a></div>
       <div class="nav__item"><a class="nav__link" href="#questions">Questions</a></div>
     </nav>
     <div class="nav__actions">
@@ -100,25 +103,76 @@
 <main id="top">
   <!-- HERO: split. The words on span-5, the real Northlight home screen in a phone on span-6 start-7,
        standing on the page's one effect (grain-gradient), one float card with the live seat hold. -->
-  <section class="hero hero--split" aria-labelledby="hero-h">
-    <div class="wrap"><div class="hero-text grid hero__grid">
-      <div class="hero__text span-6">
-        <p class="hero__kicker">Native iPhone app, operator portal and booking API, built for iOS 27</p>
-        <h1 id="hero-h">Your cinema’s own booking app</h1>
-        <p class="hero__lead">Customers book seats, food and tickets in an iPhone app with your name on it. You change prices, menus and colours from one portal, with no App Store update.</p>
+  <!-- HERO: centred (re-dealt at the client's request for a stronger first screen). The deep ground is
+       the page's one effect; the window is the lit ground with the cursor-spotlight moment. The window
+       holds the same app in three brands, drawn live by the product's theme engine (js/hero-phones.js):
+       the centre phone cycles brand colours every 3 s, with its pause button. -->
+  <section class="hero hero--centred bg-deep" aria-labelledby="hero-h">
+    <div class="wrap"><div class="hero-text">
+      <div class="hero__c">
+        <a class="pill" href="#connect"><span>Coming soon: MCP</span><span class="muted">for suppliers and partners</span></a>
+        <h1 id="hero-h">Your cinema’s <span class="hero__own">own</span> booking app</h1>
+        <p class="hero__lead">A native iPhone app in your brand, with seats, food and tickets in one booking. Restyle it from one portal, with no App Store update.</p>
         <div class="btn-row">
           <a class="btn btn--primary" href="mailto:demo@seatfold.example?subject=Seatfold%20demo">Book a demo<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a>
           <a class="btn btn--secondary" href="#journey">See the booking flow</a>
         </div>
       </div>
-      <div class="hero__media hero-stage span-6 start-7">
-        <div class="device device--hero" role="img" aria-label="The Northlight app on iPhone: the Leeds Riverside cinema with Ember Protocol featured in IMAX">
-          <img src="img/app-home.webp" srcset="img/app-home-480.webp 480w, img/app-home.webp 720w" sizes="(max-width: 1279px) 260px, 316px" alt="" width="720" height="1565" fetchpriority="high">
+      <div class="hero__window hero-phones" data-moment="cursor-spotlight" data-moment-opts='{"rest": [0.5, 0.18], "radius": 460}'>
+        <div class="hero-phones__row">
+          <div class="device hero-phone hero-phone--side">
+            <div class="demo" data-hero-phone="northlight" role="img" aria-label="The app as Northlight, in the Midnight Cinema theme">
+              <p class="demo__status"><span>11:35</span><span>&#9679;&#9679;&#9679;</span></p>
+              <p class="demo__brand" data-demo-brand>Northlight</p>
+              <p class="demo__venue"><i></i>Leeds Riverside</p>
+              <p class="demo__h">Featured</p>
+              <div class="demo__card">
+                <img src="img/ember-protocol-poster-120.jpg" alt="" width="120" height="180" loading="lazy">
+                <div><p class="demo__film">Ember Protocol</p><p class="demo__meta">12A · 2h 21m · IMAX</p><span class="demo__btn">Book tickets</span></div>
+              </div>
+              <p class="demo__h">Pick seats</p>
+              <p class="demo__seats" aria-hidden="true"><i class="s-free"></i><i class="s-sel"></i><i class="s-sel"></i><i class="s-held"></i><i class="s-sold"></i><i class="s-prem"></i><i class="s-free"></i></p>
+              <p class="demo__h">Offers</p>
+              <div class="demo__card demo__card--offer"><div><p class="demo__film">New here? 10% off</p><p class="demo__meta">Use code WELCOME10 on your first booking</p></div></div>
+              <p class="demo__tabs"><b>Home</b><span>Films</span><span>Cinemas</span><span>Tickets</span></p>
+            </div>
+          </div>
+          <div class="device hero-phone hero-phone--main">
+            <div class="demo" data-hero-phone="cycle" role="img" aria-label="The same app in a new cinema brand, changing colour">
+              <p class="demo__status"><span>11:35</span><span>&#9679;&#9679;&#9679;</span></p>
+              <p class="demo__brand" data-demo-brand>Northlight</p>
+              <p class="demo__venue"><i></i>Leeds Riverside</p>
+              <p class="demo__h">Featured</p>
+              <div class="demo__card">
+                <img src="img/ember-protocol-poster-120.jpg" alt="" width="120" height="180" loading="lazy">
+                <div><p class="demo__film">Ember Protocol</p><p class="demo__meta">12A · 2h 21m · IMAX</p><span class="demo__btn">Book tickets</span></div>
+              </div>
+              <p class="demo__h">Pick seats</p>
+              <p class="demo__seats" aria-hidden="true"><i class="s-free"></i><i class="s-sel"></i><i class="s-sel"></i><i class="s-held"></i><i class="s-sold"></i><i class="s-prem"></i><i class="s-free"></i></p>
+              <p class="demo__h">Offers</p>
+              <div class="demo__card demo__card--offer"><div><p class="demo__film">New here? 10% off</p><p class="demo__meta">Use code WELCOME10 on your first booking</p></div></div>
+              <p class="demo__tabs"><b>Home</b><span>Films</span><span>Cinemas</span><span>Tickets</span></p>
+            </div>
+          </div>
+          <div class="device hero-phone hero-phone--side">
+            <div class="demo" data-hero-phone="kestrel" role="img" aria-label="The app as Kestrel, in the Classic theme, light">
+              <p class="demo__status"><span>11:35</span><span>&#9679;&#9679;&#9679;</span></p>
+              <p class="demo__brand" data-demo-brand>Northlight</p>
+              <p class="demo__venue"><i></i>Leeds Riverside</p>
+              <p class="demo__h">Featured</p>
+              <div class="demo__card">
+                <img src="img/ember-protocol-poster-120.jpg" alt="" width="120" height="180" loading="lazy">
+                <div><p class="demo__film">Ember Protocol</p><p class="demo__meta">12A · 2h 21m · IMAX</p><span class="demo__btn">Book tickets</span></div>
+              </div>
+              <p class="demo__h">Pick seats</p>
+              <p class="demo__seats" aria-hidden="true"><i class="s-free"></i><i class="s-sel"></i><i class="s-sel"></i><i class="s-held"></i><i class="s-sold"></i><i class="s-prem"></i><i class="s-free"></i></p>
+              <p class="demo__h">Offers</p>
+              <div class="demo__card demo__card--offer"><div><p class="demo__film">New here? 10% off</p><p class="demo__meta">Use code WELCOME10 on your first booking</p></div></div>
+              <p class="demo__tabs"><b>Home</b><span>Films</span><span>Cinemas</span><span>Tickets</span></p>
+            </div>
+          </div>
         </div>
-        <div class="ly-float">
-          <div class="ly-float__row"><span class="ly-live">Seats held</span><span>7:58 left</span></div>
-          <div class="ly-float__title">Ember Protocol, D1 and D2</div>
-        </div>
+        <button class="loop-pause" type="button" aria-label="Pause the brand preview" aria-pressed="false" data-hero-pause hidden><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="3" y="2" width="3" height="10" rx="1"/><rect x="8" y="2" width="3" height="10" rx="1"/></svg></button>
       </div>
     </div></div>
   </section>
@@ -411,6 +465,28 @@
   </section>
 
   <!-- QUESTIONS: faq on the page's split, every answer open. -->
+  <!-- CONNECT: MCP, coming soon (the client's brief: suppliers and partners). A bowtie diagram card:
+       distributors and food suppliers in, showtimes out to listing partners. -->
+  <section class="section" id="connect" aria-labelledby="connect-h">
+    <div class="wrap">
+      <div class="grid">
+        <div class="span-6 stack-4">
+          <p class="pill connect__tag">Coming soon</p>
+          <h2 id="connect-h">Connect suppliers and partners with MCP</h2>
+        </div>
+        <p class="t-lead span-6 start-7">MCP (Model Context Protocol) is the open standard that lets software and AI agents work together. Seatfold will run an MCP server, so suppliers and partners plug in without a custom integration each time.</p>
+      </div>
+      <div class="frame connect__frame fill">
+        <div class="dg" data-diagram><script type="application/json">{"layout":"bowtie","alt":"Film distributors and food and drink suppliers send updates into Seatfold through MCP, and listing partners and AI assistants read showtimes and free seats from it.","sources":[{"label":"Film distributors","icon":"ui:clapperboard","sub":"Films and artwork"},{"label":"Food suppliers","icon":"ui:popcorn","sub":"Products and stock"}],"core":{"label":"Seatfold MCP","icon":"ui:plug"},"targets":[{"label":"Listing sites","icon":"ui:globe","sub":"Showtimes"},{"label":"AI assistants","icon":"ui:bot","sub":"Free seats"},{"label":"Your app","icon":"ui:smartphone","sub":"Customers book"}],"ground":"dots"}</script></div>
+      </div>
+      <div class="grid connect__cols">
+        <div class="span-4"><h3>Film distributors</h3><p>Send film details, artwork and release dates straight into your catalogue.</p></div>
+        <div class="span-4"><h3>Food and drink suppliers</h3><p>Keep products and stock current on every cinema’s menu.</p></div>
+        <div class="span-4"><h3>Listing partners</h3><p>Ticketing sites and AI assistants read showtimes and free seats, then send customers to book.</p></div>
+      </div>
+    </div>
+  </section>
+
   <section class="section" id="questions" aria-labelledby="questions-h">
     <div class="wrap">
       <div class="grid">
@@ -447,7 +523,7 @@
         </div>
         <div class="span-2 footer__col"><h4>Product</h4><ul><li><a href="#portal">Portal</a></li><li><a href="#remote">Releases</a></li></ul></div>
         <div class="span-2 footer__col"><h4>Booking</h4><ul><li><a href="#journey">Booking flow</a></li><li><a href="#seats">Seat maps</a></li></ul></div>
-        <div class="span-2 footer__col"><h4>iPhone</h4><ul><li><a href="#native">iOS features</a></li></ul></div>
+        <div class="span-2 footer__col"><h4>iPhone</h4><ul><li><a href="#native">iOS features</a></li><li><a href="#connect">MCP, coming soon</a></li></ul></div>
         <div class="span-2 footer__col"><h4>Questions</h4><ul><li><a href="#questions">Answers</a></li><li><a href="mailto:hello@seatfold.example">Contact</a></li></ul></div>
       </div>
       <div class="footer__legal">
@@ -464,5 +540,7 @@
 <script type="module" src="assets/layout/layout.js"></script>
 <script type="module" src="site.js"></script>
 <script type="module" src="js/theme-demo.js"></script>
+<script type="module" src="js/hero-phones.js"></script>
+<script type="module" src="assets/diagrams/mount.js"></script>
 </body>
 </html>

@@ -1,15 +1,11 @@
 // The portal demo in #portal: pick an operator (or your own colour), a theme and an appearance, and the
 // phone preview and the contrast checks update. Every colour and ratio comes from the product's own
 // theme engine (js/theme-engine.js), the same code the portal and the iPhone app use.
-import { resolveTheme, CONTRAST_REQUIREMENTS, contrastRatio, themeTemplates } from './theme-engine.js';
+import { CONTRAST_REQUIREMENTS, contrastRatio, themeTemplates } from './theme-engine.js';
+import { PALETTES, paint } from './phone.js';
 
 const root = document.querySelector('[data-theme-demo]');
 if (root) {
-  // the two demo operators' approved palettes (shared/fixtures/tenant-config)
-  const PALETTES = {
-    northlight: { name: 'Northlight', accent: { dark: '#2DD4BF', light: '#0F766E' }, secondary: { dark: '#F5C451', light: '#9A6700' } },
-    kestrel: { name: 'Kestrel', accent: { dark: '#FF5A6A', light: '#B0102A' }, secondary: { dark: '#D4AF37', light: '#8A6A12' } },
-  };
   const THEMES = Object.fromEntries(themeTemplates().map(t => [t.id, t]));
   // the checks shown when everything passes: the pairs a customer notices first
   const KEY = ['Primary text on background', 'Muted text on surface', 'Primary button label', 'Selected seat', 'Held seat'];
@@ -28,18 +24,7 @@ if (root) {
     if (policy === 'alwaysDark') state.ap = 'dark';
     if (policy === 'alwaysLight') state.ap = 'light';
     const pal = palette();
-    const r = resolveTheme(state.theme, { id: state.op, ...pal });
-    const t = r[state.ap];
-
-    // the phone: semantic tokens only, as the app reads them
-    const set = (k, v) => screen.style.setProperty(k, v);
-    set('--d-bg', t.background); set('--d-surface', t.surface); set('--d-surface2', t.surfaceElevated);
-    set('--d-text', t.textPrimary); set('--d-text2', t.textSecondary); set('--d-muted', t.textMuted);
-    set('--d-accent', t.actionPrimary); set('--d-accent-text', t.actionPrimaryText); set('--d-divider', t.divider);
-    set('--d-seat', t.seatAvailable); set('--d-seat-line', t.seatAvailableBorder); set('--d-sel', t.seatSelected);
-    set('--d-held', t.seatHeld); set('--d-sold', t.seatSold); set('--d-prem', t.seatPremium);
-    set('--d-r', r.cornerRadius.medium / 2 + 'px');
-    $('[data-demo-brand]').textContent = pal.name;
+    const { tokens: t } = paint(screen, pal, state.theme, state.ap);
 
     // the checks: all 23 pairs for this appearance, failures first
     const rows = CONTRAST_REQUIREMENTS.map(q => ({ label: q.label, min: q.min, ratio: contrastRatio(t[q.fg], t[q.bg]) }));
