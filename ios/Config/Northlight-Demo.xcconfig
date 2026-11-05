@@ -1,0 +1,4 @@
+// Release build that always runs on the bundled demo data, for TestFlight and
+// showing the app without a backend. Payments are simulated and labelled.
+#include "Northlight.xcconfig"
+DEMO_MODE = YES

@@ -1,0 +1,18 @@
+// Shared build settings. Per-operator files set identity only.
+IPHONEOS_DEPLOYMENT_TARGET = 27.0
+SWIFT_VERSION = 6.0
+TARGETED_DEVICE_FAMILY = 1
+MARKETING_VERSION = 0.1.0
+CURRENT_PROJECT_VERSION = 1
+// Development API. Override per configuration for staging/production.
+API_BASE_URL = http:/$()/localhost:3000/
+// YES builds run on bundled fictional data with no backend (see Northlight-Demo.xcconfig).
+DEMO_MODE = NO
+
+// ---------------------------------------------------------------------------
+// Signing (set once). CI builds unsigned and ignores these.
+// DEVELOPMENT_TEAM: Git Work Ltd (Xcode > Settings > Accounts).
+// BUNDLE_ID_PREFIX: Gitwork reverse-DNS prefix.
+DEVELOPMENT_TEAM = B27Y4M6S3Y
+BUNDLE_ID_PREFIX = uk.co.gitwork
+CODE_SIGN_STYLE = Automatic
