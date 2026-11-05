@@ -11,19 +11,20 @@ import CinemaDesign
 /// The membership entry point in Account: the member's card when they have one,
 /// otherwise a promotional banner that opens the plans.
 struct MembershipHero: View {
+    /// Opens the plans. A plain button (not a list NavigationLink) so the card runs
+    /// edge to edge with no disclosure arrow.
+    let onOpen: () -> Void
     @Environment(AppModel.self) private var app
     @Environment(\.palette) private var palette
 
     var body: some View {
         if let m = app.membership, m.isActive {
-            NavigationLink { MembershipPlansView() } label: {
-                MemberCard(membership: m)
-            }
-            .buttonStyle(.plain)
-            .accessibilityHint("Shows your benefits and renewal")
+            Button(action: onOpen) { MemberCard(membership: m) }
+                .buttonStyle(PressableCardStyle())
+                .accessibilityHint("Shows your benefits and renewal")
         } else if !app.membershipPlans.isEmpty {
-            NavigationLink { MembershipPlansView() } label: { promo }
-                .buttonStyle(.plain)
+            Button(action: onOpen) { promo }
+                .buttonStyle(PressableCardStyle())
                 .accessibilityHint("Shows membership plans")
         }
     }
@@ -67,6 +68,16 @@ struct MembershipHero: View {
     }
 }
 
+/// Cards that act as buttons: a slight press-in, no highlight colour.
+struct PressableCardStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .animation(.snappy(duration: 0.2), value: configuration.isPressed)
+            .contentShape(Rectangle())
+    }
+}
+
 /// Icon above text, for compact benefit summaries.
 private struct StackedLabelStyle: LabelStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -102,7 +113,6 @@ struct MembershipSurface: View {
                 }
                 .clipShape(shape)
             }
-            .shadow(color: palette.membership.opacity(0.35), radius: 24, y: 12)
     }
 }
 

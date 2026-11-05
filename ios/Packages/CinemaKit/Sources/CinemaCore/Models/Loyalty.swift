@@ -56,6 +56,31 @@ public struct LoyaltySummary: Codable, Sendable, Hashable {
     public static let none = LoyaltySummary(program: nil, points: 0, valueMinor: nil, history: [])
 }
 
+/// Progress towards the next whole-pound reward, for the rewards card.
+public struct RewardProgress: Equatable, Sendable {
+    /// Points still needed for the next £1 off (0 when one is ready).
+    public let pointsToGo: Int
+    /// 0...1 through the current step.
+    public let fraction: Double
+    /// True when the balance can already be spent.
+    public let canRedeem: Bool
+}
+
+public extension LoyaltySummary {
+    /// Where the balance sits against the next reward. Before the first reward the
+    /// target is the larger of the minimum spend and one step; after that, each step.
+    var nextReward: RewardProgress? {
+        guard let p = program, p.redeemPointsPerPound > 0 else { return nil }
+        let step = p.redeemPointsPerPound
+        let first = max(p.minRedeemPoints, step)
+        if points < first {
+            return RewardProgress(pointsToGo: first - points, fraction: Double(points) / Double(first), canRedeem: false)
+        }
+        let into = points % step
+        return RewardProgress(pointsToGo: step - into, fraction: Double(into) / Double(step), canRedeem: true)
+    }
+}
+
 public struct MembershipPlan: Codable, Sendable, Hashable, Identifiable {
     public struct Entitlements: Codable, Sendable, Hashable {
         public var ticketDiscountPercent: Int

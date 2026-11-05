@@ -8,35 +8,33 @@ struct AccountView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.palette) private var palette
     @Environment(\.colorSchemeContrast) private var contrast
+    @State private var showHistory = false
+    @State private var showPlans = false
 
     var body: some View {
         @Bindable var store = app.configStore
         List {
+            // Title and operator logo share one line; the system bar is hidden on this screen.
             Section {
-                HStack {
-                    BrandLogo(config: app.config).frame(height: 36)
+                HStack(alignment: .center) {
+                    Text("Account").font(.largeTitle.weight(.bold)).foregroundStyle(palette.textPrimary)
+                        .accessibilityAddTraits(.isHeader)
                     Spacer()
+                    BrandLogo(config: app.config).frame(height: 28)
                 }
+                .listRowInsets(EdgeInsets(top: Spacing.xs, leading: 0, bottom: 0, trailing: 0))
                 .listRowBackground(Color.clear)
             }
             if let program = app.loyalty.program {
                 Section {
-                    NavigationLink { PointsHistoryView() } label: {
-                        HStack(alignment: .firstTextBaseline) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("\(app.loyalty.points) points").font(.title3.weight(.bold)).foregroundStyle(palette.textPrimary)
-                                Text(app.loyalty.valueMinor.map { "Worth \(app.formatters.money($0)) off a booking" } ?? program.summary(formatters: app.formatters))
-                                    .font(.subheadline).foregroundStyle(palette.textSecondary)
-                            }
-                            Spacer()
-                            Image(systemName: "star.circle.fill").font(.title).foregroundStyle(palette.actionPrimary).accessibilityHidden(true)
-                        }
-                    }
-                } header: { Text(program.name) } footer: { Text(program.summary(formatters: app.formatters)) }
+                    RewardsCard(program: program) { showHistory = true }
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                }
             }
             if !app.membershipPlans.isEmpty || app.membership?.isActive == true {
                 Section {
-                    MembershipHero()
+                    MembershipHero { showPlans = true }
                         .listRowInsets(EdgeInsets())
                         .listRowBackground(Color.clear)
                 }
@@ -89,6 +87,10 @@ struct AccountView: View {
         .scrollContentBackground(.hidden)
         .background(palette.background)
         .navigationTitle("Account")
+        .toolbar(.hidden, for: .navigationBar)
+        .listSectionSpacing(Spacing.l)
+        .navigationDestination(isPresented: $showHistory) { PointsHistoryView() }
+        .navigationDestination(isPresented: $showPlans) { MembershipPlansView() }
         .task { await app.loadAccount() }
         .refreshable { await app.loadAccount() }
     }
