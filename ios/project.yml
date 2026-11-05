@@ -1,0 +1,147 @@
+# Generate the Xcode project with: brew install xcodegen && xcodegen generate
+name: Cinema
+options:
+  deploymentTarget:
+    iOS: "27.0"
+  createIntermediateGroups: true
+packages:
+  CinemaKit:
+    path: Packages/CinemaKit
+configs:
+  Northlight Debug: debug
+  Northlight Release: release
+  Northlight Demo: release
+  Kestrel Debug: debug
+  Kestrel Release: release
+configFiles:
+  Northlight Debug: Config/Northlight.xcconfig
+  Northlight Release: Config/Northlight.xcconfig
+  Northlight Demo: Config/Northlight-Demo.xcconfig
+  Kestrel Debug: Config/Kestrel.xcconfig
+  Kestrel Release: Config/Kestrel.xcconfig
+targets:
+  CinemaApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+      - path: Resources
+      # Bundled fallback tenant configs ship inside CinemaCore (BundledConfig).
+    # XcodeGen generates App/Info.plist from these properties on every run;
+    # edit keys here, not in the generated file.
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: $(APP_NAME)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleURLTypes:
+          - CFBundleURLSchemes: [cinema-$(TENANT_SLUG)]
+        TenantSlug: $(TENANT_SLUG)
+        APIBaseURL: $(API_BASE_URL)
+        # YES in the Northlight Demo configuration: offline fictional data, no backend needed (TestFlight demos).
+        DemoMode: $(DEMO_MODE)
+        # Only standard HTTPS/TLS is used, which is exempt; saves the export compliance question on every upload.
+        ITSAppUsesNonExemptEncryption: false
+        AppGroup: group.$(APP_BUNDLE_ID)
+        NSSupportsLiveActivities: true
+        NSLocationWhenInUseUsageDescription: Your location is used only to show cinemas near you. You can also search by town or postcode.
+        NSCalendarsWriteOnlyAccessUsageDescription: Adds your screening to your calendar when you ask.
+        NSAppTransportSecurity:
+          # Development only: allows the local API over HTTP. Remove for release builds.
+          NSAllowsLocalNetworking: true
+        UILaunchScreen:
+          UIColorName: ""
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    entitlements:
+      path: App/CinemaApp.entitlements
+      properties:
+        com.apple.security.application-groups: [group.$(APP_BUNDLE_ID)]
+    dependencies:
+      - package: CinemaKit
+        product: CinemaFeatures
+      - target: CinemaWidgets
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: NO
+        ENABLE_PREVIEWS: YES
+        # Operator identity comes from Config/<Operator>.xcconfig; only the app uses it.
+        PRODUCT_NAME: $(APP_NAME)
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID)
+  CinemaWidgets:
+    type: app-extension
+    platform: iOS
+    sources: [Widgets]
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: $(APP_NAME)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        TenantSlug: $(TENANT_SLUG)
+        AppGroup: group.$(APP_BUNDLE_ID)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: Widgets/CinemaWidgets.entitlements
+      properties:
+        com.apple.security.application-groups: [group.$(APP_BUNDLE_ID)]
+    dependencies:
+      - package: CinemaKit
+        product: CinemaActivities
+    settings:
+      base:
+        PRODUCT_NAME: CinemaWidgets
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID).widgets
+        GENERATE_INFOPLIST_FILE: NO
+        SKIP_INSTALL: YES
+
+  CinemaAppUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: CinemaApp
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: CinemaApp
+        PRODUCT_NAME: CinemaAppUITests
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID).uitests
+schemes:
+  Northlight:
+    build:
+      targets:
+        CinemaApp: all
+    run:
+      config: Northlight Debug
+    test:
+      config: Northlight Debug
+      targets: [CinemaAppUITests]
+      gatherCoverageData: true
+    archive:
+      config: Northlight Release
+  Northlight Demo:
+    build:
+      targets:
+        CinemaApp: all
+    run:
+      config: Northlight Debug
+      commandLineArguments:
+        "-mock-data": true
+    # Archive this scheme for TestFlight: a release build that always runs on demo data.
+    archive:
+      config: Northlight Demo
+  Kestrel:
+    build:
+      targets:
+        CinemaApp: all
+    run:
+      config: Kestrel Debug
+    archive:
+      config: Kestrel Release

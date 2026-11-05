@@ -1,0 +1,242 @@
+name: iOS
+
+# macOS minutes cost ~10x Linux minutes, so this only runs when the app or its
+# fixtures change.
+on:
+  pull_request:
+    paths:
+      - "ios/**"
+      - "shared/fixtures/**"
+      - ".github/workflows/ios.yml"
+  push:
+    branches: [main]
+    paths:
+      - "ios/**"
+      - "shared/fixtures/**"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Queue rather than cancel: on a PR every push matches the path filter (it
+# compares the whole PR diff), so cancelling would kill screenshot runs
+# whenever backend or admin work is pushed. Only the newest queued run is kept.
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: iOS app (Xcode build)
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode
+        run: |
+          XCODE=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          {
+            echo "### Toolchain"
+            echo '```'
+            xcodebuild -version
+            xcodebuild -showsdks | grep -i ios
+            xcrun simctl list runtimes | grep -i ios
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Check generated Info.plist
+        working-directory: ios
+        run: |
+          # Guards against keys being lost (no launch screen = legacy 320x480 mode).
+          for key in UILaunchScreen TenantSlug APIBaseURL AppGroup NSSupportsLiveActivities NSLocationWhenInUseUsageDescription; do
+            plutil -extract "$key" raw -o - App/Info.plist >/dev/null 2>&1 || plutil -extract "$key" xml1 -o - App/Info.plist >/dev/null || { echo "::error::App/Info.plist is missing $key"; exit 1; }
+          done
+          plutil -extract NSExtension.NSExtensionPointIdentifier raw -o - Widgets/Info.plist
+
+      - name: Build Northlight for the iOS Simulator
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project Cinema.xcodeproj \
+            -scheme Northlight \
+            -configuration "Northlight Debug" \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee xcodebuild.log
+      - name: Summarise compiler errors
+        if: failure()
+        working-directory: ios
+        run: |
+          {
+            echo "### Compiler errors"
+            echo '```'
+            grep -E "error:" xcodebuild.log | sed 's#.*/ios/##' | sort -u | head -80 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          grep -E "error:" xcodebuild.log | sed 's#.*/ios/##' | sort -u | head -80 || true
+
+      - name: Build Kestrel (second operator identity)
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild build -project Cinema.xcodeproj -scheme Kestrel -configuration "Kestrel Debug" \
+            -destination "generic/platform=iOS Simulator" -derivedDataPath build CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tail -20
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: ios/xcodebuild.log
+          if-no-files-found: ignore
+
+  screenshots:
+    name: iOS app (simulator screenshots)
+    needs: build
+    runs-on: macos-latest
+    timeout-minutes: 60
+    # Pushes images to the ci-screenshots branch, so it needs write access and
+    # only runs for branches in this repository (not forks).
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode and a simulator
+        run: |
+          XCODE=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          # Pick the newest iPhone simulator; print "<udid> <runtime version>".
+          read UDID RUNTIME < <(xcrun simctl list devices available -j | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)['devices']
+          ios=[(k,v) for k,v in d.items() if 'iOS' in k]
+          ios.sort(key=lambda kv: [int(x) for x in kv[0].split('iOS-')[-1].split('-')])
+          for runtime,devs in reversed(ios):
+              phones=[x for x in devs if 'iPhone' in x['name']]
+              pref=[x for x in phones if 'Pro Max' in x['name']] or [x for x in phones if 'Pro' in x['name']] or phones
+              if pref:
+                  print(pref[-1]['udid'], '.'.join(runtime.split('iOS-')[-1].split('-')[:2])); break
+          ")
+          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+          echo "DEPLOYMENT_TARGET=$RUNTIME" >> "$GITHUB_ENV"
+          xcrun simctl list devices available | grep "$UDID"
+          echo "Simulator $UDID running iOS $RUNTIME" >> "$GITHUB_STEP_SUMMARY"
+
+      # The project targets iOS 27. Xcode only offers simulators whose iOS version
+      # meets the deployment target, so this job (only) lowers it to the
+      # simulator's version. The committed project is unchanged.
+      - name: Match deployment target to the simulator (this job only)
+        working-directory: ios
+        run: |
+          sed -i '' "s/IPHONEOS_DEPLOYMENT_TARGET = 27.0/IPHONEOS_DEPLOYMENT_TARGET = $DEPLOYMENT_TARGET/" Config/Base.xcconfig
+          sed -i '' "s/iOS: \"27.0\"/iOS: \"$DEPLOYMENT_TARGET\"/" project.yml
+          sed -i '' "s/.iOS(\"27.0\")/.iOS(\"$DEPLOYMENT_TARGET\")/" Packages/CinemaKit/Package.swift
+          grep -n "DEPLOYMENT_TARGET\|iOS:" Config/Base.xcconfig project.yml; grep -n "iOS(" Packages/CinemaKit/Package.swift
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Check generated Info.plist
+        working-directory: ios
+        run: |
+          # Guards against keys being lost (no launch screen = legacy 320x480 mode).
+          for key in UILaunchScreen TenantSlug APIBaseURL AppGroup NSSupportsLiveActivities NSLocationWhenInUseUsageDescription; do
+            plutil -extract "$key" raw -o - App/Info.plist >/dev/null 2>&1 || plutil -extract "$key" xml1 -o - App/Info.plist >/dev/null || { echo "::error::App/Info.plist is missing $key"; exit 1; }
+          done
+          plutil -extract NSExtension.NSExtensionPointIdentifier raw -o - Widgets/Info.plist
+
+      - name: Run screenshot UI test
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcrun simctl boot "$SIM_UDID" || true
+          xcodebuild test \
+            -project Cinema.xcodeproj \
+            -scheme Northlight \
+            -configuration "Northlight Debug" \
+            -destination "id=$SIM_UDID" \
+            -only-testing:CinemaAppUITests/ScreenshotTests \
+            -resultBundlePath TestResults.xcresult \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee xcodebuild-test.log | grep -E "error:|Test Case|passed|failed|\*\*" || true
+          grep -q "\*\* TEST SUCCEEDED \*\*" xcodebuild-test.log
+
+      - name: Export screenshots
+        if: always()
+        working-directory: ios
+        run: |
+          mkdir -p shots
+          if [ -d TestResults.xcresult ]; then
+            xcrun xcresulttool export attachments --path TestResults.xcresult --output-path shots || true
+          fi
+          python3 - <<'PY'
+          import json, os, shutil
+          d = "shots"
+          m = os.path.join(d, "manifest.json")
+          if os.path.exists(m):
+              for test in json.load(open(m)):
+                  for a in test.get("attachments", []):
+                      src = os.path.join(d, a["exportedFileName"])
+                      name = a.get("suggestedHumanReadableName", a["exportedFileName"])
+                      base = name.split("_")[0] if name[:2].isdigit() else name
+                      if os.path.exists(src):
+                          shutil.move(src, os.path.join(d, base if base.endswith(".png") else base + ".png"))
+          # Debug attachments carry quotes and backticks, which artifact upload rejects.
+          import re
+          for f in os.listdir(d):
+              safe = re.sub(r"[^A-Za-z0-9._-]+", "_", f)
+              if safe != f:
+                  shutil.move(os.path.join(d, f), os.path.join(d, safe))
+          print(sorted(os.listdir(d)))
+          PY
+          # Live Activity diagnostics from the simulator (start, skip and failure reasons).
+          xcrun simctl spawn "$SIM_UDID" log show --last 30m --style compact --info --debug \
+            --predicate 'subsystem == "cinema.liveactivity"' > shots/liveactivity.log 2>&1 || true
+          tail -20 shots/liveactivity.log || true
+          grep -E "error:" xcodebuild-test.log | sed 's#.*/ios/##' | sort -u | head -40 || true
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-screenshots
+          path: |
+            ios/shots
+            ios/xcodebuild-test.log
+          if-no-files-found: ignore
+
+      - name: Publish to ci-screenshots branch
+        if: always()
+        working-directory: ios/shots
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          [ -n "$(ls -A . 2>/dev/null)" ] || exit 0
+          cp ../xcodebuild-test.log . 2>/dev/null || true
+          echo "Screenshots for ${GITHUB_SHA}" > README.md
+          git init -q
+          git checkout -q -b ci-screenshots
+          git add -A
+          git -c user.name="ci" -c user.email="ci@users.noreply.github.com" commit -qm "Screenshots for ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ci-screenshots
