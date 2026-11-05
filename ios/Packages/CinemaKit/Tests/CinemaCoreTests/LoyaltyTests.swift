@@ -133,4 +133,15 @@ struct LoyaltyTests {
         #expect([plus].featuredPlanID == nil)
         #expect([premiere, plus].cheapest?.id == "plus")
     }
+
+    @Test func rewardProgressCountsTowardsTheNextPoundOff() {
+        let program = LoyaltyProgramInfo(name: "Rewards", earnPointsPerPound: 10, redeemPointsPerPound: 200, minRedeemPoints: 200)
+        let none = LoyaltySummary(program: program, points: 0, valueMinor: 0, history: []).nextReward
+        #expect(none == RewardProgress(pointsToGo: 200, fraction: 0, canRedeem: false))
+        let some = LoyaltySummary(program: program, points: 150, valueMinor: 0, history: []).nextReward
+        #expect(some?.pointsToGo == 50 && some?.canRedeem == false)
+        let ready = LoyaltySummary(program: program, points: 450, valueMinor: 200, history: []).nextReward
+        #expect(ready == RewardProgress(pointsToGo: 150, fraction: 0.25, canRedeem: true))
+        #expect(LoyaltySummary.none.nextReward == nil)
+    }
 }
