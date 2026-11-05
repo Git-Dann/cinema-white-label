@@ -1,0 +1,129 @@
+name: TestFlight
+
+# Archives the Northlight Demo build (offline demo data, simulated payments) and
+# uploads it to TestFlight for internal testers. Runs on pushes that change the
+# app, and on demand from the Actions tab. Free on a public repository.
+#
+# Needs three repository secrets (Settings > Secrets and variables > Actions),
+# from an App Store Connect API key with the Admin role (Users and Access >
+# Integrations > App Store Connect API > Team Keys):
+#   ASC_KEY_ID       the key's ID
+#   ASC_ISSUER_ID    the issuer ID shown above the keys list
+#   ASC_PRIVATE_KEY  the full contents of the downloaded AuthKey_XXXX.p8 file
+# Without them the job explains what is missing and stops without failing.
+on:
+  push:
+    branches: [main, claude/phase-1-foundation]
+    paths:
+      - "ios/**"
+      - ".github/workflows/testflight.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: testflight-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    name: Upload demo build to TestFlight
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check App Store Connect key
+        id: key
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          if [ -z "$ASC_KEY_ID" ] || [ -z "$ASC_ISSUER_ID" ] || [ -z "$ASC_PRIVATE_KEY" ]; then
+            echo "::notice::TestFlight upload skipped: add ASC_KEY_ID, ASC_ISSUER_ID and ASC_PRIVATE_KEY repository secrets (see docs/testflight.md)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s' "$ASC_PRIVATE_KEY" > "$RUNNER_TEMP/keys/AuthKey.p8"
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.ready == 'true'
+
+      - name: Select newest Xcode
+        if: steps.key.outputs.ready == 'true'
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
+          xcodebuild -version
+          SDK=$(xcrun --sdk iphoneos --show-sdk-version)
+          echo "SDK=$SDK" >> "$GITHUB_ENV"
+          echo "Xcode $(xcodebuild -version | head -1), iOS SDK $SDK" >> "$GITHUB_STEP_SUMMARY"
+
+      # The project targets iOS 27. Until the runner's Xcode ships the iOS 27 SDK,
+      # build against the newest SDK it has (the app uses no iOS 27-only APIs).
+      - name: Match deployment target to the SDK when needed
+        if: steps.key.outputs.ready == 'true'
+        working-directory: ios
+        run: |
+          if [ "$(printf '%s\n27.0\n' "$SDK" | sort -V | head -1)" != "27.0" ]; then
+            sed -i '' "s/IPHONEOS_DEPLOYMENT_TARGET = 27.0/IPHONEOS_DEPLOYMENT_TARGET = $SDK/" Config/Base.xcconfig
+            sed -i '' "s/iOS: \"27.0\"/iOS: \"$SDK\"/" project.yml
+            sed -i '' "s/.iOS(\"27.0\")/.iOS(\"$SDK\")/" Packages/CinemaKit/Package.swift
+            echo "::notice::Built with deployment target $SDK (runner has no iOS 27 SDK yet)."
+          fi
+
+      - name: Generate project with a unique build number
+        if: steps.key.outputs.ready == 'true'
+        working-directory: ios
+        run: |
+          # Every upload needs a higher build number; the workflow run number always increases.
+          sed -i '' "s/^CURRENT_PROJECT_VERSION = .*/CURRENT_PROJECT_VERSION = ${{ github.run_number }}/" Config/Base.xcconfig
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Archive
+        if: steps.key.outputs.ready == 'true'
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project Cinema.xcodeproj -scheme "Northlight Demo" -configuration "Northlight Demo" \
+            -destination "generic/platform=iOS" -archivePath "$RUNNER_TEMP/Northlight.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey.p8" \
+            -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}" \
+            2>&1 | tee archive.log | grep -E "error:|warning: .*sign|\*\* ARCHIVE" || true
+          test -d "$RUNNER_TEMP/Northlight.xcarchive" || { echo "::error::Archive failed; see archive.log"; grep -E "error:" archive.log | head -20; exit 1; }
+
+      - name: Upload to TestFlight
+        if: steps.key.outputs.ready == 'true'
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Northlight.xcarchive" \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey.p8" \
+            -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}" \
+            2>&1 | tee upload.log | grep -E "error|Upload|EXPORT" || true
+          grep -q "EXPORT SUCCEEDED" upload.log || { echo "::error::Upload failed; see upload.log"; tail -40 upload.log; exit 1; }
+          echo "Uploaded build ${{ github.run_number }} of Northlight Demo. It appears in TestFlight after Apple's processing (usually 10 to 30 minutes)." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep logs
+        if: always() && steps.key.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: testflight-logs
+          path: |
+            ios/archive.log
+            ios/upload.log
+          if-no-files-found: ignore
+
+      - name: Remove key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"

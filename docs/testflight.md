@@ -31,4 +31,20 @@ The **Northlight Demo** scheme archives a release build that always runs on the 
 - The app declares exempt encryption only (`ITSAppUsesNonExemptEncryption`), so you won't be asked about export compliance on each upload.
 - Privacy manifests are included for the app and the widget (preferences, App Group, anonymous analytics).
 - External testers (people outside your team) need a short Beta App Review the first time. Internal testers do not.
-- Later, CI can upload builds automatically with an App Store Connect API key stored as a GitHub secret. That is free; it just needs the key.
+
+## Automatic uploads from GitHub (recommended)
+
+`.github/workflows/testflight.yml` archives the Northlight Demo build and uploads it to TestFlight whenever app code is pushed (and on demand from the Actions tab). Build numbers come from the workflow run number, so you never bump them by hand. It is free on a public repository.
+
+One-off setup:
+
+1. Create the app record in App Store Connect (step 5 above).
+2. App Store Connect › **Users and Access** › **Integrations** › **App Store Connect API** › **Team Keys** › **+**. Name it "GitHub TestFlight", access **Admin** (needed so it can create the distribution certificate and profiles). Download the `.p8` file: Apple only lets you download it once.
+3. Note the **Key ID** (in the list) and the **Issuer ID** (above the list).
+4. GitHub › the repository › **Settings** › **Secrets and variables** › **Actions** › **New repository secret**, three times:
+   - `ASC_KEY_ID`: the Key ID
+   - `ASC_ISSUER_ID`: the Issuer ID
+   - `ASC_PRIVATE_KEY`: open the `.p8` in TextEdit and paste the whole contents, including the BEGIN and END lines
+5. Actions › **TestFlight** › **Run workflow** to send the first build.
+
+Never paste the key into chat, email or the repository. If it leaks, revoke it in App Store Connect and create a new one.
