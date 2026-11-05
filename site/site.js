@@ -84,3 +84,6 @@ async function seatMap(svg) {
 
 const svg = document.querySelector('.seatmap__svg[data-layout]');
 if (svg) seatMap(svg).catch(() => {});
+
+// a click on a menu card moves to its section and lets the panel close (focus would hold it open)
+for (const a of document.querySelectorAll('.nav__menu a[href^="#"]')) a.addEventListener('click', () => a.blur());

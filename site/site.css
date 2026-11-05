@@ -19,8 +19,20 @@
 @media (max-width: 639px) { .hero .ly-float { display: none; } }
 
 /* nav cards: the captures crop to their point */
-.menu-shot { --p-h: 160px; background: #060b14 !important; }
-.menu-shot > img { object-fit: cover; object-position: 50% var(--shot-y, 0%); }
+/* nav cards: each picture whole on the lit ground (a phone rising from the foot, the portal's
+   release card, the seat map on the app's own dark ground), never a crop through a screen */
+.menu-pic { --p-h: 168px; height: var(--p-h); flex: none; display: flex; justify-content: center; align-items: flex-start; overflow: hidden; background: #c6d3df !important; }
+.menu-pic--dark { align-items: center; background: #060B14 !important; }
+.device--menu { width: 132px; margin-top: var(--s-5); flex: none; padding: 4px; border-radius: 20px; }
+.device--menu > img { border-radius: 16px; }
+.menu-map { height: 88%; width: auto; max-width: 90%; }
+.menu-rel { align-self: center; width: min(78%, 300px); display: grid; gap: 10px; padding: 14px 16px; border-radius: 12px; background: #fff; color: #1d2733; border: 1px solid rgb(0 0 0 / .1); font-size: 13px; }
+.menu-rel__t { display: flex; justify-content: space-between; font-weight: 500; }
+.menu-rel__t span { font-weight: 400; color: #06525c; }
+.menu-rel__sw { display: flex; gap: 6px; }
+.menu-rel__sw i { width: 22px; height: 22px; border-radius: 6px; background: var(--c); box-shadow: inset 0 0 0 1px rgb(0 0 0 / .12); }
+.menu-rel__ok { display: flex; justify-content: space-between; color: #4b5563; }
+.menu-rel__ok b { font-weight: 500; color: #1d2733; }
 
 /* ---------- app-frame (sections-library.md, the whole recipe) ---------- */
 .app.ui { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); margin-top: var(--s-7); background: var(--u-bg); border: 1px solid var(--u-border); border-radius: var(--u-r); box-shadow: var(--u-shadow); }
@@ -165,7 +177,8 @@ main > section.section.section:is(.bg-band, .bg-dots):not(.section--hero) { disp
 @media (max-width: 1023px) { .seatmap__svg { flex: none; height: auto; aspect-ratio: 1000 / 850; } }
 
 /* contrast checks are passes, not finished to-dos: no strike-through */
-.rel .ui-check.is-done .ui-check__label { text-decoration: none; }
+.rel .ui-check.is-done .ui-check__label { color: var(--u-ink); }
+.rel .ui-check__label::after { display: none; }
 .rel__preview { align-items: flex-start; }
 .rel__preview .device { flex: none; }
 
