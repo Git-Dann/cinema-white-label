@@ -47,7 +47,7 @@ describe('booking engine (integration)', () => {
   });
 
   it('releases expired holds so another customer can book, and refuses checkout on the expired hold', async () => {
-    const { screening, seatIds } = await findSeats(app, 2);
+    const { screening, seatIds } = await findSeats(app, 2, { minHoursAhead: 1 }); // the test jumps the clock 8 minutes; a screening that closes in that window would refuse the new hold
     const [a, b] = await Promise.all([guest(app), guest(app)]);
     const hold = (await api(app, a).post(`${T}/holds`, { screeningId: screening.id, seatIds }).expect(201)).body;
     const ttl = new Date(hold.expiresAt).getTime() - new Date(hold.serverTime).getTime();
