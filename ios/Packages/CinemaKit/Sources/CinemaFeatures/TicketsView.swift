@@ -42,9 +42,9 @@ struct TicketRow: View {
     @Environment(\.palette) private var palette
 
     var body: some View {
-        HStack(spacing: 12) {
-            ArtworkImage(booking.film.poster).frame(width: 54, height: 81).clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            VStack(alignment: .leading, spacing: 3) {
+        HStack(spacing: Spacing.s) {
+            ArtworkImage(booking.film.poster, fallbackTitle: booking.film.title).frame(width: 54, height: 81).clipShape(RoundedRectangle(cornerRadius: palette.cornerRadius.small, style: .continuous))
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(booking.film.title).font(.headline).foregroundStyle(palette.textPrimary)
                 Text("\(app.formatters.shortDate(booking.screening.startsAt, timeZone: booking.venue.timeZone)) · \(app.formatters.time(booking.screening.startsAt, timeZone: booking.venue.timeZone))")
                     .font(.subheadline).foregroundStyle(palette.textSecondary)
@@ -73,8 +73,8 @@ struct TicketDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
-                VStack(spacing: 6) {
+            VStack(spacing: Spacing.l) {
+                VStack(spacing: Spacing.xs) {
                     Text(booking.film.title).font(.title.weight(.bold)).foregroundStyle(palette.textPrimary).multilineTextAlignment(.center)
                     Text(app.formatters.longDate(booking.screening.startsAt, timeZone: booking.venue.timeZone) + " at " + app.formatters.time(booking.screening.startsAt, timeZone: booking.venue.timeZone))
                         .foregroundStyle(palette.textSecondary)
@@ -94,7 +94,9 @@ struct TicketDetailView: View {
                     InfoBanner(.info, "Development booking: paid with a simulated payment. No money was taken.")
                 }
             }
-            .padding(20)
+            .pagePadding()
+            .padding(.top, Spacing.m)
+            .padding(.bottom, Spacing.section)
         }
         .background(palette.background)
         .navigationTitle("Ticket")
@@ -105,7 +107,7 @@ struct TicketDetailView: View {
     }
 
     private func foodSection(_ food: [Booking.FoodItem]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             Label(booking.fulfilment == .seatDelivery ? "Food delivered to your seat" : "Collect food at the counter", systemImage: "takeoutbag.and.cup.and.straw.fill")
                 .font(.headline).foregroundStyle(palette.textPrimary)
             ForEach(food, id: \.self) { f in
@@ -117,9 +119,7 @@ struct TicketDetailView: View {
                 .accessibilityElement(children: .combine)
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(palette.surface, in: RoundedRectangle(cornerRadius: palette.cornerRadius.medium, style: .continuous))
+        .cardStyle()
     }
 
     @ViewBuilder
@@ -157,11 +157,14 @@ struct TicketDetailView: View {
     private var details: some View {
         VStack(spacing: 0) {
             row("Cinema", booking.venue.name)
+            Divider().overlay(palette.divider)
             row("Screen", booking.auditorium.name)
+            Divider().overlay(palette.divider)
             row("Seats", booking.seatSummary)
+            Divider().overlay(palette.divider)
             row("Total", app.formatters.money(booking.totals.totalMinor))
         }
-        .background(palette.surface, in: RoundedRectangle(cornerRadius: palette.cornerRadius.medium, style: .continuous))
+        .cardStyle(padding: 0)
     }
 
     private func row(_ label: String, _ value: String) -> some View {
@@ -170,7 +173,8 @@ struct TicketDetailView: View {
             Spacer()
             Text(value).foregroundStyle(palette.textPrimary).multilineTextAlignment(.trailing)
         }
-        .padding(.horizontal, 16).padding(.vertical, 12)
+        .padding(.horizontal, Spacing.card).padding(.vertical, Spacing.s)
+        .frame(minHeight: Spacing.tap)
         .accessibilityElement(children: .combine)
     }
 

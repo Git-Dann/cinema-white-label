@@ -3,9 +3,9 @@ import AVKit
 import CinemaCore
 import CinemaDesign
 
-/// Film detail: landscape backdrop hero tinted by the artwork's dominant
-/// colour, centred poster, primary actions, synopsis, facts row, showtimes for
-/// the selected cinema and trailers. Matches the design references' hierarchy.
+/// Film detail: full-height backdrop behind the poster and title that fades into
+/// the page (no hard edge), primary actions, synopsis, facts, showtimes for the
+/// selected cinema, trailers and credits. All spacing comes from `Spacing`.
 struct FilmDetailView: View {
     let film: Film
     @Environment(AppModel.self) private var app
@@ -17,16 +17,18 @@ struct FilmDetailView: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                VStack(spacing: 24) {
-                    hero
-                    actions(proxy: proxy)
+                VStack(spacing: Spacing.section) {
+                    VStack(spacing: Spacing.xl) {
+                        hero
+                        actions(proxy: proxy)
+                    }
                     synopsis
                     facts
                     ShowtimesSection(film: film).id("showtimes")
                     trailers
                     credits
                 }
-                .padding(.bottom, 40)
+                .padding(.bottom, Spacing.section)
             }
             .background(palette.background)
             .scrollEdgeEffectStyle(.soft, for: .top)
@@ -63,30 +65,45 @@ struct FilmDetailView: View {
 
     private var tint: Color { film.backdrop?.dominantColor.map { Color(hex: $0) } ?? palette.surface }
 
+    /// The backdrop fills the whole hero, from under the navigation bar to below the
+    /// title, and fades into the page background, so there is never a cut-off edge.
     private var hero: some View {
-        ZStack(alignment: .bottom) {
-            // Landscape backdrop as the hero; never a stretched portrait poster.
-            ArtworkImage(film.backdrop)
-                .frame(height: 340)
-                .overlay(LinearGradient(colors: [tint.opacity(0.1), tint.opacity(0.65), palette.background], startPoint: .top, endPoint: .bottom))
-                .clipped()
-            VStack(spacing: 14) {
-                ArtworkImage(film.poster, accessibilityLabel: "\(film.title) poster")
-                    .aspectRatio(2 / 3, contentMode: .fit)
-                    .frame(width: sizeClass == .regular ? 220 : 180)
-                    .clipShape(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous))
-                    .shadow(color: .black.opacity(0.5), radius: 24, y: 14)
+        VStack(spacing: Spacing.m) {
+            ArtworkImage(film.poster, accessibilityLabel: "\(film.title) poster")
+                .aspectRatio(2 / 3, contentMode: .fit)
+                .frame(width: sizeClass == .regular ? 240 : 200)
+                .clipShape(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous).strokeBorder(.white.opacity(0.1)))
+                .shadow(color: .black.opacity(0.55), radius: 28, y: 16)
+            VStack(spacing: Spacing.xs) {
                 Text(film.title)
                     .font(.largeTitle.weight(.bold))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(palette.textPrimary)
                     .accessibilityAddTraits(.isHeader)
-                Text(subtitle).font(.subheadline).foregroundStyle(palette.textMuted).multilineTextAlignment(.center)
+                Text(subtitle).font(.subheadline).foregroundStyle(palette.textSecondary).multilineTextAlignment(.center)
             }
-            .padding(.horizontal, 24)
-            .offset(y: 150)
         }
-        .padding(.bottom, 150)
+        .padding(.top, Spacing.xl)
+        .pagePadding()
+        .frame(maxWidth: .infinity)
+        .background(alignment: .top) {
+            ArtworkImage(film.backdrop)
+                .overlay(
+                    LinearGradient(
+                        stops: [
+                            .init(color: palette.background.opacity(0.55), location: 0),
+                            .init(color: tint.opacity(0.25), location: 0.3),
+                            .init(color: palette.background.opacity(0.75), location: 0.75),
+                            .init(color: palette.background, location: 1),
+                        ],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+                .clipped()
+                .ignoresSafeArea(edges: .top)
+                .accessibilityHidden(true)
+        }
     }
 
     private var subtitle: String {
@@ -99,7 +116,7 @@ struct FilmDetailView: View {
     }
 
     private func actions(proxy: ScrollViewProxy) -> some View {
-        HStack(spacing: 14) {
+        HStack(spacing: Spacing.s) {
             Button {
                 withAnimation { proxy.scrollTo("showtimes", anchor: .top) }
             } label: { Label(film.status == .comingSoon ? "Book Ahead" : "Book Tickets", systemImage: "ticket") }
@@ -111,11 +128,11 @@ struct FilmDetailView: View {
                     .accessibilityHint(trailer.url == nil ? "Trailer not available in this build" : "")
             }
         }
-        .padding(.horizontal, 20)
+        .pagePadding()
     }
 
     private var synopsis: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             if let tagline = film.tagline { Text(tagline).font(.headline).foregroundStyle(palette.textPrimary) }
             Text(film.synopsis)
                 .font(.body)
@@ -126,69 +143,71 @@ struct FilmDetailView: View {
                 .foregroundStyle(palette.textMuted)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 20)
+        .pagePadding()
     }
 
+    /// Two-by-two facts in one card, so long values (formats) wrap instead of running off screen.
     private var facts: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 28) {
-                StatItem(icon: "clock.fill", label: "Runtime", value: app.formatters.runtime(film.runtimeMinutes), spokenValue: app.formatters.spokenRuntime(film.runtimeMinutes))
-                StatItem(icon: "shield.lefthalf.filled", label: "Certificate", value: film.certificate)
-                if let g = film.genres.first { StatItem(icon: "theatermasks.fill", label: "Genre", value: g) }
-                if !film.formats.isEmpty { StatItem(icon: "film", label: "Formats", value: film.formats.joined(separator: ", ")) }
-            }
-            .padding(.horizontal, 20)
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: Spacing.m, alignment: .topLeading), GridItem(.flexible(), alignment: .topLeading)], alignment: .leading, spacing: Spacing.m) {
+            StatItem(icon: "clock.fill", label: "Runtime", value: app.formatters.runtime(film.runtimeMinutes), spokenValue: app.formatters.spokenRuntime(film.runtimeMinutes))
+            StatItem(icon: "shield.lefthalf.filled", label: "Certificate", value: film.certificate)
+            if let g = film.genres.first { StatItem(icon: "theatermasks.fill", label: "Genre", value: g) }
+            if !film.formats.isEmpty { StatItem(icon: "film", label: "Formats", value: film.formats.joined(separator: ", ")) }
         }
+        .cardStyle()
+        .pagePadding()
     }
 
     @ViewBuilder
     private var trailers: some View {
         if !film.trailers.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: Spacing.header) {
                 SectionHeader("Trailers")
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 14) {
+                    HStack(alignment: .top, spacing: Spacing.item) {
                         ForEach(film.trailers) { t in
-                            Button { play(t) } label: { VStack(alignment: .leading, spacing: 6) {
-                                ArtworkImage(film.backdrop)
-                                    .frame(width: 260, height: 146)
-                                    .overlay { Image(systemName: "play.circle.fill").font(.system(size: 44)).foregroundStyle(.white.opacity(t.url == nil ? 0.4 : 0.95)) }
-                                    .clipShape(RoundedRectangle(cornerRadius: palette.cornerRadius.medium, style: .continuous))
-                                Text(t.title).font(.subheadline.weight(.semibold)).foregroundStyle(palette.textPrimary)
-                                Text(t.url == nil ? "Licensed trailer source not configured" : "Trailer").font(.caption).foregroundStyle(palette.textMuted)
-                            } }
+                            Button { play(t) } label: {
+                                VStack(alignment: .leading, spacing: Spacing.xs) {
+                                    ArtworkImage(film.backdrop)
+                                        .frame(width: 280, height: 158)
+                                        .overlay {
+                                            // A solid disc reads clearly over any artwork.
+                                            Image(systemName: "play.fill")
+                                                .font(.title2)
+                                                .foregroundStyle(.white)
+                                                .frame(width: 56, height: 56)
+                                                .background(.black.opacity(0.55), in: Circle())
+                                                .opacity(t.url == nil ? 0.5 : 1)
+                                        }
+                                        .clipShape(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous))
+                                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                                        Text(t.title).font(.subheadline.weight(.semibold)).foregroundStyle(palette.textPrimary)
+                                        Text(t.url == nil ? "Licensed trailer source not configured" : "Trailer").font(.caption).foregroundStyle(palette.textMuted)
+                                    }
+                                }
+                                .frame(width: 280, alignment: .leading)
+                            }
                             .buttonStyle(.plain)
                             .disabled(t.url == nil)
                             .accessibilityElement(children: .combine)
                         }
                     }
-                    .padding(.horizontal, 20)
+                    .pagePadding()
                 }
             }
         }
     }
 
     private var credits: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        var rows: [(label: String, value: String)] = []
+        if let d = film.director { rows.append(("Director", d)) }
+        if !film.cast.isEmpty { rows.append(("Starring", film.cast.joined(separator: ", "))) }
+        if !film.genres.isEmpty { rows.append(("Genres", film.genres.joined(separator: ", "))) }
+        if !film.attributions.isEmpty { rows.append(("Artwork", film.attributions.joined(separator: "; "))) }
+        return VStack(alignment: .leading, spacing: Spacing.header) {
             SectionHeader("About")
-            VStack(alignment: .leading, spacing: 12) {
-                if let d = film.director { fact("Director", d) }
-                if !film.cast.isEmpty { fact("Starring", film.cast.joined(separator: ", ")) }
-                fact("Genres", film.genres.joined(separator: ", "))
-                if !film.attributions.isEmpty { fact("Artwork", film.attributions.joined(separator: "; ")) }
-            }
-            .padding(.horizontal, 20)
+            DetailRows(rows).pagePadding()
         }
-    }
-
-    private func fact(_ label: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label).font(.subheadline).foregroundStyle(palette.textMuted)
-            Text(value).font(.body).foregroundStyle(palette.textPrimary)
-        }
-        .padding(.leading, 12)
-        .overlay(alignment: .leading) { Capsule().fill(palette.divider).frame(width: 3) }
-        .accessibilityElement(children: .combine)
     }
 }
 
@@ -205,18 +224,19 @@ struct ShowtimesSection: View {
     @State private var showingVenuePicker = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: Spacing.header) {
             SectionHeader("Showtimes", subtitle: app.selectedVenue?.name)
             Button { showingVenuePicker = true } label: {
                 Label(app.selectedVenue == nil ? "Choose a cinema" : "Change cinema", systemImage: "mappin.and.ellipse")
                     .font(.subheadline.weight(.semibold))
+                    .frame(minHeight: Spacing.tap)
             }
-            .padding(.horizontal, 20)
+            .pagePadding()
 
             if app.selectedVenue != nil {
                 if dates.isEmpty && !loading {
                     Text(film.status == .comingSoon ? "Tickets for this film aren't on sale here yet." : "No upcoming showtimes at this cinema.")
-                        .font(.subheadline).foregroundStyle(palette.textMuted).padding(.horizontal, 20)
+                        .font(.subheadline).foregroundStyle(palette.textMuted).pagePadding()
                 }
                 dateStrip
                 timesByFormat
@@ -229,56 +249,55 @@ struct ShowtimesSection: View {
 
     private var dateStrip: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
+            HStack(spacing: Spacing.xs) {
                 ForEach(dates, id: \.self) { day in
                     let tz = app.selectedVenue?.timeZone ?? "Europe/London"
                     let date = app.formatters.date(fromLocal: day, timeZone: tz)
-                    let selected = day == selectedDate
-                    Button { selectedDate = day } label: {
-                        Text(date.map { app.formatters.shortDate($0, timeZone: tz) } ?? day)
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 14).frame(minHeight: 44)
-                            .foregroundStyle(selected ? palette.selectedText : palette.textPrimary)
-                            .background(selected ? palette.selected : palette.surfaceElevated, in: Capsule())
-                    }
-                    .accessibilityAddTraits(selected ? .isSelected : [])
-                    .accessibilityLabel(date.map { app.formatters.longDate($0, timeZone: tz) } ?? day)
+                    Chip(date.map { app.formatters.shortDate($0, timeZone: tz) } ?? day, selected: day == selectedDate) { selectedDate = day }
+                        .accessibilityLabel(date.map { app.formatters.longDate($0, timeZone: tz) } ?? day)
                 }
             }
-            .padding(.horizontal, 20)
+            .pagePadding()
         }
     }
 
     private var timesByFormat: some View {
         let groups = Dictionary(grouping: screenings) { ($0.formats + $0.attributes).joined(separator: " · ") }
-        return VStack(alignment: .leading, spacing: 16) {
+        return VStack(alignment: .leading, spacing: Spacing.l) {
             if loading { ProgressView().frame(maxWidth: .infinity) }
             ForEach(groups.keys.sorted(), id: \.self) { key in
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: Spacing.xs) {
                     Text(key).font(.headline).foregroundStyle(palette.textPrimary)
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 10)], spacing: 10) {
-                        ForEach(groups[key]!) { s in timeButton(s) }
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: Spacing.xs)], spacing: Spacing.xs) {
+                        ForEach(groups[key]!.sorted { $0.startsAt < $1.startsAt }) { s in timeButton(s) }
                     }
                 }
             }
         }
-        .padding(.horizontal, 20)
+        .pagePadding()
     }
 
+    /// Every tile is the same size: time on top, one line of detail underneath.
     private func timeButton(_ s: ScreeningSummary) -> some View {
         let time = app.formatters.time(s.startsAt, timeZone: s.venue.timeZone)
+        let detail = s.availability.level == .soldOut ? "Sold out" : s.availability.level == .limited ? "Few left" : s.auditorium.name
         return Button { startBooking(s.id) } label: {
-            VStack(spacing: 2) {
-                Text(time).font(.headline)
-                Text(s.availability.level == .soldOut ? "Sold out" : s.availability.level == .limited ? "Few left" : s.auditorium.name)
-                    .font(.caption2)
+            VStack(spacing: Spacing.xxs) {
+                Text(time).font(.headline.monospacedDigit())
+                Text(detail)
+                    .font(.caption)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
                     .foregroundStyle(s.availability.level == .limited ? palette.warning : palette.textMuted)
             }
-            .frame(maxWidth: .infinity, minHeight: 56)
+            .padding(.horizontal, Spacing.xs)
+            .frame(maxWidth: .infinity, minHeight: 64, maxHeight: 64)
             .foregroundStyle(palette.textPrimary)
-            .background(palette.surface, in: RoundedRectangle(cornerRadius: palette.cornerRadius.small, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: palette.cornerRadius.small, style: .continuous).strokeBorder(palette.divider))
+            .background(palette.surface, in: RoundedRectangle(cornerRadius: palette.cornerRadius.medium, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: palette.cornerRadius.medium, style: .continuous).strokeBorder(palette.border.opacity(0.5)))
+            .opacity(s.onSale ? 1 : 0.5)
         }
+        .buttonStyle(.plain)
         .disabled(!s.onSale)
         .accessibilityLabel("\(time), \(s.auditorium.name), \(s.formats.joined(separator: " ")), \(s.availability.level == .soldOut ? "sold out" : "\(s.availability.available) seats available")")
     }

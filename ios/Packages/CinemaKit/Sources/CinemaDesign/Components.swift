@@ -29,7 +29,7 @@ public struct SectionHeader<Destination: View>: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 20)
+        .pagePadding()
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
     }
@@ -64,7 +64,7 @@ public struct PosterCard: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             ArtworkImage(film.poster, fallbackTitle: film.title)
                 .aspectRatio(2 / 3, contentMode: .fit)
                 .frame(width: size.width)
@@ -91,20 +91,19 @@ public struct FeaturedFilmCard: View {
     public init(film: Film, width: CGFloat) { self.film = film; self.width = width }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: Spacing.s) {
             ArtworkImage(film.poster, fallbackTitle: film.title)
                 .aspectRatio(2 / 3, contentMode: .fit)
                 .frame(width: width)
                 .clipShape(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous))
                 .overlay(alignment: .topTrailing) {
-                    if let badge = film.formats.first(where: { $0 != "2D" }) { FormatBadge(badge).padding(12) }
+                    if let badge = film.formats.first(where: { $0 != "2D" }) { FormatBadge(badge).padding(Spacing.s) }
                 }
                 .shadow(color: .black.opacity(0.4), radius: 16, y: 10)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(film.title).font(.headline).foregroundStyle(palette.textPrimary)
-                Text(film.synopsis).font(.subheadline).foregroundStyle(palette.textMuted).lineLimit(2)
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(film.title).font(.headline).foregroundStyle(palette.textPrimary).lineLimit(1)
+                Text(film.synopsis).font(.subheadline).foregroundStyle(palette.textMuted).lineLimit(2, reservesSpace: true)
             }
-            .padding(.horizontal, 6)
             .frame(width: width, alignment: .leading)
         }
         .accessibilityElement(children: .combine)
@@ -208,8 +207,8 @@ public struct StatItem: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Label(label, systemImage: icon).font(.subheadline).foregroundStyle(palette.textMuted)
-            Text(value).font(.title3.weight(.bold)).foregroundStyle(palette.textPrimary)
+            Label(label, systemImage: icon).font(.subheadline).foregroundStyle(palette.textMuted).lineLimit(1)
+            Text(value).font(.title3.weight(.bold)).foregroundStyle(palette.textPrimary).lineLimit(2).minimumScaleFactor(0.8)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(label): \(spokenValue ?? value)")
@@ -229,16 +228,16 @@ public struct InfoBanner: View {
     }
 
     public var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
+        HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
             Image(systemName: icon).foregroundStyle(tint).accessibilityHidden(true)
             Text(text).font(.subheadline).foregroundStyle(palette.textPrimary).frame(maxWidth: .infinity, alignment: .leading)
             if let actionTitle, let action {
                 Button(actionTitle, action: action).font(.subheadline.weight(.semibold)).foregroundStyle(tint)
             }
         }
-        .padding(14)
-        .background(palette.surface, in: RoundedRectangle(cornerRadius: palette.cornerRadius.small, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: palette.cornerRadius.small, style: .continuous).strokeBorder(tint.opacity(0.6)))
+        .padding(Spacing.m)
+        .background(palette.surface, in: RoundedRectangle(cornerRadius: palette.cornerRadius.medium, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: palette.cornerRadius.medium, style: .continuous).strokeBorder(tint.opacity(0.6)))
         .accessibilityElement(children: .combine)
     }
 

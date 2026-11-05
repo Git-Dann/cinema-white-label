@@ -181,7 +181,7 @@ struct MembershipPurchaseSheet: View {
                 Button(busy ? "Paying…" : "Pay \(app.formatters.money(plan.priceMinor))") { Task { await buy() } }
                     .buttonStyle(.cinemaPrimary)
                     .disabled(busy)
-                    .padding(16)
+                    .bottomActionPadding()
             }
         }
     }

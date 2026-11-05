@@ -13,17 +13,18 @@ struct HomeView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 32) {
+            VStack(alignment: .leading, spacing: Spacing.section) {
                 cinemaChip
                 if let error = app.loadError {
-                    InfoBanner(.error, error, actionTitle: "Retry") { Task { await app.loadContent() } }.padding(.horizontal, 20)
+                    InfoBanner(.error, error, actionTitle: "Retry") { Task { await app.loadContent() } }.pagePadding()
                 }
                 if app.isLoading && app.nowShowing.isEmpty { LoadingView("Loading films…") }
                 ForEach(app.config.home) { section in
                     sectionView(section)
                 }
             }
-            .padding(.bottom, 32)
+            .padding(.top, Spacing.xs)
+            .padding(.bottom, Spacing.section)
         }
         .background(palette.background)
         .navigationTitle(app.config.branding.wordmark)
@@ -36,17 +37,17 @@ struct HomeView: View {
 
     private var cinemaChip: some View {
         Button { showingVenuePicker = true } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: Spacing.xs) {
                 Image(systemName: "mappin.circle.fill").foregroundStyle(palette.actionPrimary)
                 Text(app.selectedVenue?.shortName(operatorWordmark: app.config.branding.wordmark) ?? "Choose a cinema")
                     .font(.subheadline.weight(.semibold))
                 Image(systemName: "chevron.down").font(.caption.weight(.bold))
             }
             .foregroundStyle(palette.textPrimary)
-            .padding(.horizontal, 14).frame(minHeight: 44)
+            .padding(.horizontal, Spacing.m).frame(minHeight: Spacing.tap)
             .glassEffect(.regular.interactive(), in: Capsule())
         }
-        .padding(.horizontal, 20)
+        .pagePadding()
         .accessibilityLabel("Cinema: \(app.selectedVenue?.name ?? "none selected")")
         .accessibilityHint("Changes your cinema")
     }
@@ -55,45 +56,45 @@ struct HomeView: View {
     private func sectionView(_ section: TenantConfig.HomeSection) -> some View {
         switch section.kind {
         case .featured where !app.nowShowing.isEmpty:
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: Spacing.header) {
                 SectionHeader(section.title, subtitle: section.subtitle) { FilmGridView(title: section.title, films: app.nowShowing) }
                 ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(alignment: .top, spacing: 16) {
+                    LazyHStack(alignment: .top, spacing: Spacing.item) {
                         ForEach(app.nowShowing.prefix(6)) { film in
                             NavigationLink(value: film) { FeaturedFilmCard(film: film, width: 260) }.buttonStyle(.plain)
                         }
                     }
                     .scrollTargetLayout()
-                    .padding(.horizontal, 20)
+                    .pagePadding()
                 }
                 .scrollTargetBehavior(.viewAligned)
             }
         case .upcomingBookings:
             let upcoming = app.tickets.upcoming()
             if !upcoming.isEmpty {
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: Spacing.header) {
                     SectionHeader(section.title, subtitle: upcoming.count == 1 ? "1 upcoming screening" : "\(upcoming.count) upcoming screenings")
                     ScrollView(.horizontal, showsIndicators: false) {
-                        LazyHStack(spacing: 16) {
+                        LazyHStack(alignment: .top, spacing: Spacing.item) {
                             ForEach(upcoming) { b in
                                 NavigationLink { TicketDetailView(booking: b) } label: { UpcomingTicketCard(booking: b) }.buttonStyle(.plain)
                             }
                         }
-                        .padding(.horizontal, 20)
+                        .pagePadding()
                     }
                 }
             }
         case .promotion where !app.promotions.isEmpty:
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: Spacing.header) {
                 SectionHeader(section.title, subtitle: section.subtitle)
                 ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(alignment: .top, spacing: 16) {
+                    LazyHStack(alignment: .top, spacing: Spacing.item) {
                         ForEach(app.promotions) { promo in
                             PromotionCard(promotion: promo) { voucherToShow = $0 }
                         }
                     }
                     .scrollTargetLayout()
-                    .padding(.horizontal, 20)
+                    .pagePadding()
                 }
                 .scrollTargetBehavior(.viewAligned)
             }
@@ -107,15 +108,15 @@ struct HomeView: View {
     }
 
     private func posterRow(_ section: TenantConfig.HomeSection, films: [Film], caption: @escaping (Film) -> String?) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: Spacing.header) {
             SectionHeader(section.title, subtitle: section.subtitle) { FilmGridView(title: section.title, films: films) }
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(alignment: .top, spacing: 14) {
+                LazyHStack(alignment: .top, spacing: Spacing.item) {
                     ForEach(films) { film in
                         NavigationLink(value: film) { PosterCard(film: film, size: .medium, caption: caption(film)) }.buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 20)
+                .pagePadding()
             }
         }
     }
@@ -133,7 +134,7 @@ struct UpcomingTicketCard: View {
     @Environment(\.palette) private var palette
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             ArtworkImage(booking.film.backdrop ?? booking.film.poster)
                 .frame(width: 300, height: 170)
                 .overlay(alignment: .bottomLeading) {
@@ -143,7 +144,7 @@ struct UpcomingTicketCard: View {
                             .font(.subheadline)
                     }
                     .foregroundStyle(.white)
-                    .padding(14)
+                    .padding(Spacing.m)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .top, endPoint: .bottom))
                 }
@@ -162,17 +163,7 @@ struct FilmGridView: View {
 
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 104, maximum: 180), spacing: 12)], spacing: 16) {
-                ForEach(films) { film in
-                    NavigationLink(value: film) {
-                        ArtworkImage(film.poster, accessibilityLabel: film.title)
-                            .aspectRatio(2 / 3, contentMode: .fit)
-                            .clipShape(RoundedRectangle(cornerRadius: palette.cornerRadius.medium, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(16)
+            PosterGrid(films: films).padding(.vertical, Spacing.m)
         }
         .background(palette.background)
         .navigationTitle(title)
@@ -205,7 +196,7 @@ struct PromotionCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             Image(systemName: symbol)
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(palette.actionPrimary)
@@ -217,15 +208,13 @@ struct PromotionCard: View {
             Text(promotion.body)
                 .font(.subheadline)
                 .foregroundStyle(palette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
+                .lineLimit(3)
+            Spacer(minLength: Spacing.s)
             if promotion.hasButton { action }
         }
-        .padding(18)
-        .frame(width: 280, alignment: .leading)
-        .frame(minHeight: 200, alignment: .topLeading)
-        .background(palette.surfaceElevated, in: RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous).strokeBorder(palette.border))
+        .frame(maxHeight: .infinity, alignment: .topLeading)
+        .cardStyle()
+        .frame(width: 280, height: 220)
         .accessibilityElement(children: .contain)
     }
 
@@ -235,18 +224,18 @@ struct PromotionCard: View {
         switch promotion.action {
         case .voucher(let code):
             Button(label) { showVoucher(VoucherCode(code: code, title: promotion.title)) }
-                .buttonStyle(.cinemaGlass)
+                .buttonStyle(.cinemaCompact)
                 .accessibilityHint("Shows the code \(code)")
         case .film(let id):
             // Only offer the button when the film is in the loaded catalogue.
             if let film = app.film(id: id) {
                 NavigationLink(value: film) { Text(label) }
-                    .buttonStyle(.cinemaGlass)
+                    .buttonStyle(.cinemaCompact)
                     .accessibilityHint("Opens \(film.title)")
             }
         case .link(let url):
             Button(label) { openURL(url) }
-                .buttonStyle(.cinemaGlass)
+                .buttonStyle(.cinemaCompact)
                 .accessibilityHint("Opens in Safari")
                 .accessibilityAddTraits(.isLink)
         case .none:
@@ -263,7 +252,7 @@ struct VoucherCodeSheet: View {
     @State private var copied = false
 
     var body: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: Spacing.m) {
             Text(voucher.title)
                 .font(.headline)
                 .foregroundStyle(palette.textSecondary)
@@ -285,7 +274,7 @@ struct VoucherCodeSheet: View {
             .buttonStyle(.cinemaPrimary)
             .sensoryFeedback(.success, trigger: copied)
         }
-        .padding(24)
+        .padding(Spacing.xl)
         .frame(maxWidth: .infinity)
         .presentationDetents([.height(320)])
         .presentationBackground(palette.backgroundElevated)

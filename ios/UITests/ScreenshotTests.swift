@@ -105,5 +105,13 @@ final class ScreenshotTests: XCTestCase {
         app.swipeUp()
         sleep(1)
         shot("account-membership")
+
+        // Films and Cinemas tabs, for the layout review.
+        app.tabBars.buttons["Films"].tap()
+        sleep(2)
+        shot("films-tab")
+        app.tabBars.buttons["Cinemas"].tap()
+        sleep(2)
+        shot("cinemas-tab")
     }
 }

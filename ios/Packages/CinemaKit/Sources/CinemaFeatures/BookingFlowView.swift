@@ -166,7 +166,7 @@ struct SeatSelectionScreen: View {
             HStack(spacing: 0) {
                 mapArea
                 Divider()
-                ScrollView { summary.padding(20) }
+                ScrollView { summary.padding(Spacing.page) }
                     .frame(width: 340)
                     .background(palette.backgroundElevated)
             }
@@ -174,9 +174,9 @@ struct SeatSelectionScreen: View {
             VStack(spacing: 0) { mapArea }
                 .safeAreaInset(edge: .bottom) {
                     summary
-                        .padding(16)
+                        .padding(Spacing.card)
                         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-                        .padding(.horizontal, 10)
+                        .padding(.horizontal, Spacing.s)
                 }
         }
         .background(palette.background)
@@ -209,7 +209,7 @@ struct SeatSelectionScreen: View {
                 }, onZoom: { method in
                     Task { await app.analytics.record(.seatMapZoomed, ["screeningId": flow.screening.id, "method": method]) }
                 })
-                SeatLegend(model: selection, formatters: flow.formatters).padding(.vertical, 10)
+                SeatLegend(model: selection, formatters: flow.formatters).padding(.vertical, Spacing.s)
             } else {
                 SeatListView(model: selection, formatters: flow.formatters)
             }
@@ -218,12 +218,14 @@ struct SeatSelectionScreen: View {
 
     private var header: some View {
         let s = flow.screening
-        return VStack(spacing: 2) {
+        return VStack(spacing: Spacing.xxs) {
             Text(s.film.title).font(.headline).foregroundStyle(palette.textPrimary)
             Text("\(flow.formatters.shortDate(s.startsAt, timeZone: s.venue.timeZone)) · \(flow.formatters.time(s.startsAt, timeZone: s.venue.timeZone)) · \(s.auditorium.name) · \(s.formats.joined(separator: " "))")
                 .font(.subheadline).foregroundStyle(palette.textMuted)
+                .lineLimit(1).minimumScaleFactor(0.8)
         }
-        .padding(.vertical, 8)
+        .pagePadding()
+        .padding(.vertical, Spacing.xs)
         .accessibilityElement(children: .combine)
     }
 
@@ -338,7 +340,7 @@ struct TicketTypesScreen: View {
             Button("Review booking") { flow.continueToReview() }
                 .buttonStyle(.cinemaPrimary)
                 .disabled(flow.quote == nil)
-                .padding(16)
+                .bottomActionPadding()
         }
     }
 }
@@ -426,7 +428,7 @@ struct FoodScreen: View {
         .safeAreaInset(edge: .bottom) {
             Button(flow.basket.isEmpty ? "Skip" : "Continue · \(flow.quote.map { flow.formatters.money($0.totalMinor) } ?? "")") { flow.continueToReview() }
                 .buttonStyle(.cinemaPrimary)
-                .padding(16)
+                .bottomActionPadding()
         }
     }
 
@@ -434,8 +436,8 @@ struct FoodScreen: View {
         Button {
             if p.modifierGroups.isEmpty { Task { await flow.addToBasket(BasketItem(productId: p.id)) } } else { configuring = p }
         } label: {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .top, spacing: Spacing.s) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(p.name).font(.headline).foregroundStyle(palette.textPrimary)
                     if !p.bundleItems.isEmpty { Text(p.bundleItems.joined(separator: " · ")).font(.subheadline).foregroundStyle(palette.textSecondary) }
                     Text(([p.dietary.joined(separator: ", ")] + (p.allergens.isEmpty ? [] : ["Contains: \(p.allergens.joined(separator: ", "))"])).filter { !$0.isEmpty }.joined(separator: " · "))
@@ -521,7 +523,7 @@ struct ProductOptionsSheet: View {
                 .buttonStyle(.cinemaPrimary)
                 .disabled(!problems.isEmpty)
                 .accessibilityHint(problems.first ?? "")
-                .padding(16)
+                .bottomActionPadding()
             }
         }
         .onAppear {
@@ -593,7 +595,7 @@ struct ReviewScreen: View {
             } label: { Text("Pay \(flow.quote.map { flow.formatters.money($0.totalMinor) } ?? "")") }
                 .buttonStyle(.cinemaPrimary)
                 .disabled(flow.quote == nil)
-                .padding(16)
+                .bottomActionPadding()
         }
     }
 }
@@ -665,7 +667,7 @@ struct ConfirmationScreen: View {
     var body: some View {
         ScrollView {
             if let b = flow.booking {
-                VStack(spacing: 20) {
+                VStack(spacing: Spacing.l) {
                     Image(systemName: "checkmark.circle.fill").font(.system(size: 64)).foregroundStyle(palette.success)
                         .symbolEffect(.bounce, options: .nonRepeating)
                         .accessibilityHidden(true)
@@ -681,7 +683,8 @@ struct ConfirmationScreen: View {
                     }
                     Button("View ticket", action: onViewTicket).buttonStyle(.cinemaPrimary)
                 }
-                .padding(24)
+                .pagePadding()
+                .padding(.vertical, Spacing.xl)
                 .onAppear { AccessibilityNotification.Announcement("Booking confirmed. Reference \(b.reference).").post() }
             }
         }

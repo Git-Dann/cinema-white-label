@@ -35,7 +35,7 @@ public struct RootView: View {
             }
         }
         .tabViewStyle(.sidebarAdaptable)
-        .tabBarMinimizeBehavior(.onScrollDown)
+        // The tab bar stays full size: a minimised bubble sat on top of posters.
         .environment(app)
         .environment(\.mediaBaseURL, app.mediaBaseURL)
         .environment(\.startBooking, StartBookingAction { booking = $0 })
