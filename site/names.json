@@ -1,0 +1,5 @@
+{"chosen":"Seatfold","searches":[
+ {"query":"\"Reelwick\" cinema","result":"no exact match, but every result is Reel Cinemas (UK chain): too close, rejected"},
+ {"query":"\"Usherline\" cinema app","result":"no exact match, but usheru (UK/IE cinema app) is too close: rejected"},
+ {"query":"\"Seatfold\" cinema booking","result":"no business or product of that name in the first results: kept"}],
+ "searched":true,"note":"Domain not checked. Placeholder until the product is named."}

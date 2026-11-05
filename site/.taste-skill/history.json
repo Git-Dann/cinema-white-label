@@ -1,0 +1,25 @@
+{
+ "palettes": [
+  "teal-on-paper"
+ ],
+ "types": [
+  "onest"
+ ],
+ "dealt": [
+  "urbanist",
+  "chivo",
+  "onest"
+ ],
+ "moments": [
+  {
+   "id": "pinned-chapters",
+   "at": "2026-11-05T11:52:48.597Z",
+   "seed": "92152815"
+  },
+  {
+   "id": "liquid-type",
+   "at": "2026-11-05T11:52:48.658Z",
+   "seed": "85068672"
+  }
+ ]
+}
