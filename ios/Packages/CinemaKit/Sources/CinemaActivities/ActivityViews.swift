@@ -10,15 +10,19 @@ import CinemaDesign
 
 struct PhaseIcon: View {
     let phase: ScreeningPhase
-    var body: some View {
-        Image(systemName: switch phase {
+
+    private var symbol: String {
+        switch phase {
         case .upcoming: "ticket.fill"
         case .doorsOpen: "door.left.hand.open"
         case .startingSoon: "timer"
         case .started: "film.fill"
         case .ended: "checkmark.circle.fill"
-        })
-        .accessibilityHidden(true)
+        }
+    }
+
+    var body: some View {
+        Image(systemName: symbol).accessibilityHidden(true)
     }
 }
 
