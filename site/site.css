@@ -8,7 +8,9 @@
 .device::before { content: ""; position: absolute; z-index: 1; top: 2.6%; left: 50%; translate: -50% 0; width: 30%; height: 2.4%; border-radius: 99px; background: #000; }
 
 /* hero: the phone stands on the effect, cut by the frame's foot */
-.hero-stage { display: flex; justify-content: flex-end; align-items: flex-start; padding-right: var(--s-8); }
+.hero-stage { display: flex; justify-content: flex-end; align-items: flex-start; padding-right: var(--s-8);
+  /* a lit studio sweep in the sky tones (backgrounds.md), still: one light, no grain, no motion */
+  background: radial-gradient(60% 50% at 62% 38%, #e3ebf2 0%, #d3dfe8 30%, #c3d3de 58%, #b4c7d4 82%, #a9bfcd 100%); }
 .device--hero { position: relative; z-index: 1; width: min(50%, 316px); margin-top: var(--s-8); flex: none; }
 .hero .ly-float { width: min(232px, calc(100% - 2 * var(--s-5))); }
 @media (max-width: 1023px) {
@@ -63,7 +65,7 @@
 .rel__sub { color: var(--u-muted); font-size: 12px; }
 .rel__btn { display: inline-flex; align-items: center; height: 30px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--u-border); font-weight: 500; }
 .rel__btn--primary { background: #06525c; color: #f7f9f8; border: 0; }
-.rel__body { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 24px; padding: 18px 20px; }
+.rel__body { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 24px; padding: 18px 20px; }
 .rel__col { display: grid; gap: 10px; align-content: start; }
 .rel__label { font-size: 12px; color: var(--u-muted); font-weight: 500; }
 .rel__themes { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -76,7 +78,7 @@
 .rel .ui-checks { width: 100%; margin-top: 4px; }
 .rel__preview { display: flex; justify-content: center; }
 .device--mini { width: 180px; }
-@media (max-width: 1279px) { .rel__body { grid-template-columns: minmax(0, 1fr); } .rel__preview { display: none; } }
+@media (max-width: 1279px) { .rel__body { grid-template-columns: minmax(0, 1fr) 150px; gap: 16px; } .demo-phone { width: 150px; } }
 
 /* ---------- journey: captures inside the moment's frames ---------- */
 #journey .mo-pc__visual.shot { overflow: hidden; align-items: flex-start; padding: var(--s-7) var(--s-5) 0; background: #c6d3df; border-radius: var(--r-lg); }
@@ -128,7 +130,7 @@
 #native .panel { --p-h: 300px; }
 .live { display: grid; gap: 12px; justify-items: center; width: 100%; }
 .live__island { display: flex; align-items: center; justify-content: space-between; width: 200px; height: 36px; padding: 0 10px 0 6px; border-radius: 99px; background: #000; color: #2DD4BF; font: 500 13px var(--font-text); }
-.live__poster { width: 24px; height: 24px; border-radius: 50%; background: url(img/ember-protocol-poster.jpg) 50% 30% / cover; }
+.live__poster { width: 24px; height: 24px; border-radius: 50%; background: url(img/ember-protocol-poster-120.jpg) 50% 30% / cover; }
 .live__card { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 6px 14px; align-items: center; width: 100%; padding: 16px; border-radius: 24px; background: rgb(18 22 30 / .94); color: #F4F7FB; box-shadow: 0 20px 40px -20px rgb(0 0 0 / .5); }
 .live__art { grid-row: span 2; width: 56px; height: 72px; border-radius: 10px; object-fit: cover; object-position: 50% 30%; }
 .live__app { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #C5CDDA; }
@@ -177,8 +179,6 @@ main > section.section.section:is(.bg-band, .bg-dots):not(.section--hero) { disp
 @media (max-width: 1023px) { .seatmap__svg { flex: none; height: auto; aspect-ratio: 1000 / 850; } }
 
 /* contrast checks are passes, not finished to-dos: no strike-through */
-.rel .ui-check.is-done .ui-check__label { color: var(--u-ink); }
-.rel .ui-check__label::after { display: none; }
 .rel__preview { align-items: flex-start; }
 .rel__preview .device { flex: none; }
 
@@ -224,3 +224,81 @@ main > section.section.section:is(.bg-band, .bg-dots):not(.section--hero) { disp
 }
 .close--word .close__word { line-height: 1; }
 @media (max-width: 639px) { #native .panel { --p-h: 170px; } }
+
+/* ---------- the live portal demo (js/theme-demo.js) ---------- */
+.rel__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rel__chip { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 4px 12px; border-radius: 99px; border: 1px solid var(--u-border); background: var(--u-bg); color: var(--u-ink); font: 500 12px/1 var(--font-text); cursor: pointer; transition: border-color .15s ease, background-color .15s ease; }
+.rel__chip:hover:not(:disabled) { border-color: #06525c; }
+.rel__chip:focus-visible { outline: 2px solid #06525c; outline-offset: 2px; }
+.rel__chip.is-on { background: #e3f2ef; border-color: #06525c; color: #06525c; }
+.rel__chip:disabled { opacity: .45; cursor: not-allowed; }
+.rel__chip i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+.rel__chip--pick input { width: 16px; height: 16px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; }
+.rel__chip--pick input::-webkit-color-swatch-wrapper { padding: 0; }
+.rel__chip--pick input::-webkit-color-swatch { border: 1px solid rgb(0 0 0 / .15); border-radius: 50%; }
+.rel__checks { display: grid; gap: 10px; margin-top: 6px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--u-border); background: var(--u-bg); }
+.rel__checks-head { display: flex; justify-content: space-between; font-weight: 500; }
+.rel__checks-head b { font-weight: 500; color: #1b7a3a; }
+.has-fail .rel__checks-head b { color: #b42318; }
+.rel__bar { height: 4px; border-radius: 99px; background: var(--u-line); overflow: hidden; }
+.rel__bar i { display: block; height: 100%; width: calc(var(--k) * 100%); background: #06525c; transition: width .3s ease; }
+.has-fail .rel__bar i { background: #b42318; }
+.rel__list { display: grid; gap: 8px; }
+.rel__list li { display: grid; grid-template-columns: 16px 1fr auto; gap: 10px; align-items: center; }
+.rel__list li::before { content: ""; width: 16px; height: 16px; border-radius: 50%; background: #1b7a3a url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4.6 8.3 2.3 2.3 4.5-4.8' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 16px no-repeat; }
+.rel__list li.is-fail::before { background: #b42318 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m5.4 5.4 5.2 5.2m0-5.2-5.2 5.2' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") center / 16px no-repeat; }
+.rel__list code { font: 12px var(--font-mono); color: var(--u-muted); }
+.rel__list em { font-style: normal; color: #b42318; }
+.has-fail .rel__btn--primary { background: #f3e1df; color: #b42318; }
+.rel .rel__btn--primary { white-space: nowrap; }
+
+/* the phone preview: drawn from the engine's semantic tokens (fallback: Northlight, Midnight, dark) */
+.demo-phone { width: 196px; }
+.demo { --d-bg: #060B14; --d-surface: #111A2B; --d-surface2: #18233A; --d-text: #F4F7FB; --d-text2: #C5CDDA; --d-muted: #8E9AB0;
+  --d-accent: #2DD4BF; --d-accent-text: #0B0B0F; --d-divider: #1F2B42; --d-seat: #263046; --d-seat-line: #71757C; --d-sel: #2DD4BF;
+  --d-held: #B08A2E; --d-sold: #242830; --d-prem: #F5C451; --d-r: 10px;
+  display: flex; flex-direction: column; gap: 6px; height: 100%; aspect-ratio: 720 / 1565; padding: 12px 12px 10px; border-radius: 11% / 5%;
+  background: var(--d-bg); color: var(--d-text); font: 400 9px/1.35 var(--font-text); overflow: hidden; transition: background-color .25s ease, color .25s ease; }
+.demo__status { display: flex; justify-content: space-between; font-size: 8px; font-weight: 500; padding: 0 6px 6px; }
+.demo__brand { font-size: 17px; font-weight: 600; letter-spacing: -.02em; }
+.demo__venue { align-self: flex-start; display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 99px; background: var(--d-surface); border: 1px solid var(--d-divider); font-size: 8.5px; }
+.demo__venue i { width: 7px; height: 7px; border-radius: 50%; background: var(--d-accent); }
+.demo__h { margin-top: 4px; font-size: 11px; font-weight: 600; }
+.demo__sub { margin-top: -5px; color: var(--d-muted); font-size: 8px; }
+.demo__card { display: grid; grid-template-columns: 52px 1fr; gap: 8px; padding: 6px; border-radius: var(--d-r); background: var(--d-surface); border: 1px solid var(--d-divider); }
+.demo__card img { width: 52px; height: 74px; object-fit: cover; object-position: 50% 30%; border-radius: calc(var(--d-r) * .6); }
+.demo__card > div { display: grid; align-content: start; gap: 3px; }
+.demo__film { font-size: 10px; font-weight: 600; }
+.demo__meta { color: var(--d-text2); font-size: 8px; }
+.demo__btn { justify-self: start; margin-top: 4px; padding: 4px 9px; border-radius: 99px; background: var(--d-accent); color: var(--d-accent-text); font-size: 8.5px; font-weight: 600; transition: background-color .25s ease; }
+.demo__seats { display: flex; gap: 5px; }
+.demo__seats i { width: 15px; height: 13px; border-radius: 4px; background: var(--d-seat); box-shadow: inset 0 0 0 1px var(--d-seat-line); }
+.demo__seats .s-sel { background: var(--d-sel); box-shadow: none; }
+.demo__seats .s-held { background: var(--d-held); box-shadow: none; }
+.demo__seats .s-sold { background: var(--d-sold); box-shadow: none; }
+.demo__seats .s-prem { box-shadow: inset 0 0 0 1.5px var(--d-prem); }
+.demo__tabs { display: flex; justify-content: space-around; margin-top: auto; padding: 7px 4px; border-radius: 99px; background: var(--d-surface); border: 1px solid var(--d-divider); color: var(--d-muted); font-size: 8px; }
+.demo__tabs b { color: var(--d-accent); font-weight: 600; }
+.demo-phone > .demo { width: 100%; }
+
+/* the demo at smaller widths: the phone narrows with its column, the checks keep their count and
+   the first row (a failure when there is one), the head stays on one line */
+@media (max-width: 1279px) {
+  .demo-phone { width: 150px; }
+  .rel__body { padding-block: 14px; }
+  .rel__col { gap: 8px; }
+  .rel__list li:nth-child(n+2) { display: none; }
+}
+@media (max-width: 639px) {
+  .rel__head { flex-wrap: wrap; gap: 8px; }
+  .rel__head > div { flex: 1 1 100%; }
+  .rel__head .rel__btn:not(.rel__btn--primary), .rel__head .ui-spacer { display: none; }
+  .rel__sub { white-space: normal; }
+}
+@media (max-width: 639px) {
+  #portal { --hm: 2; }
+  .rel__body { grid-template-columns: minmax(0, 1fr); }
+  .rel__preview { display: flex; justify-content: center; }
+  .demo-phone { width: 180px; }
+  .rel__list li:nth-child(n+2) { display: grid; }
+}
