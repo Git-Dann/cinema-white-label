@@ -78,6 +78,17 @@ final class ScreenshotTests: XCTestCase {
         sleep(1)
         shot("confirmed")
 
+        // Live Activity in the Dynamic Island (shown once the app is in the background).
+        XCUIDevice.shared.press(.home)
+        sleep(3)
+        let island = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        step += 1
+        island.name = String(format: "%02d-%@", step, "dynamic-island")
+        island.lifetime = .keepAlways
+        add(island)
+        app.activate()
+        sleep(1)
+
         // Tickets tab and ticket detail
         app.buttons["View ticket"].tap()
         sleep(2)

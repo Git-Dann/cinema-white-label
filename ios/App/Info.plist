@@ -23,6 +23,10 @@
 			<array><string>cinema-$(TENANT_SLUG)</string></array>
 		</dict>
 	</array>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>AppGroup</key>
+	<string>group.$(APP_BUNDLE_ID)</string>
 	<key>TenantSlug</key>
 	<string>$(TENANT_SLUG)</string>
 	<key>APIBaseURL</key>

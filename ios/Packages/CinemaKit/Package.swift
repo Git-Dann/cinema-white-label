@@ -24,10 +24,12 @@ var products: [Product] = [
 targets += [
     .target(name: "CinemaDesign", dependencies: ["CinemaCore"], swiftSettings: [.swiftLanguageMode(.v5)]),
     .target(name: "CinemaSeatMap", dependencies: ["CinemaCore", "CinemaDesign"], swiftSettings: [.swiftLanguageMode(.v5)]),
-    .target(name: "CinemaFeatures", dependencies: ["CinemaCore", "CinemaDesign", "CinemaSeatMap"], swiftSettings: [.swiftLanguageMode(.v5)]),
+    .target(name: "CinemaActivities", dependencies: ["CinemaCore", "CinemaDesign"], swiftSettings: [.swiftLanguageMode(.v5)]),
+    .target(name: "CinemaFeatures", dependencies: ["CinemaCore", "CinemaDesign", "CinemaSeatMap", "CinemaActivities"], swiftSettings: [.swiftLanguageMode(.v5)]),
 ]
 products += [
     .library(name: "CinemaFeatures", targets: ["CinemaFeatures"]),
+    .library(name: "CinemaActivities", targets: ["CinemaActivities"]),
 ]
 #endif
 

@@ -27,9 +27,14 @@ targets:
       # Bundled fallback tenant configs ship inside CinemaCore (BundledConfig).
     info:
       path: App/Info.plist
+    entitlements:
+      path: App/CinemaApp.entitlements
+      properties:
+        com.apple.security.application-groups: [group.$(APP_BUNDLE_ID)]
     dependencies:
       - package: CinemaKit
         product: CinemaFeatures
+      - target: CinemaWidgets
     settings:
       base:
         GENERATE_INFOPLIST_FILE: NO
@@ -37,6 +42,34 @@ targets:
         # Operator identity comes from Config/<Operator>.xcconfig; only the app uses it.
         PRODUCT_NAME: $(APP_NAME)
         PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID)
+  CinemaWidgets:
+    type: app-extension
+    platform: iOS
+    sources: [Widgets]
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: $(APP_NAME)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        TenantSlug: $(TENANT_SLUG)
+        AppGroup: group.$(APP_BUNDLE_ID)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: Widgets/CinemaWidgets.entitlements
+      properties:
+        com.apple.security.application-groups: [group.$(APP_BUNDLE_ID)]
+    dependencies:
+      - package: CinemaKit
+        product: CinemaActivities
+    settings:
+      base:
+        PRODUCT_NAME: CinemaWidgets
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID).widgets
+        GENERATE_INFOPLIST_FILE: NO
+        SKIP_INSTALL: YES
+
   CinemaAppUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -62,6 +95,14 @@ schemes:
       gatherCoverageData: true
     archive:
       config: Northlight Release
+  Northlight Demo:
+    build:
+      targets:
+        CinemaApp: all
+    run:
+      config: Northlight Debug
+      commandLineArguments:
+        "-mock-data": true
   Kestrel:
     build:
       targets:

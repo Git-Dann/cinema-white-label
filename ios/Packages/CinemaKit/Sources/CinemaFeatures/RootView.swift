@@ -44,6 +44,7 @@ public struct RootView: View {
                 booking = nil
                 if case .confirmed(let b) = result {
                     app.tickets.insert(b)
+                    app.bookingConfirmed(b)
                     tab = .tickets
                 }
             }
@@ -65,6 +66,7 @@ public struct RootView: View {
         }
         .onChange(of: app.tickets.bookings) { _, _ in
             SpotlightIndexer.index(upcoming: app.tickets.upcoming(), favourites: app.favouriteVenues, formatters: app.formatters)
+            app.syncSystemSurfaces()
         }
     }
 

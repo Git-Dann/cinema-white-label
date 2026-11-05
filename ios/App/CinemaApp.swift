@@ -38,7 +38,8 @@ struct CinemaApp: App {
             service: service,
             configStore: TenantConfigStore(bundled: bundled, cacheDirectory: support),
             tickets: TicketStore(cacheDirectory: support, tenantSlug: slug),
-            mediaBaseURL: base
+            mediaBaseURL: base,
+            isDemo: mockMode
         )
         _app = State(initialValue: model)
     }

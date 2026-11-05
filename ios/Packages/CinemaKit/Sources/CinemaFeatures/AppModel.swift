@@ -11,6 +11,10 @@ public final class AppModel {
     public let tickets: TicketStore
     public let analytics: AnalyticsRecorder
     public let mediaBaseURL: URL
+    /// Demo builds use mock data; Live Activities may start early and the widget is labelled demo.
+    public let isDemo: Bool
+    /// App Group shared with the widget extension (from Info.plist).
+    public let widgetStore: WidgetSnapshotStore
 
     public private(set) var venues: [Venue] = []
     public private(set) var nowShowing: [Film] = []
@@ -26,7 +30,10 @@ public final class AppModel {
         }
     }
 
-    public init(service: any CinemaService, configStore: TenantConfigStore, tickets: TicketStore, mediaBaseURL: URL) {
+    public init(service: any CinemaService, configStore: TenantConfigStore, tickets: TicketStore, mediaBaseURL: URL, isDemo: Bool = false,
+                appGroup: String = Bundle.main.infoDictionary?["AppGroup"] as? String ?? "") {
+        self.isDemo = isDemo
+        self.widgetStore = WidgetSnapshotStore(suiteName: appGroup)
         self.service = service
         self.configStore = configStore
         self.tickets = tickets
