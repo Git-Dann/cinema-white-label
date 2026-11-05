@@ -394,3 +394,23 @@ export function errorDetails(e: unknown): string[] {
     return `${where}${i.message ?? i.code ?? 'Invalid value'}`;
   });
 }
+
+export type PromotionActionKind = 'film' | 'voucher' | 'link' | 'none';
+
+export interface Promotion {
+  id: string;
+  title: string;
+  body: string;
+  ctaLabel: string;
+  action: PromotionActionKind;
+  filmId: string | null;
+  voucherCode: string | null;
+  linkUrl: string | null;
+  venueId: string | null;
+  validFrom: string | null;
+  validTo: string | null;
+  active: boolean;
+  sortOrder: number;
+  /** Whether customers can see it right now (operator-wide promotions only; null when cinema-specific). */
+  showing: boolean | null;
+}

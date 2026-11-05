@@ -50,6 +50,7 @@ async function main() {
   await prisma.idempotencyRecord.deleteMany();
   await prisma.analyticsEvent.deleteMany();
   await prisma.auditLog.deleteMany();
+  await prisma.promotion.deleteMany();
   await prisma.adminUser.deleteMany();
   await prisma.tenant.deleteMany();
 
@@ -97,6 +98,7 @@ async function main() {
       features: { memberships: false, concessions: true, wallet: true, applePay: false, liveActivities: false, guestCheckout: true },
       home: [
         { id: 'featured', kind: 'featured', title: 'Featured', subtitle: 'Big screen picks this week' },
+        { id: 'offers', kind: 'promotion', title: 'Offers' },
         { id: 'upcoming', kind: 'upcomingBookings', title: 'Your Tickets' },
         { id: 'now', kind: 'nowShowing', title: 'Now Showing', subtitle: 'In cinemas now' },
         { id: 'soon', kind: 'comingSoon', title: 'Coming Soon', subtitle: 'Book ahead for opening week' },
@@ -178,6 +180,14 @@ async function main() {
     // Venues, auditoriums, layouts, screenings
     const showing = films.filter((f) => f.released);
     const upcoming = films.filter((f) => !f.released);
+
+    // Promotions for the home screen (fictional offers).
+    await prisma.promotion.createMany({
+      data: [
+        { tenantId: tenant.id, title: 'New here? 10% off', body: 'Use code WELCOME10 on your first booking, tickets and food included.', ctaLabel: 'Show code', action: 'voucher', voucherCode: 'WELCOME10', sortOrder: 0 },
+        { tenantId: tenant.id, title: 'Opening night, booked early', body: 'Tickets for the next big release are on sale now. Pick your seats before they go.', ctaLabel: 'See the film', action: 'film', filmId: (upcoming[0] ?? showing[0]).id, sortOrder: 1 },
+      ],
+    });
     const random = rng(t.slug.length * 7919);
     let screeningCount = 0;
     for (const [vi, v] of t.venues.entries()) {

@@ -7,6 +7,11 @@
       "subtitle": "Big screen picks this week"
     },
     {
+      "id": "offers",
+      "kind": "promotion",
+      "title": "Offers"
+    },
+    {
       "id": "upcoming",
       "kind": "upcomingBookings",
       "title": "Your Tickets"
@@ -114,7 +119,7 @@
     "appearancePolicy": "alwaysDark"
   },
   "tenant": {
-    "id": "cmw37ilgw00017dirym4o2ogd",
+    "id": "cmw3fzf1f00017dj0zw7j3irb",
     "name": "Northlight Cinemas",
     "slug": "northlight",
     "locale": "en-GB",
@@ -134,7 +139,7 @@
   "branding": {
     "markUrl": null,
     "palette": {
-      "id": "cmw37ilh200037dirssld1m9j",
+      "id": "cmw3fzf1i00037dj0t7hbplkr",
       "name": "Northlight Teal",
       "accent": {
         "dark": "#2DD4BF",
@@ -147,8 +152,8 @@
     },
     "wordmark": "Northlight",
     "splashUrl": null,
-    "logoDarkUrl": "/v1/media/cmw37ilhd00097dirlb0s6hey",
-    "logoLightUrl": "/v1/media/cmw37ilh900077dircyh8dxie"
+    "logoDarkUrl": "/v1/media/cmw3fzf1q00097dj0w7kpvp71",
+    "logoLightUrl": "/v1/media/cmw3fzf1m00077dj0w4o4y4eq"
   },
   "features": {
     "wallet": true,

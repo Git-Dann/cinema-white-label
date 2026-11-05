@@ -14,6 +14,7 @@ const NAV = [
   { href: '/seating', label: 'Seat categories & pricing' },
   { href: '/food', label: 'Food & drink' },
   { href: '/vouchers', label: 'Vouchers' },
+  { href: '/promotions', label: 'Promotions' },
   { href: '/films', label: 'Films' },
 ];
 

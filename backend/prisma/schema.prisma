@@ -53,6 +53,7 @@ model Tenant {
   concessionProducts ConcessionProduct[]
   seatCategories  SeatCategory[]
   vouchers        Voucher[]
+  promotions      Promotion[]
 }
 
 /// Operator-configurable seat category: label, shape, icon and colours.
@@ -566,6 +567,33 @@ model Voucher {
   active         Boolean   @default(true)
 
   @@unique([tenantId, code])
+}
+
+/// Operator promotion shown on the customer home screen. The action links to a
+/// film, a voucher code or an https page. Voucher promotions are hidden while
+/// the voucher cannot be redeemed, so customers never see a dead code.
+model Promotion {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title       String
+  body        String
+  ctaLabel    String
+  /// "film" | "voucher" | "link" | "none"
+  action      String
+  filmId      String?
+  voucherCode String?
+  linkUrl     String?
+  /// Null shows the promotion at every cinema.
+  venueId     String?
+  validFrom   DateTime?
+  validTo     DateTime?
+  active      Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId, active])
 }
 
 /// Sold seat. A partial unique index (see migration) guarantees a seat can only

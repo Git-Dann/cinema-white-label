@@ -7,6 +7,11 @@
       "subtitle": "Big screen picks this week"
     },
     {
+      "id": "offers",
+      "kind": "promotion",
+      "title": "Offers"
+    },
+    {
       "id": "upcoming",
       "kind": "upcomingBookings",
       "title": "Your Tickets"
@@ -114,7 +119,7 @@
     "appearancePolicy": "system"
   },
   "tenant": {
-    "id": "cmw37ip8500oc7dirk8f1nc74",
+    "id": "cmw3fzj8800oe7dj05qjeg6ic",
     "name": "Kestrel Picturehouse",
     "slug": "kestrel",
     "locale": "en-GB",
@@ -134,7 +139,7 @@
   "branding": {
     "markUrl": null,
     "palette": {
-      "id": "cmw37ip8700oe7dirn9719odi",
+      "id": "cmw3fzj8a00og7dj0icbvfw5r",
       "name": "Kestrel Red",
       "accent": {
         "dark": "#FF5A6A",
@@ -147,8 +152,8 @@
     },
     "wordmark": "Kestrel",
     "splashUrl": null,
-    "logoDarkUrl": "/v1/media/cmw37ip8c00oi7dir0ehjj46o",
-    "logoLightUrl": "/v1/media/cmw37ip8a00og7dirh5cndxna"
+    "logoDarkUrl": "/v1/media/cmw3fzj8h00ok7dj0do4dd1eg",
+    "logoLightUrl": "/v1/media/cmw3fzj8f00oi7dj0p08e81oz"
   },
   "features": {
     "wallet": true,
