@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en-GB" data-type="software" data-radius="soft" data-ground="sky" data-buttons="pill" data-motion>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Seatfold: branded booking apps for cinema operators</title>
+<meta name="description" content="A native iPhone booking app in your cinema's name, with an operator portal to change colours, menus, prices and seat maps without an App Store release.">
+<meta name="site-kind" content="software">
+<meta name="page-type" content="software">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400..700&family=JetBrains+Mono:wght@400..500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/system.css">
+<link rel="stylesheet" href="assets/ui/cards.css">
+<link rel="stylesheet" href="assets/motion/motion.css">
+<link rel="stylesheet" href="assets/backgrounds/backgrounds.css">
+<link rel="stylesheet" href="assets/layout/layout.css">
+<link rel="stylesheet" href="assets/icons/icon.css">
+<style>
+:root {
+  --p-bg: #f7f9f8; --p-surface: #ebf0ee; --p-ink: #06525c; --p-muted: #2f737d;
+  --p-accent: #06525c; --p-accent-ink: #f7f9f8; --p-action: #06525c; --p-action-ink: #f7f9f8;
+  --p-inv-bg: #06525c; --p-inv-surface: #205d66; --p-inv-ink: #f7f9f8; --p-inv-muted: #c1d0d2;
+  --p-inv-accent: #f7f9f8; --p-inv-accent-ink: #06525c; --p-inv-action: #f7f9f8; --p-inv-action-ink: #06525c;
+  --font-display: "Onest", system-ui, sans-serif;
+  --font-text: "Onest", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --display-weight: 400;
+  --display-tracking: -0.035em;
+  --display-tracking-xl: -0.04em;
+}
+</style>
+<link rel="stylesheet" href="assets/ui/base.css">
+<link rel="stylesheet" href="assets/ui/window/fragment.css">
+<link rel="stylesheet" href="assets/ui/checklist/fragment.css">
+<link rel="stylesheet" href="assets/ui/search/fragment.css">
+<script src="assets/backgrounds/backgrounds.js"></script>
+<script>document.documentElement.classList.add('mo-js');setTimeout(()=>document.documentElement.classList.add('mo-safe'),2500)</script>
+<link rel="modulepreload" href="assets/moments/moments.js">
+<link rel="modulepreload" href="assets/moments/lib.js">
+<link rel="modulepreload" href="assets/moments/pinned-chapters/moment.js">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<!-- type: software (white-label cinema booking platform: native iPhone app, operator portal, backend)
+     deal: hero split, nav nav-cards, close close-word, footer footer-columns, rhythm dark-band, buttons pill,
+           mark dots, ground sky, palette teal-on-paper, type onest, radius soft
+     effect: grain-gradient in the hero frame (behind the phone); card ground: painterly-landscape (native bento)
+     grounds: native bg-dots (portal plain, its blue band removed at the client's request); seats on .ground-inverse (the dark band)
+     moments: pinned-chapters in #journey; the hero moment (liquid-type) is not listed by the split hero, so none
+     name: Seatfold (coined, see names.json). Every app screen is a real CI simulator capture of the
+     Northlight demo build; the seat map is drawn from shared/fixtures/layouts/curved.json. -->
+
+<header class="nav">
+  <div class="wrap nav__bar">
+    <a class="skip-link" href="#portal">Skip to content</a>
+    <a class="nav__logo" href="#top"><span class="mark" data-mark="dots" aria-hidden="true"></span>Seatfold</a>
+    <nav class="nav__links" aria-label="Main">
+      <div class="nav__item">
+        <a class="nav__link" href="#portal">Product <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <div class="nav__menu">
+          <div class="wrap grid">
+            <a class="menu-card span-4" href="#portal">
+              <div class="panel menu-pic" role="img" aria-label="A draft release in the portal: its palette and six contrast checks passed">
+                <div class="ui menu-rel">
+                  <p class="menu-rel__t">Version 15 <span>Ready to publish</span></p>
+                  <p class="menu-rel__sw"><i style="--c:#060B14"></i><i style="--c:#111A2B"></i><i style="--c:#2DD4BF"></i><i style="--c:#B08A2E"></i><i style="--c:#4C9AFF"></i></p>
+                  <p class="menu-rel__ok">Contrast, WCAG 2.2 AA <b>6 of 6 pass</b></p>
+                </div>
+              </div>
+              <span class="t-card">Operator portal</span>
+              <span class="t-small muted">Brand, prices and menus for every cinema</span>
+            </a>
+            <a class="menu-card span-4" href="#journey">
+              <div class="panel menu-pic"><div class="device device--menu"><img src="img/app-home-thumb.webp" width="340" height="739" loading="lazy" alt="The Northlight app home screen"></div></div>
+              <span class="t-card">iPhone booking app</span>
+              <span class="t-small muted">Seats, food and tickets in your name</span>
+            </a>
+            <a class="menu-card span-4" href="#seats">
+              <div class="panel menu-pic menu-pic--dark"><img class="menu-map" src="img/seatmap-mini.svg" width="1000" height="815" loading="lazy" alt="The 226-seat curved screen, two seats chosen"></div>
+              <span class="t-card">Seat maps</span>
+              <span class="t-small muted">Drawn from the layout of each screen</span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="nav__item"><a class="nav__link" href="#journey">Booking</a></div>
+      <div class="nav__item"><a class="nav__link" href="#seats">Seating</a></div>
+      <div class="nav__item"><a class="nav__link" href="#native">iPhone</a></div>
+      <div class="nav__item"><a class="nav__link" href="#questions">Questions</a></div>
+    </nav>
+    <div class="nav__actions">
+      <a class="btn btn--primary" href="mailto:demo@seatfold.example?subject=Seatfold%20demo">Book a demo</a>
+    </div>
+    <button class="nav__toggle" type="button" aria-expanded="false" aria-label="Menu">
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 5h14M2 13h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+  <!-- HERO: split. The words on span-5, the real Northlight home screen in a phone on span-6 start-7,
+       standing on the page's one effect (grain-gradient), one float card with the live seat hold. -->
+  <section class="hero hero--split" aria-labelledby="hero-h">
+    <div class="wrap"><div class="hero-text grid hero__grid">
+      <div class="hero__text span-6">
+        <p class="hero__kicker">Native app for iOS 27, operator portal and booking API</p>
+        <h1 id="hero-h">Branded booking apps for cinemas</h1>
+        <p class="hero__lead">A native iPhone app in your cinema’s name, and one portal to run it. Change colours, menus, prices and seat maps with no App Store release.</p>
+        <div class="btn-row">
+          <a class="btn btn--primary" href="mailto:demo@seatfold.example?subject=Seatfold%20demo">Book a demo<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a>
+          <a class="btn btn--secondary" href="#journey">See the booking flow</a>
+        </div>
+      </div>
+      <div class="hero__media hero-stage span-6 start-7" data-fx="grain-gradient" data-fx-seed="7" data-fx-params='{"grainMotion":0,"calmY":0.9}' data-fx-palette='{"bg":"#c6d3df","surface":"#d6e0e9","ink":"#25303a","accent":"#2f8f8a"}'>
+        <div class="device device--hero" role="img" aria-label="The Northlight app on iPhone: the Leeds Riverside cinema with Ember Protocol featured in IMAX">
+          <img src="img/app-home.webp" alt="" width="720" height="1565" fetchpriority="high">
+        </div>
+        <div class="ly-float">
+          <div class="ly-float__row"><span class="ly-live">Seats held</span><span>7:58 left</span></div>
+          <div class="ly-float__title">Ember Protocol, D1 and D2</div>
+        </div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- APP-FRAME: the operator portal, big. List: the release history (window). Open: the draft release
+       with its theme, palette and the WCAG contrast checks (checklist loops). -->
+  <section class="section" id="portal" aria-labelledby="portal-h">
+    <div class="wrap">
+      <div class="grid">
+        <h2 id="portal-h" class="span-6">One portal for every cinema you run</h2>
+        <div class="span-6 start-7 stack-4">
+          <p class="t-lead">Pick a theme and palette, check every colour pair passes contrast, then publish. Each release is versioned, so you can schedule it or roll it back.</p>
+          <a class="link" href="#remote">See what changes without a release</a>
+        </div>
+      </div>
+      <div class="ui app fill" role="img" aria-label="The Seatfold operator portal: the release history beside draft release 15, with its palette and contrast checks" data-ui-pause-host>
+        <div class="app__pane app__pane--list">
+          <div class="ui ui-panel ui-win" data-ui="window" data-open="Draft" data-work="Checking" data-done="Ready">
+            <div class="ui-win__bar">
+              <span class="ui-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="ui-win__crumb"><span class="mark mark--ui" data-mark="dots" aria-hidden="true"></span>Northlight <i>/</i> <b>Releases</b></span>
+              <span class="ui-spacer"></span>
+              <span class="ui-win__search" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg><span class="ui-win__ph">Search</span><span class="ui-kbd">/</span></span>
+            </div>
+            <div class="ui-win__body">
+              <nav class="ui-win__side" aria-hidden="true">
+                <span class="ui-win__nav"><svg class="ui-icon" viewBox="0 0 16 16"><path d="M2.5 13.5v-6l5.5-4 5.5 4v6z"/></svg>Overview</span>
+                <span class="ui-win__nav"><svg class="ui-icon" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11"/></svg>Branding</span>
+                <span class="ui-win__nav is-on"><svg class="ui-icon" viewBox="0 0 16 16"><path d="M3 4h10M3 8h10M3 12h6"/></svg>Releases<em>15</em></span>
+                <span class="ui-win__nav"><svg class="ui-icon" viewBox="0 0 16 16"><path d="M8 14s4.5-4.2 4.5-7.5a4.5 4.5 0 0 0-9 0C3.5 9.8 8 14 8 14z"/><circle cx="8" cy="6.5" r="1.5"/></svg>Cinemas<em>4</em></span>
+                <span class="ui-win__nav"><svg class="ui-icon" viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><path d="M5 6.5h6M5 9.5h6"/></svg>Layouts</span>
+                <span class="ui-win__label">Sell</span>
+                <span class="ui-win__nav"><span class="ui-win__hash">#</span>Seat prices</span>
+                <span class="ui-win__nav"><span class="ui-win__hash">#</span>Food and drink</span>
+                <span class="ui-win__nav"><span class="ui-win__hash">#</span>Vouchers</span>
+                <span class="ui-win__nav"><span class="ui-win__hash">#</span>Promotions</span>
+              </nav>
+              <div class="ui-win__main">
+                <div class="ui-win__cols" aria-hidden="true"><span>By</span><span>Release</span><span>Status</span><span>Age</span></div>
+                <ul class="ui-win__rows">
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="1">MO</span><span class="ui-win__who">Version 15</span><span class="ui-win__sub">Christmas offers on the home screen</span><span class="ui-win__st" data-st>Draft</span><span class="ui-win__age">4m</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="3">JP</span><span class="ui-win__who">Version 14</span><span class="ui-win__sub">Midnight theme, new teal palette</span><span class="ui-win__st is-you" data-st>Live</span><span class="ui-win__age">2d</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="4">MO</span><span class="ui-win__who">Version 13</span><span class="ui-win__sub">Leeds Riverside seat delivery on</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">6d</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="2">SK</span><span class="ui-win__who">Version 12</span><span class="ui-win__sub">High Contrast theme offered</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">9d</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="5">JP</span><span class="ui-win__who">Version 11</span><span class="ui-win__sub">Rolled back to version 9</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">12d</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="1">MO</span><span class="ui-win__who">Version 10</span><span class="ui-win__sub">Autumn artwork, splash screen</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">13d</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="3">SK</span><span class="ui-win__who">Version 9</span><span class="ui-win__sub">Kids’ club section added</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">3w</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="4">MO</span><span class="ui-win__who">Version 8</span><span class="ui-win__sub">Booking fee set to £1.90</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">4w</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="2">JP</span><span class="ui-win__who">Version 7</span><span class="ui-win__sub">Opening night offer, scheduled</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">5w</span></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="app__pane app__pane--open">
+          <div class="rel">
+            <div class="rel__head">
+              <div><p class="rel__title">Version 15</p><p class="rel__sub">Draft · Christmas offers on the home screen</p></div>
+              <span class="ui-spacer"></span>
+              <span class="rel__btn">Preview</span><span class="rel__btn rel__btn--primary">Publish</span>
+            </div>
+            <div class="rel__body">
+              <div class="rel__col">
+                <p class="rel__label">Theme</p>
+                <div class="rel__themes"><span>Classic</span><span class="is-on">Midnight</span><span>Premium</span><span>Light</span><span>High Contrast</span></div>
+                <p class="rel__label">Palette</p>
+                <ul class="rel__swatches">
+                  <li><i style="--c:#060B14"></i><span>Background</span><code>#060B14</code></li>
+                  <li><i style="--c:#111A2B"></i><span>Surface</span><code>#111A2B</code></li>
+                  <li><i style="--c:#2DD4BF"></i><span>Accent</span><code>#2DD4BF</code></li>
+                  <li><i style="--c:#B08A2E"></i><span>Held seat</span><code>#B08A2E</code></li>
+                  <li><i style="--c:#4C9AFF"></i><span>Wheelchair space</span><code>#4C9AFF</code></li>
+                </ul>
+                <div data-ui-loop>
+                  <div class="ui ui-panel ui-checks" data-ui="checklist">
+                    <div class="ui-checks__head"><div class="ui-title">Contrast, WCAG 2.2 AA</div><span class="ui-spacer"></span><div class="ui-meta" data-checks-count>3 of 6 pass</div></div>
+                    <div class="ui-checks__bar"><i data-checks-bar style="--k:0.5"></i></div>
+                    <ul class="ui-checks__list">
+                      <li class="ui-check is-done"><span class="ui-check__box"><svg viewBox="0 0 16 16"><path d="m4.5 8.2 2.3 2.3 4.7-5"/></svg></span><span class="ui-check__label">Text on background, 18.0:1</span></li>
+                      <li class="ui-check is-done"><span class="ui-check__box"><svg viewBox="0 0 16 16"><path d="m4.5 8.2 2.3 2.3 4.7-5"/></svg></span><span class="ui-check__label">Muted text on surface, 6.1:1</span></li>
+                      <li class="ui-check is-done"><span class="ui-check__box"><svg viewBox="0 0 16 16"><path d="m4.5 8.2 2.3 2.3 4.7-5"/></svg></span><span class="ui-check__label">Button label on accent, 10.6:1</span></li>
+                      <li class="ui-check"><span class="ui-check__box"><svg viewBox="0 0 16 16"><path d="m4.5 8.2 2.3 2.3 4.7-5"/></svg></span><span class="ui-check__label">Selected seat on background, 10.6:1</span></li>
+                      <li class="ui-check"><span class="ui-check__box"><svg viewBox="0 0 16 16"><path d="m4.5 8.2 2.3 2.3 4.7-5"/></svg></span><span class="ui-check__label">Held seat on background, 6.1:1</span></li>
+                      <li class="ui-check"><span class="ui-check__box"><svg viewBox="0 0 16 16"><path d="m4.5 8.2 2.3 2.3 4.7-5"/></svg></span><span class="ui-check__label">Screen line on background, 10.3:1</span></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              <div class="rel__preview">
+                <div class="device device--mini"><img src="img/app-home.webp" alt="" width="720" height="1565" loading="lazy"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- JOURNEY: the dealt moment, pinned-chapters (two screens live). Three real captures from the
+       Northlight build, one per step. Still under reduced motion and on a phone. -->
+  <section class="section" id="journey" data-moment="pinned-chapters" aria-labelledby="journey-h">
+    <div class="wrap mo-pc__grid">
+      <div class="mo-pc__text">
+        <h2 id="journey-h">Booking in three steps on iPhone</h2>
+        <ol class="mo-pc__steps">
+          <li class="mo-pc__step">
+            <h3>Pick seats on the cinema’s own map</h3>
+            <p>Customers pinch and zoom the auditorium. Each seat is held on your server with a countdown, so two people never buy the same one.</p>
+            <figure class="mo-pc__visual mo-pc__visual--lit shot"><div class="device device--step" role="img" aria-label="Two VIP beds, D1 and D2, selected on the Screen 4 seat map for Ember Protocol"><img src="img/app-seat-selected.webp" alt="" width="720" height="1565" loading="lazy" style="--shot-y: 14%"></div></figure>
+          </li>
+          <li class="mo-pc__step">
+            <h3>Add food and drink to the booking</h3>
+            <p>Sizes, combos and stock come from your menu. Customers collect at the counter, or have it brought to their seat where you offer that.</p>
+            <figure class="mo-pc__visual mo-pc__visual--lit shot"><div class="device device--step" role="img" aria-label="The food and drink menu: sweet popcorn, salted popcorn, a fountain drink and a date night combo"><img src="img/app-food.webp" alt="" width="720" height="1565" loading="lazy" style="--shot-y: 0%"></div></figure>
+          </li>
+          <li class="mo-pc__step">
+            <h3>Open the ticket in the app</h3>
+            <p>The QR ticket is stored on the phone, so it opens with no signal. Totals and fees always come from your server.</p>
+            <figure class="mo-pc__visual mo-pc__visual--lit shot"><div class="device device--step" role="img" aria-label="The ticket for Ember Protocol with its QR code and booking reference 5321825"><img src="img/app-ticket-detail.webp" alt="" width="720" height="1565" loading="lazy" style="--shot-y: 6%"></div></figure>
+          </li>
+        </ol>
+      </div>
+      <div class="mo-pc__visuals frame"></div>
+    </div>
+  </section>
+
+  <!-- REMOTE: the calm section, a comparison table (docs/feature-parity.md, Remote vs build-time). -->
+  <section class="section" id="remote" aria-labelledby="remote-h">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="remote-h">What changes without an App Store release</h2>
+        <p>Most of the app is set in the portal and reaches phones on the next launch. A few things are fixed into your build.</p>
+      </div>
+      <div class="grid fill remote-grid">
+      <div class="cmp span-6" role="table" aria-label="What you can change from the portal and what needs a new app build">
+        <div class="cmp__row cmp__row--head" role="row">
+          <span role="columnheader">What you change</span>
+          <span role="columnheader">From the portal</span>
+          <span role="columnheader">New app build</span>
+        </div>
+        <div class="cmp__row" role="row"><span role="cell">Logo, wordmark, theme and palette</span><span class="cmp__yes" role="cell">Live<span class="sr-only">: included</span></span><span class="cmp__no" role="cell">Not needed</span></div>
+        <div class="cmp__row" role="row"><span role="cell">Home screen sections, offers and splash artwork</span><span class="cmp__yes" role="cell">Live</span><span class="cmp__no" role="cell">Not needed</span></div>
+        <div class="cmp__row" role="row"><span role="cell">Ticket prices, booking fees and vouchers</span><span class="cmp__yes" role="cell">Live</span><span class="cmp__no" role="cell">Not needed</span></div>
+        <div class="cmp__row" role="row"><span role="cell">Seat categories, icons, colours and seat rules</span><span class="cmp__yes" role="cell">Live</span><span class="cmp__no" role="cell">Not needed</span></div>
+        <div class="cmp__row" role="row"><span role="cell">Auditorium layouts and food menus</span><span class="cmp__yes" role="cell">Live</span><span class="cmp__no" role="cell">Not needed</span></div>
+        <div class="cmp__row" role="row"><span role="cell">App icon and App Store name</span><span class="cmp__no" role="cell">Not possible</span><span class="cmp__yes" role="cell">Yes</span></div>
+        <div class="cmp__row" role="row"><span role="cell">Wallet pass type and Apple Pay merchant ID</span><span class="cmp__no" role="cell">Not possible</span><span class="cmp__yes" role="cell">Yes</span></div>
+      </div>
+      <div class="frame frame--fill remote-shot span-6 start-7">
+        <div class="device device--remote" role="img" aria-label="The film page for Ember Protocol in the Northlight app: artwork, certificate, running time and Book Tickets, all set from the portal"><img src="img/app-film-detail.webp" alt="" width="720" height="1565" loading="lazy"></div>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SEATS: the dark band. split-text-left with the live seat map of the 226-seat curved screen,
+       drawn from the layout fixture (seat-map.js); tap seats to choose them. -->
+  <section class="section ground-inverse" id="seats" aria-labelledby="seats-h">
+    <div class="wrap">
+      <div class="grid">
+        <div class="span-6 stack-5">
+          <h2 id="seats-h">Seat maps drawn from each cinema screen</h2>
+          <p class="t-lead">Curved rows, aisles, wheelchair and companion spaces, recliners, sofas and VIP beds. Each screen is a versioned layout you edit in the portal.</p>
+          <ul class="facts">
+            <li>226 seats in this curved screen, drawn on the phone, not loaded as a web page</li>
+            <li>Stranded single seats blocked on the phone and on the server</li>
+            <li>A list view of every seat for VoiceOver users</li>
+          </ul>
+          <a class="link" href="#questions">Read the common questions</a>
+        </div>
+        <div class="frame frame--split seatmap span-6 start-7">
+          <div class="seatmap__head">
+            <div><p class="seatmap__title">Screen 2, Leeds Riverside</p><p class="seatmap__sub">Harbour Lights · Sat 7 Nov · 20:50</p></div>
+          </div>
+          <svg class="seatmap__svg" viewBox="0 0 1000 850" role="group" aria-label="Seat map for Screen 2. Tap a free seat to choose it." data-layout="data/curved.json"></svg>
+          <div class="seatmap__foot">
+            <ul class="seatmap__key" aria-hidden="true">
+              <li><i class="k-free"></i>Free</li><li><i class="k-sel"></i>Yours</li><li><i class="k-sold"></i>Taken</li><li><i class="k-prem"></i>Premium</li>
+            </ul>
+            <p class="seatmap__sum" aria-live="polite" data-seat-sum>Tap a free seat to choose it</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NATIVE: bento on bg-dots; the card group's still ground is painterly-landscape, one seed each. -->
+  <section class="section g2 bg-dots" id="native" aria-labelledby="native-h">
+    <div class="wrap">
+      <div class="group">
+        <div class="section-head">
+          <h2 id="native-h">A native iPhone app, not a web page</h2>
+        </div>
+        <div class="grid">
+          <article class="card card--row card--open span-6 m-nolift">
+            <h3>Puts the booking on the Lock Screen</h3>
+            <p>After booking, a Live Activity shows the film, screen and seats, and the minutes to the start.</p>
+            <div class="panel" data-fx="painterly-landscape" data-fx-seed="11" data-fx-params='{"blur":1,"brush":0.35,"slope":0,"hillY":0.3,"horizon":0.62,"drift":0}' data-fx-palette='{"bg":"#a3b0b6","accent":"#c49a6c"}'>
+              <div class="stage"><div class="at-rise fit live-wrap" style="--fit-max:520px;--ax:max(24px, 50% - 260px);--ay:48px;--ay-sm:32px">
+                <div class="ui live" role="img" aria-label="A Live Activity: Ember Protocol, Screen 4, seats D1 and D2, starts at 18:10, in 24 minutes">
+                  <div class="live__island"><span class="live__poster"></span><span class="live__in">24 min</span></div>
+                  <div class="live__card">
+                    <img class="live__art" src="img/ember-protocol-poster.jpg" alt="" width="800" height="1200" loading="lazy">
+                    <div class="live__text">
+                      <p class="live__app"><span class="live__n">N</span>Northlight</p>
+                      <p class="live__film">Ember Protocol</p>
+                      <p class="live__meta">Screen 4 · Seats D1, D2</p>
+                    </div>
+                    <div class="live__time"><p class="live__big">24 min</p><p class="live__meta">Starts 18:10</p></div>
+                    <div class="live__bar"><i style="--k:.72"></i></div>
+                  </div>
+                </div>
+              </div></div>
+            </div>
+          </article>
+          <article class="card card--row card--open span-6 m-nolift">
+            <h3>Opens booked tickets with no signal</h3>
+            <p>Tickets are stored on the phone, ready at the door.</p>
+            <div class="panel" data-fx="painterly-landscape" data-fx-seed="23" data-fx-params='{"drift":0}' data-fx-palette='{"bg":"#cdd6c6","surface":"#dce3d6","ink":"#262d24","accent":"#6c8e63"}'>
+              <div class="stage stage--fade-b"><div class="at-rise fit" style="--fit-max:240px;--ax:max(24px, 50% - 120px);--ay:40px;--ay-sm:32px">
+                <div class="ui ticket" role="img" aria-label="An offline ticket with its QR code, booking reference 5321825">
+                  <p class="ticket__film">Ember Protocol</p>
+                  <p class="ticket__meta">Fri 6 Nov · 18:10 · Seats D1, D2</p>
+                  <img class="ticket__qr" src="img/ticket-qr.svg" alt="" width="29" height="29" loading="lazy">
+                  <p class="ticket__ref">Booking reference 5321825</p>
+                </div>
+              </div></div>
+            </div>
+          </article>
+        </div>
+      </div>
+      <div class="grid">
+        <article class="card card--row card--open span-6 m-nolift">
+          <h3>Finds cinema times in Spotlight</h3>
+          <p>Films and tickets show up in iPhone search and Shortcuts.</p>
+          <div class="panel" data-fx="painterly-landscape" data-fx-seed="37" data-fx-params='{"drift":0}' data-fx-palette='{"bg":"#c6d3df","surface":"#d6e0e9","ink":"#25303a","accent":"#3f6a92"}'>
+            <div class="stage stage--fade-b"><div class="at-rise fit" style="--fit-max:300px;--ax:max(24px, 50% - 150px);--ay:40px;--ay-sm:32px">
+              <div class="ui ui-panel ui-search" data-ui="search">
+                <div class="ui-search__field">
+                  <svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
+                  <span class="ui-search__q"><span data-search-q>ember</span><i class="ui-search__caret"></i></span>
+                </div>
+                <div class="ui-search__group">Northlight</div>
+                <ul class="ui-search__list" data-search-list>
+                  <li class="ui-search__row is-sel"><span class="ui-search__ico"><svg class="ui-icon" viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="9" rx="1.5"/><path d="M5 3.5v9M11 3.5v9"/></svg></span><span class="ui-search__t"><b>Ember</b> Protocol</span><span class="ui-search__m">Film</span></li>
+                  <li class="ui-search__row"><span class="ui-search__ico"><svg class="ui-icon" viewBox="0 0 16 16"><path d="M2.5 5.5h11v2a1.5 1.5 0 0 0 0 3v2h-11v-2a1.5 1.5 0 0 0 0-3z"/></svg></span><span class="ui-search__t"><b>Ember</b> Protocol, Fri 18:10</span><span class="ui-search__m">Ticket</span></li>
+                  <li class="ui-search__row"><span class="ui-search__ico"><svg class="ui-icon" viewBox="0 0 16 16"><path d="M8 14s4.5-4.2 4.5-7.5a4.5 4.5 0 0 0-9 0C3.5 9.8 8 14 8 14z"/></svg></span><span class="ui-search__t">Showing at Leeds Riverside</span><span class="ui-search__m">Cinema</span></li>
+                </ul>
+              </div>
+            </div></div>
+          </div>
+        </article>
+        <article class="card card--row card--open span-6 m-nolift">
+          <h3>Reads cinema seats aloud</h3>
+          <p>VoiceOver users pick seats from a plain list instead of the map.</p>
+          <div class="panel" data-fx="painterly-landscape" data-fx-seed="41" data-fx-params='{"drift":0}' data-fx-palette='{"bg":"#d9ccb7","surface":"#e9e0d2","ink":"#2a2622","accent":"#a8794a"}'>
+            <div class="stage stage--fade-b"><div class="at-rise fit" style="--fit-max:300px;--ax:max(24px, 50% - 150px);--ay:40px;--ay-sm:32px">
+              <ul class="ui vo" role="img" aria-label="The accessible seat list: row D, seat 1, VIP bed, £34.95, available">
+                <li class="vo__row is-focus"><span><b>Row D, seat 1</b><em>VIP bed · £34.95</em></span><span class="vo__st">Available</span></li>
+                <li class="vo__row"><span><b>Row D, seat 2</b><em>VIP bed · £34.95</em></span><span class="vo__st">Available</span></li>
+                <li class="vo__row"><span><b>Row D, seat 3</b><em>VIP bed · £34.95</em></span><span class="vo__st vo__st--off">Taken</span></li>
+                <li class="vo__row"><span><b>Row E, seat 1</b><em>Wheelchair space</em></span><span class="vo__st">Available</span></li>
+              </ul>
+            </div></div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUESTIONS: faq on the page's split, every answer open. -->
+  <section class="section" id="questions" aria-labelledby="questions-h">
+    <div class="wrap">
+      <div class="grid">
+        <div class="span-6 stack-4">
+          <h2 id="questions-h">Questions</h2>
+          <p class="t-lead">Straight answers about what works today and what comes next.</p>
+          <a class="link" href="mailto:hello@seatfold.example?subject=Question%20about%20Seatfold">Email us a question</a>
+        </div>
+        <div class="faq span-6 start-7">
+          <div class="faq__item"><h3>Is it a native app or a web view?</h3><p>Native. The app is built in SwiftUI for iPhone, and the seat map is drawn on the phone.</p></div>
+          <div class="faq__item"><h3>Do we get our own App Store listing?</h3><p>Yes. Each operator gets its own build with its own name and icon. Everything else changes from the portal.</p></div>
+          <div class="faq__item"><h3>Does the app connect to our ticketing system?</h3><p>Not yet. The connection layer is ready, and each adapter is written once we have licensed access to that system.</p></div>
+          <div class="faq__item"><h3>How does the app take payments?</h3><p>Checkout runs in a test mode today. Apple Pay arrives through a payment provider once your merchant account is set up.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer closing" id="contact" aria-labelledby="close-h">
+  <div class="wrap">
+    <div class="closing__cta close--word">
+      <div class="section-head--split">
+        <div><h2 id="close-h">See Seatfold running in your colours</h2><p class="t-lead">A walkthrough of the app, the portal and the seat map.</p></div>
+        <a class="btn btn--primary" href="mailto:demo@seatfold.example?subject=Seatfold%20demo">Book a demo<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a>
+      </div>
+      <p class="close__word" aria-hidden="true">Seatfold</p>
+    </div>
+    <div class="closing__links">
+      <div class="grid">
+        <div class="span-4 stack-4">
+          <a class="nav__logo" href="#top"><span class="mark" data-mark="dots" aria-hidden="true"></span>Seatfold</a>
+          <p class="footer__lede">Booking apps for cinema operators</p>
+        </div>
+        <div class="span-2 footer__col"><h4>Product</h4><ul><li><a href="#portal">Portal</a></li><li><a href="#remote">Releases</a></li></ul></div>
+        <div class="span-2 footer__col"><h4>Booking</h4><ul><li><a href="#journey">Booking flow</a></li><li><a href="#seats">Seat maps</a></li></ul></div>
+        <div class="span-2 footer__col"><h4>iPhone</h4><ul><li><a href="#native">iOS features</a></li></ul></div>
+        <div class="span-2 footer__col"><h4>Questions</h4><ul><li><a href="#questions">Answers</a></li><li><a href="mailto:hello@seatfold.example">Contact</a></li></ul></div>
+      </div>
+      <div class="footer__legal">
+        <span>&copy; 2026 Seatfold</span>
+        <div class="socials"></div>
+        <span>iPhone, Live Activities and Spotlight are trademarks of Apple Inc.</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script type="module" src="assets/system.js"></script>
+<script type="module" src="assets/motion/motion.js"></script>
+<script type="module" src="assets/layout/layout.js"></script>
+<script type="module" src="site.js"></script>
+</body>
+</html>
