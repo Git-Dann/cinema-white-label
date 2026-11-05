@@ -22,9 +22,7 @@ struct NextTicketWidget: Widget {
             store: WidgetSnapshotStore(suiteName: Self.appGroup),
             fallback: { now in
                 // Labelled demo content when the app hasn't shared data (no App Group, or demo build).
-                guard let config = BundledConfig.load(tenantSlug: Self.slug) else {
-                    return WidgetSnapshot(generatedAt: now, wordmark: "Cinema", accentHex: "#2DD4BF", deepLink: "", next: nil, upcomingCount: 0, isDemo: true)
-                }
+                guard let config = BundledConfig.load(tenantSlug: Self.slug) else { return .empty(now: now) }
                 return WidgetSnapshot.demo(config: config, now: now)
             }
         )) { entry in

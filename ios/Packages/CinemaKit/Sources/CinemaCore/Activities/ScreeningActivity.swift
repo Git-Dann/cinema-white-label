@@ -136,6 +136,11 @@ public struct WidgetSnapshot: Codable, Hashable, Sendable {
         public var seatSummary: String
         public var startsAt: Date
         public var timeZone: String
+
+        public init(bookingId: String, filmTitle: String, certificate: String, venueName: String, auditoriumName: String, seatSummary: String, startsAt: Date, timeZone: String) {
+            self.bookingId = bookingId; self.filmTitle = filmTitle; self.certificate = certificate; self.venueName = venueName
+            self.auditoriumName = auditoriumName; self.seatSummary = seatSummary; self.startsAt = startsAt; self.timeZone = timeZone
+        }
     }
 
     public var generatedAt: Date
@@ -146,6 +151,16 @@ public struct WidgetSnapshot: Codable, Hashable, Sendable {
     public var upcomingCount: Int
     /// True when the widget is showing sample data (demo builds, or no shared storage).
     public var isDemo: Bool
+
+    public init(generatedAt: Date, wordmark: String, accentHex: String, deepLink: String, next: NextScreening?, upcomingCount: Int, isDemo: Bool) {
+        self.generatedAt = generatedAt; self.wordmark = wordmark; self.accentHex = accentHex; self.deepLink = deepLink
+        self.next = next; self.upcomingCount = upcomingCount; self.isDemo = isDemo
+    }
+
+    /// Nothing to show (e.g. no bundled config available).
+    public static func empty(now: Date) -> WidgetSnapshot {
+        WidgetSnapshot(generatedAt: now, wordmark: "Cinema", accentHex: "#2DD4BF", deepLink: "", next: nil, upcomingCount: 0, isDemo: true)
+    }
 
     public static func make(bookings: [Booking], config: TenantConfig, now: Date) -> WidgetSnapshot {
         let upcoming = bookings.filter { $0.isUpcoming(now: now) }.sorted { $0.screening.startsAt < $1.screening.startsAt }
