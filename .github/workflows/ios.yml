@@ -19,9 +19,12 @@ on:
 permissions:
   contents: read
 
+# Queue rather than cancel: on a PR every push matches the path filter (it
+# compares the whole PR diff), so cancelling would kill screenshot runs
+# whenever backend or admin work is pushed. Only the newest queued run is kept.
 concurrency:
   group: ios-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
