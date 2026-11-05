@@ -104,3 +104,34 @@ struct CommerceFlowTests {
         #expect(names == [])
     }
 }
+
+@Suite("Offline mock catalogue")
+struct MockCatalogueTests {
+    @Test func filmsShipWithLocalArtwork() {
+        let films = PreviewFixtures.films
+        #expect(films.count == 8)
+        #expect(films.contains { $0.status == .comingSoon })
+        let poster = films[0].poster!
+        #expect(poster.url.hasPrefix("file:"))
+        let url = poster.url(forPixelWidth: 300, base: URL(string: "http://localhost:3000/")!)!
+        #expect(FileManager.default.fileExists(atPath: url.path))
+    }
+
+    @Test func showtimesAreGeneratedForEachFilmAndAreStable() async throws {
+        let svc = MockCinemaService()
+        await svc.setLatency(.zero)
+        let film = PreviewFixtures.films.first { $0.status == .nowShowing }!
+        let dates = try await svc.screeningDates(venueId: "leeds-riverside", filmId: film.id)
+        #expect(dates.count == 5)
+        let list = try await svc.screenings(venueId: "leeds-riverside", filmId: film.id, date: dates[0])
+        #expect(list.count == 4)
+        #expect(list.allSatisfy { $0.film.id == film.id })
+        let detail = try await svc.screening(id: list[0].id)
+        #expect(detail.film.title == film.title)
+        let a1 = try await svc.availability(screeningId: detail.id)
+        let a2 = try await MockCinemaService().availability(screeningId: detail.id)
+        #expect(a1.seats == a2.seats) // deterministic across instances/launches
+        let soon = PreviewFixtures.films.first { $0.status == .comingSoon }!
+        #expect(try await svc.screeningDates(venueId: "leeds-riverside", filmId: soon.id).isEmpty)
+    }
+}

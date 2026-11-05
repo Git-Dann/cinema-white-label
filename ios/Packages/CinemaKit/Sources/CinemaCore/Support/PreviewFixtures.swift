@@ -19,6 +19,36 @@ public enum PreviewFixtures {
         do { return try decoder.decode(T.self, from: data) } catch { fatalError("Invalid preview fixture \(name): \(error)") }
     }
 
+    /// Offline catalogue (original fictional films) with bundled artwork.
+    public static let films: [Film] = {
+        guard let url = Bundle.module.url(forResource: "mock-films", withExtension: "json", subdirectory: "PreviewData"),
+              let data = try? Data(contentsOf: url),
+              var films = try? JSONDecoder().decode([Film].self, from: data) else { return [] }
+        func localise(_ ref: ImageRef?) -> ImageRef? {
+            guard var r = ref else { return nil }
+            let name = (r.url as NSString).lastPathComponent
+            let file = Bundle.module.url(forResource: (name as NSString).deletingPathExtension, withExtension: "jpg", subdirectory: "PreviewData/artwork")
+            r.url = file?.absoluteString ?? r.url
+            return r
+        }
+        for i in films.indices {
+            films[i].poster = localise(films[i].poster)
+            films[i].backdrop = localise(films[i].backdrop)
+        }
+        return films
+    }()
+
+    public static let venues: [Venue] = [
+        Venue(id: "leeds-riverside", slug: "leeds-riverside", name: "Northlight Leeds Riverside", address: .init(line1: "12 Wharf Approach", city: "Leeds", postcode: "LS1 4AB"),
+              coordinate: .init(latitude: 53.7942, longitude: -1.5418), timeZone: "Europe/London", phone: nil,
+              facilities: ["Wheelchair access", "Hearing loop", "Bar", "Seat delivery"], screenCount: 4, isFavourite: true, distanceKm: 0.8,
+              features: VenueFeatures(concessions: true, seatDelivery: true)),
+        Venue(id: "manchester-ancoats", slug: "manchester-ancoats", name: "Northlight Manchester Ancoats", address: .init(line1: "3 Mill Yard", city: "Manchester", postcode: "M4 6DE"),
+              coordinate: .init(latitude: 53.4851, longitude: -2.2276), timeZone: "Europe/London", phone: nil,
+              facilities: ["Wheelchair access", "IMAX", "Bar"], screenCount: 3, isFavourite: false, distanceKm: 58.4,
+              features: VenueFeatures(concessions: true, seatDelivery: false)),
+    ]
+
     public static let seatCategories: [SeatCategory] = [
         .init(id: "standard", label: "Standard", shape: .seat, sortOrder: 0),
         .init(id: "premium", label: "Premium", description: "Extra legroom, best view", shape: .seat, icon: "star.fill", sortOrder: 1),

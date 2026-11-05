@@ -1,0 +1,534 @@
+[
+  {
+    "id": "ember-protocol",
+    "slug": "ember-protocol",
+    "title": "Ember Protocol",
+    "tagline": "Humanity gets one restart.",
+    "synopsis": "When the orbital array that cools the planet begins to fail, a disgraced engineer must lead a skeleton crew to restart it from the inside.",
+    "releaseDate": "2026-11-04",
+    "runtimeMinutes": 141,
+    "certificate": "12A",
+    "genres": [
+      "Sci-Fi",
+      "Action"
+    ],
+    "director": "Felix Ambrose",
+    "cast": [
+      "Sienna Holt",
+      "Kwame Mensah",
+      "Ingrid Sol"
+    ],
+    "status": "nowShowing",
+    "formats": [
+      "2D",
+      "IMAX",
+      "3D",
+      "Dolby Atmos"
+    ],
+    "poster": {
+      "id": "ember-protocol-poster",
+      "url": "artwork/ember-protocol-poster.jpg",
+      "width": 500,
+      "height": 750,
+      "aspectRatio": 0.667,
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "dominantColor": "#080808",
+      "attribution": null,
+      "renditions": [
+        500
+      ]
+    },
+    "backdrop": {
+      "id": "ember-protocol-backdrop",
+      "url": "artwork/ember-protocol-backdrop.jpg",
+      "width": 960,
+      "height": 540,
+      "aspectRatio": 1.778,
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.4
+      },
+      "dominantColor": "#080808",
+      "attribution": null,
+      "renditions": [
+        960
+      ]
+    },
+    "trailers": [
+      {
+        "id": "ember-protocol-trailer",
+        "title": "Official Trailer",
+        "kind": "trailer",
+        "url": null,
+        "durationSeconds": 140
+      }
+    ],
+    "attributions": []
+  },
+  {
+    "id": "the-lantern-keeper",
+    "slug": "the-lantern-keeper",
+    "title": "The Lantern Keeper",
+    "tagline": "Every light remembers who lit it.",
+    "synopsis": "On a storm-cut island off the Hebrides, a reclusive keeper discovers that the old lighthouse lamp shows ships that sank a century ago. When a young coastguard arrives to decommission the tower, the two must decide which lights deserve to stay burning.",
+    "releaseDate": "2026-10-24",
+    "runtimeMinutes": 128,
+    "certificate": "12A",
+    "genres": [
+      "Drama",
+      "Fantasy"
+    ],
+    "director": "Isla Mackenzie",
+    "cast": [
+      "Rhona Byrne",
+      "Tomasz Wilk",
+      "Ade Okafor"
+    ],
+    "status": "nowShowing",
+    "formats": [
+      "2D"
+    ],
+    "poster": {
+      "id": "the-lantern-keeper-poster",
+      "url": "artwork/the-lantern-keeper-poster.jpg",
+      "width": 500,
+      "height": 750,
+      "aspectRatio": 0.667,
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "dominantColor": "#081828",
+      "attribution": null,
+      "renditions": [
+        500
+      ]
+    },
+    "backdrop": {
+      "id": "the-lantern-keeper-backdrop",
+      "url": "artwork/the-lantern-keeper-backdrop.jpg",
+      "width": 960,
+      "height": 540,
+      "aspectRatio": 1.778,
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.4
+      },
+      "dominantColor": "#081828",
+      "attribution": null,
+      "renditions": [
+        960
+      ]
+    },
+    "trailers": [
+      {
+        "id": "the-lantern-keeper-trailer",
+        "title": "Official Trailer",
+        "kind": "trailer",
+        "url": null,
+        "durationSeconds": 140
+      }
+    ],
+    "attributions": []
+  },
+  {
+    "id": "signal-lost",
+    "slug": "signal-lost",
+    "title": "Signal Lost",
+    "tagline": "Somebody answered.",
+    "synopsis": "A radio astronomer in the Cairngorms picks up a repeating signal that seems to predict events forty minutes before they happen. As the predictions turn personal, she has less than an hour to work out who is broadcasting, and why.",
+    "releaseDate": "2026-10-31",
+    "runtimeMinutes": 117,
+    "certificate": "15",
+    "genres": [
+      "Sci-Fi",
+      "Thriller"
+    ],
+    "director": "Daniel Ferreira",
+    "cast": [
+      "Mara Lindqvist",
+      "Jonah Pryce"
+    ],
+    "status": "nowShowing",
+    "formats": [
+      "2D",
+      "IMAX"
+    ],
+    "poster": {
+      "id": "signal-lost-poster",
+      "url": "artwork/signal-lost-poster.jpg",
+      "width": 500,
+      "height": 750,
+      "aspectRatio": 0.667,
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "dominantColor": "#080808",
+      "attribution": null,
+      "renditions": [
+        500
+      ]
+    },
+    "backdrop": {
+      "id": "signal-lost-backdrop",
+      "url": "artwork/signal-lost-backdrop.jpg",
+      "width": 960,
+      "height": 540,
+      "aspectRatio": 1.778,
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.4
+      },
+      "dominantColor": "#080808",
+      "attribution": null,
+      "renditions": [
+        960
+      ]
+    },
+    "trailers": [
+      {
+        "id": "signal-lost-trailer",
+        "title": "Official Trailer",
+        "kind": "trailer",
+        "url": null,
+        "durationSeconds": 140
+      }
+    ],
+    "attributions": []
+  },
+  {
+    "id": "northbound",
+    "slug": "northbound",
+    "title": "Northbound",
+    "tagline": "600 miles. One night. No stops.",
+    "synopsis": "A retired getaway driver agrees to one last overnight run from London to Thurso, carrying a passenger who has every reason not to arrive.",
+    "releaseDate": "2026-11-02",
+    "runtimeMinutes": 132,
+    "certificate": "15",
+    "genres": [
+      "Action",
+      "Crime"
+    ],
+    "director": "Marcus Hale",
+    "cast": [
+      "Declan Shore",
+      "Yuki Tanabe",
+      "Ruth Calder"
+    ],
+    "status": "nowShowing",
+    "formats": [
+      "2D",
+      "IMAX",
+      "Dolby Atmos"
+    ],
+    "poster": {
+      "id": "northbound-poster",
+      "url": "artwork/northbound-poster.jpg",
+      "width": 500,
+      "height": 750,
+      "aspectRatio": 0.667,
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "dominantColor": "#180808",
+      "attribution": null,
+      "renditions": [
+        500
+      ]
+    },
+    "backdrop": {
+      "id": "northbound-backdrop",
+      "url": "artwork/northbound-backdrop.jpg",
+      "width": 960,
+      "height": 540,
+      "aspectRatio": 1.778,
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.4
+      },
+      "dominantColor": "#180808",
+      "attribution": null,
+      "renditions": [
+        960
+      ]
+    },
+    "trailers": [
+      {
+        "id": "northbound-trailer",
+        "title": "Official Trailer",
+        "kind": "trailer",
+        "url": null,
+        "durationSeconds": 140
+      }
+    ],
+    "attributions": []
+  },
+  {
+    "id": "paper-comets",
+    "slug": "paper-comets",
+    "title": "Paper Comets",
+    "tagline": "Fold a wish. Watch it fly.",
+    "synopsis": "When eleven-year-old Juno folds a paper comet that actually takes off, she and her grandfather chase it across a city where every lost wish has quietly been collected.",
+    "releaseDate": "2026-10-27",
+    "runtimeMinutes": 94,
+    "certificate": "U",
+    "genres": [
+      "Animation",
+      "Family"
+    ],
+    "director": "Leo Hartmann",
+    "cast": [
+      "Amara Quinn",
+      "Bill Ashdown"
+    ],
+    "status": "nowShowing",
+    "formats": [
+      "2D",
+      "3D"
+    ],
+    "poster": {
+      "id": "paper-comets-poster",
+      "url": "artwork/paper-comets-poster.jpg",
+      "width": 500,
+      "height": 750,
+      "aspectRatio": 0.667,
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "dominantColor": "#181838",
+      "attribution": null,
+      "renditions": [
+        500
+      ]
+    },
+    "backdrop": {
+      "id": "paper-comets-backdrop",
+      "url": "artwork/paper-comets-backdrop.jpg",
+      "width": 960,
+      "height": 540,
+      "aspectRatio": 1.778,
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.4
+      },
+      "dominantColor": "#181838",
+      "attribution": null,
+      "renditions": [
+        960
+      ]
+    },
+    "trailers": [
+      {
+        "id": "paper-comets-trailer",
+        "title": "Official Trailer",
+        "kind": "trailer",
+        "url": null,
+        "durationSeconds": 140
+      }
+    ],
+    "attributions": []
+  },
+  {
+    "id": "velvet-static",
+    "slug": "velvet-static",
+    "title": "Velvet Static",
+    "tagline": "Turn it up. Let it break.",
+    "synopsis": "A Sheffield synth band on the edge of a record deal discovers their late bandmate left one unreleased song, and it is about all of them.",
+    "releaseDate": "2026-10-29",
+    "runtimeMinutes": 121,
+    "certificate": "15",
+    "genres": [
+      "Music",
+      "Drama"
+    ],
+    "director": "Sasha Novak",
+    "cast": [
+      "Billie Crane",
+      "Omar Siddiqui",
+      "Fen Albright"
+    ],
+    "status": "nowShowing",
+    "formats": [
+      "2D",
+      "Dolby Atmos"
+    ],
+    "poster": {
+      "id": "velvet-static-poster",
+      "url": "artwork/velvet-static-poster.jpg",
+      "width": 500,
+      "height": 750,
+      "aspectRatio": 0.667,
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "dominantColor": "#180818",
+      "attribution": null,
+      "renditions": [
+        500
+      ]
+    },
+    "backdrop": {
+      "id": "velvet-static-backdrop",
+      "url": "artwork/velvet-static-backdrop.jpg",
+      "width": 960,
+      "height": 540,
+      "aspectRatio": 1.778,
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.4
+      },
+      "dominantColor": "#180818",
+      "attribution": null,
+      "renditions": [
+        960
+      ]
+    },
+    "trailers": [
+      {
+        "id": "velvet-static-trailer",
+        "title": "Official Trailer",
+        "kind": "trailer",
+        "url": null,
+        "durationSeconds": 140
+      }
+    ],
+    "attributions": []
+  },
+  {
+    "id": "saltmarsh",
+    "slug": "saltmarsh",
+    "title": "Saltmarsh",
+    "tagline": "Do not follow the lights.",
+    "synopsis": "A sound recordist cataloguing birdsong on the Essex marshes captures something on tape that should not be able to breathe underwater.",
+    "releaseDate": "2026-11-14",
+    "runtimeMinutes": 96,
+    "certificate": "18",
+    "genres": [
+      "Horror"
+    ],
+    "director": "Ruth Abernathy",
+    "cast": [
+      "Josie Kerr",
+      "Malik Ibrahim"
+    ],
+    "status": "comingSoon",
+    "formats": [
+      "2D"
+    ],
+    "poster": {
+      "id": "saltmarsh-poster",
+      "url": "artwork/saltmarsh-poster.jpg",
+      "width": 500,
+      "height": 750,
+      "aspectRatio": 0.667,
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "dominantColor": "#080808",
+      "attribution": null,
+      "renditions": [
+        500
+      ]
+    },
+    "backdrop": {
+      "id": "saltmarsh-backdrop",
+      "url": "artwork/saltmarsh-backdrop.jpg",
+      "width": 960,
+      "height": 540,
+      "aspectRatio": 1.778,
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.4
+      },
+      "dominantColor": "#080808",
+      "attribution": null,
+      "renditions": [
+        960
+      ]
+    },
+    "trailers": [
+      {
+        "id": "saltmarsh-trailer",
+        "title": "Official Trailer",
+        "kind": "trailer",
+        "url": null,
+        "durationSeconds": 140
+      }
+    ],
+    "attributions": []
+  },
+  {
+    "id": "the-last-cartographer",
+    "slug": "the-last-cartographer",
+    "title": "The Last Cartographer",
+    "tagline": "Some places refuse to be found.",
+    "synopsis": "An elderly mapmaker and her impatient grandson set out to chart the one valley in Wales that has never appeared on any map.",
+    "releaseDate": "2026-11-28",
+    "runtimeMinutes": 125,
+    "certificate": "PG",
+    "genres": [
+      "Adventure",
+      "Family"
+    ],
+    "director": "Huw Bevan",
+    "cast": [
+      "Margaret Lyle",
+      "Cai Roberts"
+    ],
+    "status": "comingSoon",
+    "formats": [
+      "2D",
+      "IMAX"
+    ],
+    "poster": {
+      "id": "the-last-cartographer-poster",
+      "url": "artwork/the-last-cartographer-poster.jpg",
+      "width": 500,
+      "height": 750,
+      "aspectRatio": 0.667,
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "dominantColor": "#382818",
+      "attribution": null,
+      "renditions": [
+        500
+      ]
+    },
+    "backdrop": {
+      "id": "the-last-cartographer-backdrop",
+      "url": "artwork/the-last-cartographer-backdrop.jpg",
+      "width": 960,
+      "height": 540,
+      "aspectRatio": 1.778,
+      "focalPoint": {
+        "x": 0.5,
+        "y": 0.4
+      },
+      "dominantColor": "#382818",
+      "attribution": null,
+      "renditions": [
+        960
+      ]
+    },
+    "trailers": [
+      {
+        "id": "the-last-cartographer-trailer",
+        "title": "Official Trailer",
+        "kind": "trailer",
+        "url": null,
+        "durationSeconds": 140
+      }
+    ],
+    "attributions": []
+  }
+]

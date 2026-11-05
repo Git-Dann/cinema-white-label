@@ -33,22 +33,90 @@ public actor MockCinemaService: CinemaService {
     }
 
     public func fetchConfig(etag: String?) async throws -> (TenantConfig?, String?) { (config, "\"mock-\(config.version)\"") }
-    public func films(status: Film.Status?, query: String?) async throws -> [Film] { try await simulateNetwork(); return [] }
-    public func film(id: String) async throws -> Film { throw APIError(status: 404, code: .notFound, message: "Film not found") }
-    public func venues(latitude: Double?, longitude: Double?, query: String?) async throws -> [Venue] { try await simulateNetwork(); return [] }
-    public func setFavourite(venueId: String, _ favourite: Bool) async throws {}
-    public func screeningDates(venueId: String, filmId: String?) async throws -> [String] { [] }
-    public func screenings(venueId: String?, filmId: String?, date: String?) async throws -> [ScreeningSummary] { [] }
+    private var favourites: Set<String> = ["leeds-riverside"]
+
+    public func films(status: Film.Status?, query: String?) async throws -> [Film] {
+        try await simulateNetwork()
+        let q = query?.lowercased() ?? ""
+        return PreviewFixtures.films.filter { (status == nil || $0.status == status) && (q.isEmpty || $0.title.lowercased().contains(q) || $0.cast.contains { $0.lowercased().contains(q) }) }
+    }
+
+    public func film(id: String) async throws -> Film {
+        guard let f = PreviewFixtures.films.first(where: { $0.id == id || $0.slug == id }) else { throw APIError(status: 404, code: .notFound, message: "Film not found") }
+        return f
+    }
+
+    public func venues(latitude: Double?, longitude: Double?, query: String?) async throws -> [Venue] {
+        try await simulateNetwork()
+        let q = query?.lowercased() ?? ""
+        return PreviewFixtures.venues
+            .filter { q.isEmpty || $0.name.lowercased().contains(q) || $0.address.city.lowercased().contains(q) || $0.address.postcode.lowercased().hasPrefix(q) }
+            .map { var v = $0; v.isFavourite = favourites.contains(v.id); return v }
+    }
+
+    public func setFavourite(venueId: String, _ favourite: Bool) async throws {
+        if favourite { favourites.insert(venueId) } else { favourites.remove(venueId) }
+    }
+
+    // Showtimes are generated on demand: id = "mock|film|layout|yyyy-MM-dd|HH:mm".
+    private static let slots: [(String, PreviewFixtures.LayoutName)] = [("12:30", .standard), ("15:20", .curved), ("18:10", .premiere), ("20:50", .luxe)]
+
+    private func dayString(_ offset: Int) -> String {
+        let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.timeZone = TimeZone(identifier: "Europe/London"); f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: Date().addingTimeInterval(Double(offset) * 86400))
+    }
+
+    public func screeningDates(venueId: String, filmId: String?) async throws -> [String] {
+        if let filmId, PreviewFixtures.films.first(where: { $0.id == filmId })?.status == .comingSoon { return [] }
+        return (1...5).map(dayString)
+    }
+
+    public func screenings(venueId: String?, filmId: String?, date: String?) async throws -> [ScreeningSummary] {
+        try await simulateNetwork()
+        let films = PreviewFixtures.films.filter { $0.status == .nowShowing && (filmId == nil || $0.id == filmId) }
+        let days = date.map { [$0] } ?? (1...3).map(dayString)
+        var out: [ScreeningSummary] = []
+        for day in days {
+            for (i, film) in films.prefix(filmId == nil ? 3 : 1).enumerated() {
+                for (j, slot) in Self.slots.enumerated() where filmId != nil || (i + j) % 2 == 0 {
+                    let d = try detail(id: "mock|\(film.id)|\(slot.1.rawValue)|\(day)|\(slot.0)")
+                    out.append(ScreeningSummary(id: d.id, startsAt: d.startsAt, endsAt: d.endsAt, localDate: d.localDate, formats: d.formats, attributes: [], onSale: true,
+                                                availability: d.availability, film: d.film, venue: d.venue, auditorium: d.auditorium))
+                }
+            }
+        }
+        return out.sorted { $0.startsAt < $1.startsAt }
+    }
+
+    private func detail(id: String) throws -> ScreeningDetail {
+        if let s = screenings[id] { return s }
+        let parts = id.split(separator: "|").map(String.init)
+        guard parts.count == 5, parts[0] == "mock", let film = PreviewFixtures.films.first(where: { $0.id == parts[1] }),
+              let layout = PreviewFixtures.LayoutName(rawValue: parts[2]) else { throw APIError(status: 404, code: .notFound, message: "Screening not found") }
+        let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.timeZone = TimeZone(identifier: "Europe/London"); f.dateFormat = "yyyy-MM-dd HH:mm"
+        let start = f.date(from: "\(parts[3]) \(parts[4])") ?? Date().addingTimeInterval(86400)
+        var s = PreviewFixtures.screening(layout, id: id, start: start)
+        s.film = .init(id: film.id, title: film.title, certificate: film.certificate, runtimeMinutes: film.runtimeMinutes, poster: film.poster)
+        s.localDate = parts[3]
+        s.endsAt = start.addingTimeInterval(Double(film.runtimeMinutes + 20) * 60)
+        let seats = PreviewFixtures.availability(for: s, seed: id.unicodeScalars.reduce(UInt64(7)) { ($0 &* 31) &+ UInt64($1.value) }).seats
+        let free = seats.values.filter { $0 == .available }.count
+        s.availability = .init(available: free, total: seats.count, level: free == 0 ? .soldOut : Double(free) / Double(seats.count) < 0.2 ? .limited : .good)
+        screenings[id] = s
+        availabilityBySc[id] = seats
+        return s
+    }
 
     public func screening(id: String) async throws -> ScreeningDetail {
         try await simulateNetwork()
-        guard let s = screenings[id] ?? screenings.values.first else { throw APIError(status: 404, code: .notFound, message: "Screening not found") }
-        return s
+        if screenings[id] == nil, !id.hasPrefix("mock|"), let first = screenings.values.first { return first }
+        return try detail(id: id)
     }
 
     public func availability(screeningId: String) async throws -> AvailabilitySnapshot {
         try await simulateNetwork()
         expireHolds()
+        if screenings[screeningId] == nil { _ = try? detail(id: screeningId) }
         let id = screenings[screeningId] == nil ? screenings.keys.sorted().first! : screeningId
         let mine = holds.values.first { $0.screeningId == id && $0.status == .ACTIVE }
         return AvailabilitySnapshot(screeningId: id, serverTime: Date(), version: holds.count + booked.count, seats: availabilityBySc[id] ?? [:],

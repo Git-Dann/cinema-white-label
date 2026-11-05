@@ -16,6 +16,8 @@ public struct ImageRef: Codable, Sendable, Hashable {
 
     /// Picks the smallest rendition at least `pixelWidth` wide (never upscaled server-side).
     public func url(forPixelWidth pixelWidth: Double, base: URL) -> URL? {
+        // Bundled offline artwork (mock/preview mode) is a single local file.
+        if url.hasPrefix("file:") { return URL(string: url) }
         let w = renditions.first { Double($0) >= pixelWidth } ?? renditions.last ?? width
         let separator = url.contains("?") ? "&" : "?"
         return URL(string: "\(url)\(separator)w=\(w)", relativeTo: base)?.absoluteURL

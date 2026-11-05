@@ -91,3 +91,113 @@ jobs:
           name: xcodebuild-log
           path: ios/xcodebuild.log
           if-no-files-found: ignore
+
+  screenshots:
+    name: iOS app (simulator screenshots)
+    needs: build
+    runs-on: macos-latest
+    timeout-minutes: 60
+    # Pushes images to the ci-screenshots branch, so it needs write access and
+    # only runs for branches in this repository (not forks).
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode and a simulator
+        run: |
+          XCODE=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          SDK=$(xcrun --sdk iphonesimulator --show-sdk-version)
+          # The project targets iOS 27. Simulators on the runner may be older, so
+          # this job alone builds against the newest available SDK to run the app.
+          echo "DEPLOYMENT_TARGET=$SDK" >> "$GITHUB_ENV"
+          UDID=$(xcrun simctl list devices available -j | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)['devices']
+          ios=[(k,v) for k,v in d.items() if 'iOS' in k]
+          ios.sort(key=lambda kv: [int(x) for x in kv[0].split('iOS-')[-1].split('-')])
+          for runtime,devs in reversed(ios):
+              phones=[x for x in devs if 'iPhone' in x['name']]
+              pref=[x for x in phones if 'Pro Max' in x['name']] or [x for x in phones if 'Pro' in x['name']] or phones
+              if pref:
+                  print(pref[-1]['udid']); break
+          ")
+          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl list devices available | grep "$UDID"
+          echo "Simulator SDK $SDK, device $UDID" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Run screenshot UI test
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcrun simctl boot "$SIM_UDID" || true
+          xcodebuild test \
+            -project Cinema.xcodeproj \
+            -scheme Northlight \
+            -configuration "Northlight Debug" \
+            -destination "id=$SIM_UDID" \
+            -only-testing:CinemaAppUITests/ScreenshotTests \
+            -resultBundlePath TestResults.xcresult \
+            -derivedDataPath build \
+            IPHONEOS_DEPLOYMENT_TARGET="$DEPLOYMENT_TARGET" \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee xcodebuild-test.log | grep -E "error:|Test Case|passed|failed|\*\*" || true
+          grep -q "\*\* TEST SUCCEEDED \*\*" xcodebuild-test.log
+
+      - name: Export screenshots
+        if: always()
+        working-directory: ios
+        run: |
+          mkdir -p shots
+          if [ -d TestResults.xcresult ]; then
+            xcrun xcresulttool export attachments --path TestResults.xcresult --output-path shots || true
+          fi
+          python3 - <<'PY'
+          import json, os, shutil
+          d = "shots"
+          m = os.path.join(d, "manifest.json")
+          if os.path.exists(m):
+              for test in json.load(open(m)):
+                  for a in test.get("attachments", []):
+                      src = os.path.join(d, a["exportedFileName"])
+                      name = a.get("suggestedHumanReadableName", a["exportedFileName"])
+                      base = name.split("_")[0] if name[:2].isdigit() else name
+                      if os.path.exists(src):
+                          shutil.move(src, os.path.join(d, base if base.endswith(".png") else base + ".png"))
+          print(sorted(os.listdir(d)))
+          PY
+          grep -E "error:" xcodebuild-test.log | sed 's#.*/ios/##' | sort -u | head -40 || true
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-screenshots
+          path: |
+            ios/shots
+            ios/xcodebuild-test.log
+          if-no-files-found: ignore
+
+      - name: Publish to ci-screenshots branch
+        if: always()
+        working-directory: ios/shots
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          [ -n "$(ls -A . 2>/dev/null)" ] || exit 0
+          cp ../xcodebuild-test.log . 2>/dev/null || true
+          echo "Screenshots for ${GITHUB_SHA}" > README.md
+          git init -q
+          git checkout -q -b ci-screenshots
+          git add -A
+          git -c user.name="ci" -c user.email="ci@users.noreply.github.com" commit -qm "Screenshots for ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ci-screenshots

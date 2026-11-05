@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import Security
 import CinemaCore
 import CinemaFeatures
@@ -20,10 +21,19 @@ struct CinemaApp: App {
             fatalError("Missing bundled tenant configuration for \(slug); run the backend seed to regenerate it")
         }
 
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let tokens = GuestTokenProvider(baseURL: base, tenantSlug: slug, store: KeychainTokenStore(service: "\(Bundle.main.bundleIdentifier ?? "cinema").session"))
-        let client = APIClient(baseURL: base, tenantSlug: slug, tokens: tokens)
-        let service = LiveCinemaService(client: client)
+        let arguments = ProcessInfo.processInfo.arguments
+        let mockMode = arguments.contains("-mock-data")
+        var support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let service: any CinemaService
+        if mockMode {
+            // Offline demo / UI-test mode: fictional in-memory data, no backend, nothing persisted.
+            service = MockCinemaService(config: bundled)
+            support = FileManager.default.temporaryDirectory.appendingPathComponent("mock-\(UUID().uuidString)")
+            if arguments.contains("-ui-testing") { UIView.setAnimationsEnabled(false) }
+        } else {
+            let tokens = GuestTokenProvider(baseURL: base, tenantSlug: slug, store: KeychainTokenStore(service: "\(Bundle.main.bundleIdentifier ?? "cinema").session"))
+            service = LiveCinemaService(client: APIClient(baseURL: base, tenantSlug: slug, tokens: tokens))
+        }
         let model = AppModel(
             service: service,
             configStore: TenantConfigStore(bundled: bundled, cacheDirectory: support),
