@@ -122,6 +122,14 @@ public enum PreviewFixtures {
         ]
     )
 
+    /// Fictional offers. WELCOME10 is accepted by the mock checkout.
+    public static let promotions: [Promotion] = [
+        Promotion(id: "promo-welcome", title: "New here? 10% off", body: "Use code WELCOME10 on your first booking, tickets and food included.",
+                  ctaLabel: "Show code", action: .voucher(code: "WELCOME10")),
+        Promotion(id: "promo-opening", title: "Opening night, booked early", body: "Tickets for the next big release are on sale now. Pick your seats before they go.",
+                  ctaLabel: "See the film", action: .film(id: films.first { $0.status == .comingSoon }?.id ?? films.first?.id ?? "")),
+    ]
+
     static func sizeGroup(_ largeExtra: Int) -> ConcessionProduct.ModifierGroup {
         .init(id: "size", name: "Size", min: 1, max: 1, options: [.init(id: "regular", name: "Regular", priceMinor: 0), .init(id: "large", name: "Large", priceMinor: largeExtra)])
     }

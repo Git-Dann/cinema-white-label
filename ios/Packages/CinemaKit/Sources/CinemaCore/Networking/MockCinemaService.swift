@@ -164,6 +164,8 @@ public actor MockCinemaService: CinemaService {
 
     public func concessions(venueId: String) async throws -> ConcessionMenu { try await simulateNetwork(); return PreviewFixtures.menu }
 
+    public func promotions(venueId: String?) async throws -> [Promotion] { try await simulateNetwork(); return PreviewFixtures.promotions }
+
     public func quote(holdId: String, tickets: [TicketSelection], extras: BasketExtras) async throws -> Quote {
         try await simulateNetwork()
         guard let h = holds[holdId], let s = screenings[h.screeningId] else { throw APIError(status: 404, code: .notFound, message: "Reservation not found") }

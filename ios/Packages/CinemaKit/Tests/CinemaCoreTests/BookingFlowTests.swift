@@ -29,6 +29,7 @@ final class FakeService: CinemaService, @unchecked Sendable {
     }
     func releaseHold(id: String) async throws {}
     func concessions(venueId: String) async throws -> ConcessionMenu { ConcessionMenu(features: VenueFeatures(), categories: []) }
+    func promotions(venueId: String?) async throws -> [Promotion] { [] }
     func cancelBooking(id: String) async throws -> Booking { throw APIError(status: 404, code: .notFound, message: "") }
     func quote(holdId: String, tickets: [TicketSelection], extras: BasketExtras) async throws -> Quote {
         let lines = tickets.map { Quote.Line(seatId: $0.seatId, rowLabel: "F", seatLabel: "1", ticketTypeId: $0.ticketTypeId, ticketTypeName: "Adult", priceCategory: "standard", baseMinor: 1250, supplementsMinor: 0, priceMinor: $0.ticketTypeId == "child" ? 899 : 1250) }

@@ -19,6 +19,8 @@ public final class AppModel {
     public private(set) var venues: [Venue] = []
     public private(set) var nowShowing: [Film] = []
     public private(set) var comingSoon: [Film] = []
+    /// Live offers for the selected cinema. Empty hides the Offers section.
+    public private(set) var promotions: [Promotion] = []
     public private(set) var loadError: String?
     public private(set) var isLoading = false
 
@@ -26,7 +28,10 @@ public final class AppModel {
     public var selectedVenueID: String? {
         didSet {
             UserDefaults.standard.set(selectedVenueID, forKey: "selectedVenue.\(config.tenant.slug)")
-            if let id = selectedVenueID, id != oldValue { Task { await analytics.record(.cinemaSelected, ["venueId": id]) } }
+            if let id = selectedVenueID, id != oldValue {
+                Task { await analytics.record(.cinemaSelected, ["venueId": id]) }
+                Task { await loadPromotions() }
+            }
         }
     }
 
@@ -74,9 +79,15 @@ public final class AppModel {
             (nowShowing, comingSoon, venues) = try await (n, c, v)
             loadError = nil
             if selectedVenueID == nil || selectedVenue == nil { selectedVenueID = favouriteVenues.first?.id ?? venues.first?.id }
+            await loadPromotions()
         } catch {
             loadError = (error as? APIError)?.message ?? "We couldn't load films right now."
         }
+    }
+
+    /// Offers are optional content: a failure leaves the section hidden rather than erroring the home screen.
+    public func loadPromotions() async {
+        promotions = (try? await service.promotions(venueId: selectedVenueID)) ?? []
     }
 
     public func reloadVenues(near latitude: Double? = nil, longitude: Double? = nil, query: String? = nil) async throws -> [Venue] {

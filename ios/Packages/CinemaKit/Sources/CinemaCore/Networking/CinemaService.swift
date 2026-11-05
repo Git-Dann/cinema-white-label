@@ -15,6 +15,8 @@ public protocol CinemaService: Sendable {
     func createHold(screeningId: String, seatIds: [String], idempotencyKey: String) async throws -> SeatHold
     func releaseHold(id: String) async throws
     func concessions(venueId: String) async throws -> ConcessionMenu
+    /// Live promotions for this cinema plus operator-wide ones.
+    func promotions(venueId: String?) async throws -> [Promotion]
     func quote(holdId: String, tickets: [TicketSelection], extras: BasketExtras) async throws -> Quote
     func checkout(holdId: String, tickets: [TicketSelection], extras: BasketExtras, simulateDecline: Bool, idempotencyKey: String) async throws -> Booking
     func bookings() async throws -> [Booking]
@@ -88,6 +90,8 @@ public struct LiveCinemaService: CinemaService {
     }
 
     public func concessions(venueId: String) async throws -> ConcessionMenu { try await client.get("/venues/\(venueId)/concessions") }
+
+    public func promotions(venueId: String?) async throws -> [Promotion] { try await client.get("/promotions" + q(["venueId": venueId])) }
 
     public func quote(holdId: String, tickets: [TicketSelection], extras: BasketExtras) async throws -> Quote {
         struct Body: Encodable, Sendable { var holdId: String; var tickets: [TicketSelection]; var concessions: [BasketItem]; var voucherCode: String?; var fulfilment: Fulfilment }

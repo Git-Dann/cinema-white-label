@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import CinemaCore
 import CinemaDesign
 
@@ -8,6 +9,7 @@ struct HomeView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.palette) private var palette
     @State private var showingVenuePicker = false
+    @State private var voucherToShow: VoucherCode?
 
     var body: some View {
         ScrollView {
@@ -28,6 +30,7 @@ struct HomeView: View {
         .toolbarTitleDisplayMode(.inlineLarge)
         .refreshable { await app.loadContent(); await app.tickets.refresh(using: app.service) }
         .sheet(isPresented: $showingVenuePicker) { VenuePickerSheet() }
+        .sheet(item: $voucherToShow) { VoucherCodeSheet(voucher: $0) }
         .navigationDestination(for: Film.self) { FilmDetailView(film: $0) }
     }
 
@@ -79,6 +82,20 @@ struct HomeView: View {
                         .padding(.horizontal, 20)
                     }
                 }
+            }
+        case .promotion where !app.promotions.isEmpty:
+            VStack(alignment: .leading, spacing: 14) {
+                SectionHeader(section.title, subtitle: section.subtitle)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(alignment: .top, spacing: 16) {
+                        ForEach(app.promotions) { promo in
+                            PromotionCard(promotion: promo) { voucherToShow = $0 }
+                        }
+                    }
+                    .scrollTargetLayout()
+                    .padding(.horizontal, 20)
+                }
+                .scrollTargetBehavior(.viewAligned)
             }
         case .nowShowing where !app.nowShowing.isEmpty:
             posterRow(section, films: app.nowShowing, caption: { $0.formats.contains("IMAX") ? "Also in IMAX" : $0.genres.first })
@@ -160,5 +177,117 @@ struct FilmGridView: View {
         .background(palette.background)
         .navigationTitle(title)
         .navigationDestination(for: Film.self) { FilmDetailView(film: $0) }
+    }
+}
+
+/// A voucher code the customer asked to see from a promotion.
+struct VoucherCode: Identifiable, Hashable {
+    let code: String
+    let title: String
+    var id: String { code }
+}
+
+/// Offer card on the home screen. Colours come from semantic tokens only.
+struct PromotionCard: View {
+    let promotion: Promotion
+    let showVoucher: (VoucherCode) -> Void
+    @Environment(AppModel.self) private var app
+    @Environment(\.palette) private var palette
+    @Environment(\.openURL) private var openURL
+
+    private var symbol: String {
+        switch promotion.action {
+        case .voucher: return "ticket"
+        case .film: return "film"
+        case .link: return "safari"
+        case .none: return "megaphone"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Image(systemName: symbol)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(palette.actionPrimary)
+                .accessibilityHidden(true)
+            Text(promotion.title)
+                .font(.headline)
+                .foregroundStyle(palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(promotion.body)
+                .font(.subheadline)
+                .foregroundStyle(palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+            if promotion.hasButton { action }
+        }
+        .padding(18)
+        .frame(width: 280, alignment: .leading)
+        .frame(minHeight: 200, alignment: .topLeading)
+        .background(palette.surfaceElevated, in: RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous).strokeBorder(palette.border))
+        .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder
+    private var action: some View {
+        let label = promotion.ctaLabel ?? ""
+        switch promotion.action {
+        case .voucher(let code):
+            Button(label) { showVoucher(VoucherCode(code: code, title: promotion.title)) }
+                .buttonStyle(.cinemaGlass)
+                .accessibilityHint("Shows the code \(code)")
+        case .film(let id):
+            // Only offer the button when the film is in the loaded catalogue.
+            if let film = app.film(id: id) {
+                NavigationLink(value: film) { Text(label) }
+                    .buttonStyle(.cinemaGlass)
+                    .accessibilityHint("Opens \(film.title)")
+            }
+        case .link(let url):
+            Button(label) { openURL(url) }
+                .buttonStyle(.cinemaGlass)
+                .accessibilityHint("Opens in Safari")
+                .accessibilityAddTraits(.isLink)
+        case .none:
+            EmptyView()
+        }
+    }
+}
+
+/// Shows a voucher code large enough to read out, with a copy button.
+struct VoucherCodeSheet: View {
+    let voucher: VoucherCode
+    @Environment(\.palette) private var palette
+    @Environment(\.dismiss) private var dismiss
+    @State private var copied = false
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Text(voucher.title)
+                .font(.headline)
+                .foregroundStyle(palette.textSecondary)
+                .multilineTextAlignment(.center)
+            Text(voucher.code)
+                .font(.system(.largeTitle, design: .monospaced).weight(.bold))
+                .foregroundStyle(palette.textPrimary)
+                .textSelection(.enabled)
+                .accessibilityLabel("Code \(voucher.code.map(String.init).joined(separator: " "))")
+            Text("Enter it on the review screen before you pay.")
+                .font(.subheadline)
+                .foregroundStyle(palette.textMuted)
+                .multilineTextAlignment(.center)
+            Button(copied ? "Copied" : "Copy code") {
+                UIPasteboard.general.string = voucher.code
+                copied = true
+                AccessibilityNotification.Announcement("Code copied").post()
+            }
+            .buttonStyle(.cinemaPrimary)
+            .sensoryFeedback(.success, trigger: copied)
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity)
+        .presentationDetents([.height(320)])
+        .presentationBackground(palette.backgroundElevated)
     }
 }
