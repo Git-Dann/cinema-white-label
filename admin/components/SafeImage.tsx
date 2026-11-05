@@ -1,0 +1,48 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+
+type Props = Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> & {
+  src: string | null | undefined;
+  /** Shown instead of the image when it is missing or fails twice. Defaults to nothing, so the container's own background shows. */
+  fallback?: React.ReactNode;
+};
+
+/**
+ * An image that never shows the browser's broken-image icon. It fades in once
+ * loaded, retries once on failure (serverless cold starts can drop a request),
+ * then gives way to the fallback.
+ */
+export function SafeImage({ src, fallback = null, className, style, onLoad, ...rest }: Props) {
+  const [attempt, setAttempt] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setAttempt(0);
+    setLoaded(false);
+    setFailed(false);
+  }, [src]);
+
+  if (!src || failed) return <>{fallback}</>;
+
+  const url = attempt === 0 ? src : `${src}${src.includes('?') ? '&' : '?'}retry=${attempt}`;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      {...rest}
+      key={url}
+      src={url}
+      className={className}
+      style={{ ...style, opacity: loaded ? 1 : 0, transition: 'opacity 0.2s ease' }}
+      onLoad={(e) => {
+        setLoaded(true);
+        onLoad?.(e);
+      }}
+      onError={() => {
+        if (attempt === 0) setTimeout(() => setAttempt(1), 800);
+        else setFailed(true);
+      }}
+    />
+  );
+}

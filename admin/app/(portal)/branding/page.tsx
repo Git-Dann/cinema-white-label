@@ -8,6 +8,7 @@ import { useSession } from '@/lib/session';
 import { ErrorNote, Loading, PageHeader, SuccessNote } from '@/components/ui';
 import { PhonePreview, PreviewFilm } from '@/components/PhonePreview';
 import { ContrastReport } from '@/components/ContrastReport';
+import { SafeImage } from '@/components/SafeImage';
 
 type BrandingFields = Pick<Draft, 'themeId' | 'paletteId' | 'appearancePolicy' | 'availableThemes' | 'wordmark' | 'logoLightAssetId' | 'logoDarkAssetId' | 'features'>;
 
@@ -383,8 +384,7 @@ export default function BrandingPage() {
                     <div className="label">Logo for {which} backgrounds</div>
                     <div className="logo-box" style={{ background: which === 'light' ? bgLight : bgDark }}>
                       {url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={url} alt={`Current logo for ${which} backgrounds`} />
+                        <SafeImage src={url} alt={`Current logo for ${which} backgrounds`} fallback={<span className="muted small">Logo unavailable</span>} />
                       ) : (
                         <span className="muted small">No logo</span>
                       )}

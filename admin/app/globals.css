@@ -1934,3 +1934,38 @@ textarea:disabled {
 .seat-map.draggable {
   touch-action: none;
 }
+
+/* Image fallbacks: shown instead of a broken-image icon. */
+.poster-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: end start;
+  padding: 14px;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.85);
+  background: linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.45));
+}
+.film-poster {
+  position: relative;
+}
+.thumb-fallback {
+  display: block;
+  height: 56px;
+  width: 38px;
+  border-radius: 4px;
+  background: var(--surface-3);
+}
+.image-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--s2);
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  background: var(--surface-2);
+}
