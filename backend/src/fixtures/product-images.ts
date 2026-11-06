@@ -17,7 +17,7 @@ export const FIXTURE_PRODUCT_IMAGES: Record<string, { unsplash: string; colour: 
   'COMBO-DUO': { unsplash: 'photo-1585647347384-2593bc35786b', colour: '#681818' },
   'EMBER-BUCKET': { unsplash: 'photo-1691480213129-106b2c7d1ee8', colour: '#F0D8A8' },
   'TIDE-CARAMEL': { unsplash: 'photo-1620177088258-c84147ee601f', colour: '#B07848' },
-  'HOT-CHOC': { unsplash: 'photo-1637572815755-c4b80092dce1', colour: '#685848' },
+  'HOT-CHOC': { unsplash: 'photo-1637572815755-c4b80092dce1', colour: '#786050' },
   'COMBO-FAMILY': { unsplash: 'photo-1623179007436-1d366e78ba68', colour: '#987860' },
 };
 

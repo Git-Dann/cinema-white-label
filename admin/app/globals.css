@@ -2373,3 +2373,9 @@ dialog.sheet form {
   gap: var(--s1) var(--s3);
   margin-bottom: var(--s1);
 }
+/* On a photo the flag needs a solid fill to stay readable. */
+.product-flag.badge-special {
+  background: var(--warning);
+  color: var(--bg);
+  backdrop-filter: none;
+}
