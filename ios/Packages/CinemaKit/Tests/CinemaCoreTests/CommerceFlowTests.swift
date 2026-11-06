@@ -44,7 +44,7 @@ struct CommerceFlowTests {
         f.selection.toggle(freeSeat(f))
         await f.reserveSeats()
         f.continueToReview()
-        await f.addToBasket(BasketItem(productId: "combo", modifiers: ["popcorn": ["sweet"], "drinks": ["cola"]]))
+        await f.addToBasket(BasketItem(productId: "combo-duo", modifiers: ["popcorn": ["sweet"], "drinks": ["cola"]]))
         #expect(f.basketMessage?.contains("choose 2 drinks") == true)
         #expect(ModifierValidation.problems(product: PreviewFixtures.menu.categories[2].items[0], modifiers: ["popcorn": ["sweet"], "drinks": ["cola", "water"]]).isEmpty)
     }

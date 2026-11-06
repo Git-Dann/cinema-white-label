@@ -11,6 +11,8 @@ public actor MockCinemaService: CinemaService {
     private var availabilityBySc: [String: [String: SeatAvailability]] = [:]
     private var holds: [String: SeatHold] = [:]
     private var booked: [Booking] = []
+    /// Idempotency for food pre-orders: key → booking id.
+    private var placedPreorders: [String: String] = [:]
     private let config: TenantConfig
     public var failure: Failure = .none
     public var latency: Duration = .milliseconds(150)
@@ -184,13 +186,7 @@ public actor MockCinemaService: CinemaService {
                   let price = s.pricing.price(for: type, category: seat.priceCategory) else { throw APIError(status: 422, code: .validationFailed, message: "Invalid ticket") }
             return Quote.Line(seatId: seat.id, rowLabel: rows[seat.rowId] ?? "", seatLabel: seat.label, ticketTypeId: type.id, ticketTypeName: type.name, priceCategory: seat.priceCategory, baseMinor: price, supplementsMinor: 0, priceMinor: price)
         }
-        let products = Dictionary(uniqueKeysWithValues: PreviewFixtures.menu.categories.flatMap(\.items).map { ($0.id, $0) })
-        let food: [ConcessionLine] = try extras.concessions.map { item in
-            guard let p = products[item.productId], p.isAvailable else { throw APIError(status: 422, code: .unknown, rawCode: "concession_unavailable", message: "Some items are no longer available") }
-            if let problem = ModifierValidation.problems(product: p, modifiers: item.modifiers).first { throw APIError(status: 422, code: .validationFailed, message: "\(p.name): \(problem.lowercased())") }
-            let unit = ModifierValidation.unitPrice(product: p, modifiers: item.modifiers)
-            return ConcessionLine(productId: p.id, name: p.name, quantity: item.quantity, unitPriceMinor: unit, modifiers: [], lineTotalMinor: unit * item.quantity)
-        }
+        let food = try priceFood(extras.concessions)
         let sub = lines.reduce(0) { $0 + $1.priceMinor }
         let foodTotal = food.reduce(0) { $0 + $1.lineTotalMinor }
         let fees = s.pricing.bookingFeePerTicketMinor * lines.count
@@ -302,13 +298,65 @@ public actor MockCinemaService: CinemaService {
             wallet: .init(available: false, status: nil),
             concessions: (q.concessions ?? []).map { .init(name: $0.name, quantity: $0.quantity, modifiers: [], lineTotalMinor: $0.lineTotalMinor) },
             fulfilment: extras.fulfilment,
-            cancellation: .init(cancelledAt: nil, cancellableUntil: s.startsAt.addingTimeInterval(-3600), canCancel: true, refundedMinor: 0)
+            cancellation: .init(cancelledAt: nil, cancellableUntil: s.startsAt.addingTimeInterval(-3600), canCancel: true, refundedMinor: 0),
+            preorder: .init(open: true, closesAt: s.startsAt.addingTimeInterval(-15 * 60))
         )
         booked.append(booking)
         return booking
     }
 
     public func bookings() async throws -> [Booking] { try await simulateNetwork(); return booked }
+
+    private func priceFood(_ items: [BasketItem]) throws -> [ConcessionLine] {
+        let products = Dictionary(uniqueKeysWithValues: PreviewFixtures.menu.allItems.map { ($0.id, $0) })
+        return try items.map { item in
+            guard let p = products[item.productId], p.isAvailable else { throw APIError(status: 422, code: .unknown, rawCode: "concession_unavailable", message: "Some items are no longer available") }
+            if let problem = ModifierValidation.problems(product: p, modifiers: item.modifiers).first { throw APIError(status: 422, code: .validationFailed, message: "\(p.name): \(problem.lowercased())") }
+            let unit = ModifierValidation.unitPrice(product: p, modifiers: item.modifiers)
+            let labels = p.modifierGroups.compactMap { g -> ConcessionLine.Modifier? in
+                let chosen = g.options.filter { (item.modifiers[g.id] ?? []).contains($0.id) }
+                return chosen.isEmpty ? nil : .init(groupId: g.id, optionIds: chosen.map(\.id), label: chosen.map(\.name).joined(separator: ", "), priceMinor: chosen.reduce(0) { $0 + $1.priceMinor })
+            }
+            return ConcessionLine(productId: p.id, name: p.name, quantity: item.quantity, unitPriceMinor: unit, modifiers: labels, lineTotalMinor: unit * item.quantity)
+        }
+    }
+
+    public func quoteFoodPreorder(bookingId: String, items: [BasketItem], fulfilment: Fulfilment) async throws -> FoodPreorderQuote {
+        try await simulateNetwork()
+        guard let b = booked.first(where: { $0.id == bookingId }) else { throw APIError(status: 404, code: .notFound, message: "Booking not found") }
+        guard b.canPreorder(now: Date()) else { throw APIError(status: 422, code: .validationFailed, message: "Pre-orders close 15 minutes before the film starts. You can still buy at the counter.") }
+        guard !items.isEmpty else { throw APIError(status: 422, code: .validationFailed, message: "Add at least one item") }
+        let lines = try priceFood(items)
+        let sub = lines.reduce(0) { $0 + $1.lineTotalMinor }
+        let ent = activeMembership?.plan.entitlements
+        let memberFood = sub * (ent?.foodDiscountPercent ?? 0) / 100
+        let total = sub - memberFood
+        let earn = total / 100 * PreviewFixtures.loyaltyProgram.earnPointsPerPound * Int(((ent?.pointsMultiplier ?? 1) * 100).rounded()) / 100
+        return FoodPreorderQuote(bookingId: b.id, concessions: lines, subtotalMinor: sub,
+                                 discounts: memberFood > 0 ? [.init(kind: "membership", label: "\(activeMembership!.plan.name) member discount", amountMinor: memberFood)] : [],
+                                 discountMinor: memberFood, totalMinor: total, currency: "GBP", fulfilment: fulfilment, pointsToEarn: earn, collectBy: b.screening.startsAt)
+    }
+
+    public func placeFoodPreorder(bookingId: String, items: [BasketItem], fulfilment: Fulfilment, simulateDecline: Bool, idempotencyKey: String) async throws -> Booking {
+        if let done = placedPreorders[idempotencyKey], let b = booked.first(where: { $0.id == done }) { return b }
+        if simulateDecline { throw APIError(status: 402, code: .paymentDeclined, message: "Your payment was declined") }
+        let q = try await quoteFoodPreorder(bookingId: bookingId, items: items, fulfilment: fulfilment)
+        guard let i = booked.firstIndex(where: { $0.id == bookingId }) else { throw APIError(status: 404, code: .notFound, message: "Booking not found") }
+        var b = booked[i]
+        b.concessions = (b.concessions ?? []) + q.concessions.map { .init(name: $0.name, quantity: $0.quantity, modifiers: $0.modifiers.map(\.label), lineTotalMinor: $0.lineTotalMinor) }
+        b.totals.concessionsMinor = (b.totals.concessionsMinor ?? 0) + q.subtotalMinor
+        b.totals.discountMinor += q.discountMinor
+        b.totals.totalMinor += q.totalMinor
+        b.totals.pointsEarned = (b.totals.pointsEarned ?? 0) + q.pointsToEarn
+        if fulfilment == .seatDelivery { b.fulfilment = .seatDelivery }
+        if q.pointsToEarn > 0 {
+            points += q.pointsToEarn
+            ledger.append(.init(id: "\(idempotencyKey)-earn", points: q.pointsToEarn, reason: "earn", description: "Food pre-order · \(b.reference)", balanceAfter: points, bookingId: b.id, createdAt: Date()))
+        }
+        booked[i] = b
+        placedPreorders[idempotencyKey] = b.id
+        return b
+    }
 
     public func cancelBooking(id: String) async throws -> Booking {
         try await simulateNetwork()
@@ -317,6 +365,7 @@ public actor MockCinemaService: CinemaService {
         var b = booked[i]
         b.status = .REFUNDED
         b.cancellation?.canCancel = false
+        b.preorder?.open = false
         b.cancellation?.cancelledAt = Date()
         b.cancellation?.refundedMinor = b.totals.totalMinor
         booked[i] = b

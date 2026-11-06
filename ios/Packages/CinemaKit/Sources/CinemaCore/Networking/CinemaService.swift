@@ -25,6 +25,10 @@ public protocol CinemaService: Sendable {
     func quote(holdId: String, tickets: [TicketSelection], extras: BasketExtras) async throws -> Quote
     func checkout(holdId: String, tickets: [TicketSelection], extras: BasketExtras, simulateDecline: Bool, idempotencyKey: String) async throws -> Booking
     func bookings() async throws -> [Booking]
+    /// Prices a food pre-order for an existing booking. The server is authoritative.
+    func quoteFoodPreorder(bookingId: String, items: [BasketItem], fulfilment: Fulfilment) async throws -> FoodPreorderQuote
+    /// Pays for a food pre-order and adds it to the booking; returns the updated booking.
+    func placeFoodPreorder(bookingId: String, items: [BasketItem], fulfilment: Fulfilment, simulateDecline: Bool, idempotencyKey: String) async throws -> Booking
     func cancelBooking(id: String) async throws -> Booking
     func requestWalletPass(bookingId: String) async throws -> WalletPassResponse
     func track(_ events: [AnalyticsEvent]) async throws
@@ -130,6 +134,18 @@ public struct LiveCinemaService: CinemaService {
     }
 
     public func bookings() async throws -> [Booking] { try await client.get("/me/bookings", authenticated: true) }
+
+    public func quoteFoodPreorder(bookingId: String, items: [BasketItem], fulfilment: Fulfilment) async throws -> FoodPreorderQuote {
+        struct Body: Encodable, Sendable { var concessions: [BasketItem]; var fulfilment: Fulfilment }
+        return try await client.send("POST", "/bookings/\(bookingId)/concessions/quote", body: Body(concessions: items, fulfilment: fulfilment), authenticated: true, as: FoodPreorderQuote.self).value!
+    }
+
+    public func placeFoodPreorder(bookingId: String, items: [BasketItem], fulfilment: Fulfilment, simulateDecline: Bool, idempotencyKey: String) async throws -> Booking {
+        struct Payment: Encodable, Sendable { var type = "simulated"; var outcome: String }
+        struct Body: Encodable, Sendable { var concessions: [BasketItem]; var fulfilment: Fulfilment; var payment: Payment }
+        let body = Body(concessions: items, fulfilment: fulfilment, payment: Payment(outcome: simulateDecline ? "decline" : "approve"))
+        return try await client.send("POST", "/bookings/\(bookingId)/concessions", body: body, authenticated: true, idempotencyKey: idempotencyKey, as: Booking.self).value!
+    }
 
     public func cancelBooking(id: String) async throws -> Booking {
         try await client.send("POST", "/bookings/\(id)/cancel", body: EmptyResponse(), authenticated: true, as: Booking.self).value!

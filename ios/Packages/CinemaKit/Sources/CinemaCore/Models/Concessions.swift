@@ -38,8 +38,45 @@ public struct ConcessionProduct: Codable, Sendable, Hashable, Identifiable {
     public var modifierGroups: [ModifierGroup]
     public var bundleItems: [String]
     public var image: ImageRef?
+    /// Specials, deals and film tie-ins. Optional so older servers still decode.
+    public var featured: Bool? = nil
+    public var badge: String? = nil
+    public var compareAtMinor: Int? = nil
+    public var limitedEdition: Bool? = nil
+    public var film: FilmLink? = nil
+    public var availableUntil: Date? = nil
+
+    public struct FilmLink: Codable, Sendable, Hashable { public var id: String; public var title: String
+        public init(id: String, title: String) { self.id = id; self.title = title } }
 
     public var isAvailable: Bool { stockStatus != .out }
+    public var isFeatured: Bool { featured == true }
+    public var isLimitedEdition: Bool { limitedEdition == true }
+    public var isBundle: Bool { !bundleItems.isEmpty }
+    /// How much the deal saves against its "was" price, or nil when there is none.
+    public var savingMinor: Int? {
+        guard let was = compareAtMinor, was > priceMinor else { return nil }
+        return was - priceMinor
+    }
+    /// The label to show on the card: the operator's own, else "Limited edition".
+    public var displayBadge: String? { badge ?? (isLimitedEdition ? "Limited edition" : nil) }
+}
+
+public extension ConcessionMenu {
+    /// Every product once, in menu order.
+    var allItems: [ConcessionProduct] { categories.flatMap(\.items) }
+    /// The Specials row: featured products that can be ordered first, sold-out ones last.
+    var specials: [ConcessionProduct] { allItems.filter(\.isFeatured).sorted { $0.isAvailable && !$1.isAvailable } }
+    /// Merchandise and food made for a film, grouped by film in menu order.
+    var filmTieIns: [(film: ConcessionProduct.FilmLink, items: [ConcessionProduct])] {
+        var order: [ConcessionProduct.FilmLink] = []
+        var byFilm: [String: [ConcessionProduct]] = [:]
+        for p in allItems { guard let f = p.film else { continue }; if byFilm[f.id] == nil { order.append(f) }; byFilm[f.id, default: []].append(p) }
+        return order.map { ($0, byFilm[$0.id]!) }
+    }
+    /// Bundles and anything with a saving.
+    var deals: [ConcessionProduct] { allItems.filter { $0.isBundle || $0.savingMinor != nil } }
+    func product(id: String) -> ConcessionProduct? { allItems.first { $0.id == id } }
 }
 
 /// A customer's choice of one product with options.

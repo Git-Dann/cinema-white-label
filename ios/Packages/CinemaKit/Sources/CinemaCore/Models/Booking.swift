@@ -124,6 +124,9 @@ public struct Booking: Codable, Sendable, Hashable, Identifiable {
     public struct PaymentInfo: Codable, Sendable, Hashable { public var provider: String; public var status: String; public var isSimulated: Bool }
     public struct Admission: Codable, Sendable, Hashable { public var barcode: String; public var format: String }
     public struct WalletInfo: Codable, Sendable, Hashable { public var available: Bool; public var status: String? }
+    /// Whether food and drink can still be pre-ordered for this booking.
+    public struct Preorder: Codable, Sendable, Hashable { public var open: Bool; public var closesAt: Date
+        public init(open: Bool, closesAt: Date) { self.open = open; self.closesAt = closesAt } }
 
     public var id: String
     public var reference: String
@@ -142,9 +145,34 @@ public struct Booking: Codable, Sendable, Hashable, Identifiable {
     public var concessions: [FoodItem]?
     public var fulfilment: Fulfilment?
     public var cancellation: Cancellation?
+    public var preorder: Preorder? = nil
 
     public var seatSummary: String { seats.map { "\($0.rowLabel)\($0.seatLabel)" }.joined(separator: ", ") }
     public func isUpcoming(now: Date) -> Bool { status == .CONFIRMED && screening.endsAt > now }
+    /// Food can be added now: confirmed, before the server's cutoff, at a cinema that sells food.
+    public func canPreorder(now: Date) -> Bool {
+        guard status == .CONFIRMED, let p = preorder, p.open else { return false }
+        return p.closesAt > now
+    }
+}
+
+/// Server price for a food pre-order on an existing booking (POST bookings/{id}/concessions/quote).
+public struct FoodPreorderQuote: Codable, Sendable, Hashable {
+    public var bookingId: String
+    public var concessions: [ConcessionLine]
+    public var subtotalMinor: Int
+    public var discounts: [Quote.Discount]
+    public var discountMinor: Int
+    public var totalMinor: Int
+    public var currency: String
+    public var fulfilment: Fulfilment
+    public var pointsToEarn: Int
+    public var collectBy: Date
+
+    public init(bookingId: String, concessions: [ConcessionLine], subtotalMinor: Int, discounts: [Quote.Discount], discountMinor: Int, totalMinor: Int, currency: String, fulfilment: Fulfilment, pointsToEarn: Int, collectBy: Date) {
+        self.bookingId = bookingId; self.concessions = concessions; self.subtotalMinor = subtotalMinor; self.discounts = discounts; self.discountMinor = discountMinor
+        self.totalMinor = totalMinor; self.currency = currency; self.fulfilment = fulfilment; self.pointsToEarn = pointsToEarn; self.collectBy = collectBy
+    }
 }
 
 /// Result of requesting an Apple Wallet pass for a booking.
