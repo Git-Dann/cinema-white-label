@@ -63,3 +63,5 @@ The three Vercel projects (marketing site, API, portal) share one account, and t
 | `admin` | `admin/`, `packages/`, `pnpm-lock.yaml` |
 
 If the comparison can't run (an unknown commit), the build goes ahead. To force a build, use Redeploy in the Vercel dashboard.
+
+The `ci-screenshots` branch (iOS test screenshots, pushed by `.github/workflows/ios.yml`) never deploys. Vercel reads config from the pushed commit, so the workflow writes a `vercel.json` with `git.deploymentEnabled: false` into each project folder on that branch; the project configs on `main` also list it as disabled.
