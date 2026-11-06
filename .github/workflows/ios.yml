@@ -235,6 +235,12 @@ jobs:
           [ -n "$(ls -A . 2>/dev/null)" ] || exit 0
           cp ../xcodebuild-test.log . 2>/dev/null || true
           echo "Screenshots for ${GITHUB_SHA}" > README.md
+          # Vercel reads each project's config from its root directory in the pushed commit, so this
+          # branch carries its own: no deployments, for any of the three projects (and the repo root).
+          for d in . site backend admin; do
+            mkdir -p "$d"
+            echo '{ "git": { "deploymentEnabled": false } }' > "$d/vercel.json"
+          done
           git init -q
           git checkout -q -b ci-screenshots
           git add -A

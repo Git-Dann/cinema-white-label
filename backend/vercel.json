@@ -2,6 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "ignoreCommand": "git diff --quiet ${VERCEL_GIT_PREVIOUS_SHA:-HEAD^} HEAD -- . ../packages ../shared ../pnpm-lock.yaml",
+  "git": { "deploymentEnabled": { "ci-screenshots": false } },
   "installCommand": "cd .. && pnpm install --frozen-lockfile",
   "buildCommand": "cd .. && pnpm --filter @cinema/contracts build && cd backend && npx prisma generate && pnpm build && node scripts/deploy-db.js",
   "outputDirectory": "public",
