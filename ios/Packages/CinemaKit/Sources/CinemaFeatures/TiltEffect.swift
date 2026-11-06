@@ -123,9 +123,12 @@ struct TiltEffect: ViewModifier {
             }
             // Shadow drawn once on its own layer and only moved, so it is never re-blurred.
             .background {
+                // Inset well inside the poster so the card casting the shadow never
+                // peeks out at the edges as the poster tilts; only the soft shadow shows.
                 shape.fill(.black)
-                    .shadow(color: .black.opacity(0.5), radius: 26, y: 16)
-                    .offset(x: x * -8, y: y * -4)
+                    .padding(16)
+                    .shadow(color: .black.opacity(0.6), radius: 28, y: 18)
+                    .offset(x: x * -6, y: y * -3)
             }
             .rotation3DEffect(.degrees(y * -maxDegrees * 0.8), axis: (x: 1, y: 0, z: 0), perspective: 0.5)
             .rotation3DEffect(.degrees(x * maxDegrees), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
