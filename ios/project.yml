@@ -26,6 +26,12 @@ targets:
     sources:
       - path: App
       - path: Resources
+        excludes: ["*.icon/**"]
+      # Icon Composer icon (Liquid Glass, light and dark). Added as one file so
+      # Xcode compiles it as an app icon instead of copying its layers.
+      - path: Resources/CinemaIcon.icon
+        type: file
+        buildPhase: resources
       # Bundled fallback tenant configs ship inside CinemaCore (BundledConfig).
     # XcodeGen generates App/Info.plist from these properties on every run;
     # edit keys here, not in the generated file.
