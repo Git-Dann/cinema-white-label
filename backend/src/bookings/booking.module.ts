@@ -77,6 +77,8 @@ const extras = {
   loyaltyPoints: z.number().int().min(0).max(1_000_000).default(0),
 };
 const quoteBody = z.object({ holdId: z.string(), tickets: ticketsSchema, ...extras });
+const addOnBody = z.object({ concessions: z.array(concessionSelectionSchema).min(1).max(30), fulfilment: z.enum(['collect', 'seatDelivery']).default('collect') });
+const addOnCheckoutBody = addOnBody.extend({ payment: z.object({ type: z.literal('simulated'), outcome: z.enum(['approve', 'decline']).optional() }) });
 const checkoutBody = z.object({
   holdId: z.string(),
   tickets: ticketsSchema,
@@ -130,6 +132,21 @@ export class BookingController {
   @Get('bookings/:id')
   get(@CurrentTenant() t: Tenant, @CustomerId() customerId: string, @Param('id') id: string) {
     return this.bookings.get(t.id, customerId, id);
+  }
+
+  /** Prices a food and drink pre-order for an existing booking. */
+  @Post('bookings/:id/concessions/quote')
+  @HttpCode(200)
+  quoteAddOn(@CurrentTenant() t: Tenant, @CustomerId() customerId: string, @Param('id') id: string, @Body(new ZodPipe(addOnBody)) body: z.infer<typeof addOnBody>) {
+    return this.bookings.quoteAddOn(t, customerId, id, body);
+  }
+
+  /** Pays for and adds a food and drink pre-order to an existing booking. */
+  @Post('bookings/:id/concessions')
+  @HttpCode(201)
+  @ApiHeader({ name: 'Idempotency-Key', required: true })
+  addConcessions(@CurrentTenant() t: Tenant, @CustomerId() customerId: string, @Param('id') id: string, @Headers('idempotency-key') key: string, @Body(new ZodPipe(addOnCheckoutBody)) body: z.infer<typeof addOnCheckoutBody>) {
+    return this.idem.run(t.id, `food:${customerId}:${id}`, key, body, () => this.bookings.addConcessions(t, customerId, id, body));
   }
 
   @Post('bookings/:id/cancel')

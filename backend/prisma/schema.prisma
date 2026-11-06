@@ -790,6 +790,18 @@ model ConcessionProduct {
   bundleItems    String[]
   imageAssetId   String?
   sortOrder      Int      @default(0)
+  /// Shown in the app's Specials row.
+  featured       Boolean  @default(false)
+  /// Short label on the card, e.g. "Limited edition" or "Winter special".
+  badge          String?
+  /// Price before the deal, for bundles and offers ("was £17.45"). Must be above priceMinor.
+  compareAtMinor Int?
+  /// Film tie-in, e.g. a collectable bucket. Null = not linked to a film.
+  filmId         String?
+  limitedEdition Boolean  @default(false)
+  /// Sale window. Outside it the product is hidden from the menu and cannot be ordered.
+  availableFrom  DateTime?
+  availableUntil DateTime?
 
   @@unique([tenantId, sku])
 }

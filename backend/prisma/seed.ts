@@ -21,6 +21,7 @@ import { FILMS } from '../src/fixtures/films';
 import { curvedLayout, luxeLayout, premiereLayout, standardLayout } from '../src/fixtures/layouts';
 import { CONCESSIONS, VOUCHERS } from '../src/fixtures/commerce';
 import { ensureFixtureProductImages } from '../src/fixtures/product-images';
+import { ensureFixtureMenuSpecials, fixtureProductData } from '../src/fixtures/menu-specials';
 import { DEFAULT_SEAT_CATEGORIES } from '@cinema/contracts';
 import { TENANTS } from '../src/fixtures/tenants';
 
@@ -128,13 +129,7 @@ async function main() {
       });
     }
     for (const [i, c] of CONCESSIONS.entries()) {
-      await prisma.concessionProduct.create({
-        data: {
-          tenantId: tenant.id, sku: c.sku, name: c.name, category: c.category, priceMinor: c.priceMinor, allergens: c.allergens, dietary: c.dietary,
-          calories: c.calories, stockStatus: (c as { stockStatus?: string }).stockStatus ?? 'inStock', modifierGroups: c.modifierGroups as Prisma.InputJsonValue,
-          bundleItems: (c as { bundleItems?: string[] }).bundleItems ?? [], sortOrder: i,
-        },
-      });
+      await prisma.concessionProduct.create({ data: fixtureProductData(tenant.id, c, i, null) });
     }
     for (const v of VOUCHERS) await prisma.voucher.create({ data: { tenantId: tenant.id, ...v } });
 
@@ -268,6 +263,7 @@ async function main() {
     console.log(`  Published config v${release.version}`);
   }
 
+  console.log(`\nMenu specials: ${await ensureFixtureMenuSpecials(prisma, { seeding: true })} added`);
   console.log(`\nProduct images: ${await ensureFixtureProductImages(prisma)} demo products given artwork`);
   console.log('\nDev logins (admin portal):');
   console.log('  platform@cinema.example / platform-dev-password');

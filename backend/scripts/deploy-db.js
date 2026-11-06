@@ -71,6 +71,9 @@ function main(env = process.env) {
     if (tenants > 0) {
       console.log(`deploy-db: ${tenants} operators already exist; not seeding.`);
       // Demo products from before menu artwork existed get it now; products with an image are never touched.
+      // Specials, bundles and film tie-ins arrived later; operators without any featured products get the demo ones once.
+      const { ensureFixtureMenuSpecials } = require('../dist/fixtures/menu-specials');
+      console.log(`deploy-db: added ${await ensureFixtureMenuSpecials(prisma)} demo specials.`);
       const { ensureFixtureProductImages } = require('../dist/fixtures/product-images');
       console.log(`deploy-db: gave ${await ensureFixtureProductImages(prisma)} demo products their artwork.`);
       await prisma.$disconnect();

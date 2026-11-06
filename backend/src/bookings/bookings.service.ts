@@ -29,6 +29,14 @@ export interface BasketExtras {
   loyaltyPoints?: number;
 }
 
+/** Food and drink can be pre-ordered until this long before the film starts. */
+export const PREORDER_CUTOFF_MINUTES = 15;
+
+export interface AddOnInput {
+  concessions: ConcessionSelection[];
+  fulfilment?: 'collect' | 'seatDelivery';
+}
+
 export interface CheckoutInput extends BasketExtras {
   holdId: string;
   tickets: TicketSelection[];
@@ -271,6 +279,94 @@ export class BookingsService {
     return this.get(tenant.id, customerId, booking.id);
   }
 
+  /**
+   * Food and drink pre-ordered for a booking the customer already has, collected
+   * at the counter (or brought to the seat where the cinema offers it). Priced on
+   * the server with the member food discount; paid as its own payment on the booking.
+   * Codes and points stay with the original checkout.
+   */
+  private async loadAddOnContext(tenant: Tenant, customerId: string, bookingId: string) {
+    const b = await this.prisma.booking.findFirst({ where: { id: bookingId, tenantId: tenant.id, customerId }, include: { screening: { include: { venue: true, film: true } } } });
+    if (!b) throw Errors.notFound('Booking');
+    if (b.status !== 'CONFIRMED') throw Errors.validation('Food can only be added to a confirmed booking');
+    const closes = b.screening.startsAt.getTime() - PREORDER_CUTOFF_MINUTES * 60000;
+    if (this.clock.now().getTime() >= closes) throw Errors.validation(`Pre-orders close ${PREORDER_CUTOFF_MINUTES} minutes before the film starts. You can still buy at the counter.`);
+    return b;
+  }
+
+  async quoteAddOn(tenant: Tenant, customerId: string, bookingId: string, input: AddOnInput) {
+    const b = await this.loadAddOnContext(tenant, customerId, bookingId);
+    return this.addOnQuote(tenant, customerId, b, input);
+  }
+
+  private async addOnQuote(tenant: Tenant, customerId: string, b: Awaited<ReturnType<BookingsService['loadAddOnContext']>>, input: AddOnInput) {
+    if (!input.concessions.length) throw Errors.validation('Add at least one item');
+    const venue = b.screening.venue;
+    const lines = await this.commerce.priceConcessions(tenant.id, venue, input.concessions);
+    const fulfilment = input.fulfilment ?? 'collect';
+    if (fulfilment === 'seatDelivery' && !venueFeatures(venue).seatDelivery) throw Errors.validation('Seat delivery is not available at this cinema');
+    const subtotalMinor = lines.reduce((a, l) => a + l.lineTotalMinor, 0);
+    const [member, program] = await Promise.all([this.memberships.active(tenant.id, customerId), this.loyalty.program(tenant.id)]);
+    const memberFood = member ? Math.floor((subtotalMinor * member.entitlements.foodDiscountPercent) / 100) : 0;
+    const totalMinor = subtotalMinor - memberFood;
+    const pointsToEarn = program ? PointsMath.earn(program, totalMinor, member?.entitlements.pointsMultiplier ?? 1) : 0;
+    return {
+      bookingId: b.id,
+      concessions: lines,
+      subtotalMinor,
+      discounts: memberFood ? [{ kind: 'membership', label: `${member!.plan.name} member discount`, amountMinor: memberFood }] : [],
+      discountMinor: memberFood,
+      totalMinor,
+      currency: b.currency,
+      fulfilment,
+      pointsToEarn,
+      collectBy: b.screening.startsAt.toISOString(),
+    };
+  }
+
+  async addConcessions(tenant: Tenant, customerId: string, bookingId: string, input: AddOnInput & { payment: CheckoutInput['payment'] }) {
+    if (input.payment.type === 'simulated' && process.env.NODE_ENV === 'production' && process.env.ALLOW_SIMULATED_PAYMENTS !== 'true') {
+      throw Errors.validation('Simulated payments are disabled in production');
+    }
+    const b = await this.loadAddOnContext(tenant, customerId, bookingId);
+    const q = await this.addOnQuote(tenant, customerId, b, input);
+    const attempt = await this.prisma.payment.count({ where: { bookingId: b.id } });
+    const payment = await this.payments.authoriseAndCapture({
+      amountMinor: q.totalMinor, currency: q.currency, idempotencyKey: `${b.id}-food-${attempt}`, description: `Food pre-order ${b.reference}`, method: input.payment,
+    });
+    await this.prisma.payment.create({
+      data: {
+        tenantId: tenant.id, bookingId: b.id, provider: payment.provider, providerRef: payment.providerRef, status: payment.status === 'approved' ? 'CAPTURED' : 'DECLINED',
+        amountMinor: q.totalMinor, currency: q.currency, failureReason: payment.status === 'declined' ? payment.reason : null,
+      },
+    });
+    if (payment.status === 'declined') throw Errors.paymentDeclined(payment.reason);
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        // The booking must still be live: a cancellation in the meantime refunds this payment below.
+        const [locked] = await tx.$queryRaw<{ status: string }[]>`SELECT "status"::text AS status FROM "Booking" WHERE "id" = ${b.id} FOR UPDATE`;
+        if (locked.status !== 'CONFIRMED') throw Errors.validation('This booking is no longer active');
+        await tx.bookingConcession.createMany({
+          data: q.concessions.map((c) => ({ bookingId: b.id, productId: c.productId, name: c.name, quantity: c.quantity, unitPriceMinor: c.unitPriceMinor, modifiers: c.modifiers, lineTotalMinor: c.lineTotalMinor })),
+        });
+        await tx.booking.update({
+          where: { id: b.id },
+          data: {
+            concessionsMinor: { increment: q.subtotalMinor }, membershipDiscountMinor: { increment: q.discountMinor }, discountMinor: { increment: q.discountMinor },
+            totalMinor: { increment: q.totalMinor }, pointsEarned: { increment: q.pointsToEarn }, ...(q.fulfilment === 'seatDelivery' ? { fulfilment: 'seatDelivery' } : {}),
+          },
+        });
+        await this.loyalty.applyCheckout(tx, { tenantId: tenant.id, customerId, bookingId: b.id, redeem: 0, earn: q.pointsToEarn, description: `Food pre-order · ${b.reference}` });
+      });
+    } catch (e) {
+      this.log.warn(`Food pre-order failed after payment for booking ${b.id}; refunding`);
+      await this.payments.voidOrRefund(payment.providerRef, q.totalMinor);
+      await this.prisma.payment.updateMany({ where: { providerRef: payment.providerRef }, data: { status: 'REFUNDED' } });
+      throw e;
+    }
+    return this.get(tenant.id, customerId, b.id);
+  }
+
   async list(tenantId: string, customerId: string) {
     const rows = await this.prisma.booking.findMany({
       where: { tenantId, customerId, status: { in: ['CONFIRMED', 'CANCELLED', 'REFUNDED'] } },
@@ -310,6 +406,10 @@ export class BookingsService {
       },
       concessions: b.concessions.map((c) => ({ name: c.name, quantity: c.quantity, modifiers: (c.modifiers as { label: string }[]).map((m) => m.label), lineTotalMinor: c.lineTotalMinor })),
       fulfilment: b.fulfilment,
+      preorder: {
+        open: b.status === 'CONFIRMED' && now.getTime() < s.startsAt.getTime() - PREORDER_CUTOFF_MINUTES * 60000 && venueFeatures(s.venue).concessions,
+        closesAt: new Date(s.startsAt.getTime() - PREORDER_CUTOFF_MINUTES * 60000).toISOString(),
+      },
       cancellation: {
         cancelledAt: b.cancelledAt?.toISOString() ?? null,
         cancellableUntil: new Date(s.startsAt.getTime() - b.tenant.cancellationCutoffMinutes * 60000).toISOString(),
@@ -335,8 +435,9 @@ export class BookingsService {
     if (this.clock.now().getTime() >= cutoff) {
       throw Errors.cancellationNotAllowed(`Bookings can be cancelled up to ${tenant.cancellationCutoffMinutes} minutes before the film starts`);
     }
-    const captured = b.payments.find((p) => p.status === 'CAPTURED');
-    if (captured) await this.payments.voidOrRefund(captured.providerRef, b.totalMinor);
+    // Tickets and any food pre-orders were paid separately; refund each payment.
+    const captured = b.payments.filter((p) => p.status === 'CAPTURED');
+    for (const p of captured) await this.payments.voidOrRefund(p.providerRef, p.amountMinor);
     const seatIds = await this.prisma.$transaction(async (tx) => {
       const seats = await tx.bookingSeat.findMany({ where: { bookingId: b.id, active: true } });
       await tx.bookingSeat.updateMany({ where: { bookingId: b.id }, data: { active: false } });
@@ -345,9 +446,9 @@ export class BookingsService {
       await this.loyalty.reverseBooking(tx, b);
       await tx.admissionTicket.updateMany({ where: { bookingId: b.id }, data: { status: 'VOID' } });
       await tx.walletPass.updateMany({ where: { bookingId: b.id }, data: { status: 'VOIDED' } });
-      if (captured) {
-        await tx.payment.update({ where: { id: captured.id }, data: { status: 'REFUNDED' } });
-        await tx.refund.create({ data: { bookingId: b.id, paymentRef: captured.providerRef, amountMinor: b.totalMinor, reason: 'customer_cancellation' } });
+      for (const p of captured) {
+        await tx.payment.update({ where: { id: p.id }, data: { status: 'REFUNDED' } });
+        await tx.refund.create({ data: { bookingId: b.id, paymentRef: p.providerRef, amountMinor: p.amountMinor, reason: 'customer_cancellation' } });
       }
       return seats.map((x) => x.seatId);
     });

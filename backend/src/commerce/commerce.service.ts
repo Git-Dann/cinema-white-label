@@ -42,6 +42,11 @@ export function venueFeatures(venue: Pick<Venue, 'features'>): VenueFeatures {
   return { concessions: f.concessions !== false, seatDelivery: f.seatDelivery === true };
 }
 
+/** Inside the product's sale window (either end may be open). */
+export function onSale(p: Pick<ConcessionProduct, 'availableFrom' | 'availableUntil'>, now: Date): boolean {
+  return (!p.availableFrom || p.availableFrom <= now) && (!p.availableUntil || p.availableUntil > now);
+}
+
 /**
  * Food and drink: venue menus, modifier validation and pricing, plus vouchers.
  * All totals are computed here; apps only display them.
@@ -55,11 +60,17 @@ export class CommerceService {
     if (!venue) throw Errors.notFound('Cinema');
     const features = venueFeatures(venue);
     if (!features.concessions) return { features, categories: [] };
-    const products = await this.prisma.concessionProduct.findMany({
-      where: { tenantId, OR: [{ venueId: null }, { venueId }] },
-      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-    });
-    const assets = await this.prisma.mediaAsset.findMany({ where: { id: { in: products.map((p) => p.imageAssetId).filter((x): x is string => !!x) } } });
+    const now = this.clock.now();
+    const products = (
+      await this.prisma.concessionProduct.findMany({
+        where: { tenantId, OR: [{ venueId: null }, { venueId }] },
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      })
+    ).filter((p) => onSale(p, now));
+    const [assets, films] = await Promise.all([
+      this.prisma.mediaAsset.findMany({ where: { id: { in: products.map((p) => p.imageAssetId).filter((x): x is string => !!x) } } }),
+      this.prisma.film.findMany({ where: { tenantId, id: { in: products.map((p) => p.filmId).filter((x): x is string => !!x) } }, select: { id: true, title: true } }),
+    ]);
     const byCategory = new Map<string, unknown[]>();
     for (const p of products) {
       const list = byCategory.get(p.category) ?? [];
@@ -67,6 +78,11 @@ export class CommerceService {
         id: p.id, sku: p.sku, name: p.name, description: p.description, priceMinor: p.priceMinor, allergens: p.allergens, dietary: p.dietary,
         calories: p.calories, stockStatus: p.available ? p.stockStatus : 'out', modifierGroups: p.modifierGroups, bundleItems: p.bundleItems,
         image: imageRef(assets.find((a) => a.id === p.imageAssetId)),
+        featured: p.featured, badge: p.badge, limitedEdition: p.limitedEdition,
+        // A "was" price is only shown when it really is higher.
+        compareAtMinor: p.compareAtMinor !== null && p.compareAtMinor > p.priceMinor ? p.compareAtMinor : null,
+        film: films.find((f) => f.id === p.filmId) ?? null,
+        availableUntil: p.availableUntil?.toISOString() ?? null,
       });
       byCategory.set(p.category, list);
     }
@@ -80,7 +96,7 @@ export class CommerceService {
     const byId = new Map(products.map((p) => [p.id, p]));
     const unavailable = selections.filter((s) => {
       const p = byId.get(s.productId);
-      return !p || !p.available || p.stockStatus === 'out' || (p.venueId !== null && p.venueId !== venue.id);
+      return !p || !p.available || p.stockStatus === 'out' || (p.venueId !== null && p.venueId !== venue.id) || !onSale(p, this.clock.now());
     });
     if (unavailable.length) throw Errors.concessionUnavailable('Some items are no longer available', unavailable.map((s) => s.productId));
     return selections.map((s) => this.priceLine(byId.get(s.productId)!, s));
