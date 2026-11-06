@@ -6,6 +6,7 @@ import { actionLabel, auditSummary, formatDateTime, formatMoney } from '@/lib/fo
 import { useSession, useTenantData } from '@/lib/session';
 import { ErrorNote, Loading, PageHeader, StatusBadge } from '@/components/ui';
 import { useCinemaScope } from '@/lib/cinema-scope';
+import { PerformancePreview } from './performance-preview';
 
 export default function OverviewPage() {
   const { tenant, tenantName } = useSession();
@@ -26,6 +27,8 @@ export default function OverviewPage() {
         <StatCard label="Cinemas" value={stats.data ? String(stats.data.venues) : '—'} href="/venues" />
         <StatCard label="Films" value={stats.data ? String(stats.data.films) : '—'} href="/films" />
       </section>
+
+      <PerformancePreview />
 
       <div className="grid-2">
         <section className="card" aria-labelledby="audit-title">

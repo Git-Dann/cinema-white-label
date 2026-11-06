@@ -2733,3 +2733,269 @@ dialog.sheet form {
     stroke-dashoffset: 0;
   }
 }
+
+/* ---------------- Overview: performance preview and AI layer ---------------- */
+:root {
+  --ai: #b69cff;
+  --ai-2: #6ee3cb;
+}
+.perf {
+  position: relative;
+  margin: var(--s3) 0;
+  padding: var(--s3);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  transition: border-color 0.4s, box-shadow 0.4s;
+}
+.perf-ai {
+  border-color: rgba(182, 156, 255, 0.35);
+  box-shadow: 0 0 0 1px rgba(182, 156, 255, 0.12), 0 20px 60px -30px rgba(182, 156, 255, 0.45);
+}
+.perf-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s2);
+  margin-bottom: var(--s3);
+}
+.perf-head .h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 4px;
+}
+.perf-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s1);
+}
+.ai-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.3s, background 0.3s;
+}
+.ai-toggle.on {
+  border-color: rgba(182, 156, 255, 0.5);
+  background: linear-gradient(90deg, rgba(182, 156, 255, 0.16), rgba(110, 227, 203, 0.12));
+}
+.ai-toggle:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.ai-spark {
+  color: var(--ai);
+}
+.ai-toggle.on .ai-spark {
+  animation: ai-twinkle 2.4s ease-in-out infinite;
+}
+.ai-switch {
+  width: 30px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  position: relative;
+  transition: background 0.3s;
+}
+.ai-switch span {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-2);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.3s;
+}
+.ai-toggle.on .ai-switch {
+  background: var(--ai);
+}
+.ai-toggle.on .ai-switch span {
+  transform: translateX(12px);
+  background: var(--bg);
+}
+.ai-panel {
+  position: relative;
+  margin-bottom: var(--s3);
+  padding: var(--s3);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(182, 156, 255, 0.16), transparent 55%),
+    radial-gradient(120% 140% at 100% 100%, rgba(110, 227, 203, 0.1), transparent 55%),
+    var(--surface);
+  border: 1px solid rgba(182, 156, 255, 0.28);
+  overflow: hidden;
+  animation: ins-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.ai-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.06) 50%, transparent 70%);
+  transform: translateX(-100%);
+  animation: ai-sheen 1.6s 0.2s ease-out forwards;
+  pointer-events: none;
+}
+.ai-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ai);
+}
+.ai-total {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 4px 0 2px;
+  background: linear-gradient(90deg, var(--text), var(--ai));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.ai-list {
+  list-style: none;
+  margin: var(--s2) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s2);
+}
+.ai-item {
+  padding: var(--s2);
+  border-radius: var(--radius);
+  background: rgba(10, 10, 12, 0.45);
+  border: 1px solid var(--border-strong);
+  animation: ins-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.ai-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.ai-tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ai);
+  background: rgba(182, 156, 255, 0.12);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.ai-impact {
+  font-weight: 700;
+  color: var(--success);
+}
+.ai-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 10px 0 4px;
+}
+.ai-item-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s1);
+  margin-top: var(--s1);
+}
+.ai-conf {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.ai-conf-bar {
+  width: 64px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.ai-conf-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--ai-2), var(--ai));
+  animation: ins-grow 0.9s 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transform-origin: left;
+}
+.ins-ai-band {
+  fill: var(--ai);
+  opacity: 0;
+  animation: ai-band 0.8s 0.4s ease-out forwards;
+}
+.ins-ai-line {
+  stroke: var(--ai);
+  stroke-width: 2;
+  stroke-dasharray: 5 5;
+  opacity: 0;
+  animation: ins-fade 0.6s 0.3s ease-out forwards;
+}
+.ins-ai-label {
+  fill: var(--ai);
+  font-weight: 600;
+}
+@keyframes ai-band {
+  to {
+    opacity: 0.14;
+  }
+}
+@keyframes ai-sheen {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes ai-twinkle {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.85);
+  }
+}
+@media (max-width: 900px) {
+  .ai-list {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .perf {
+    padding: var(--s2);
+    margin-left: calc(-1 * var(--s1));
+    margin-right: calc(-1 * var(--s1));
+  }
+  .ai-total {
+    font-size: 28px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-panel,
+  .ai-item,
+  .ai-panel::before,
+  .ai-toggle.on .ai-spark,
+  .ai-conf-bar span {
+    animation: none;
+  }
+  .ins-ai-band {
+    animation: none;
+    opacity: 0.14;
+  }
+  .ins-ai-line {
+    animation: none;
+    opacity: 1;
+  }
+}
