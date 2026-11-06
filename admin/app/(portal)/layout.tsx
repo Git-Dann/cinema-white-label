@@ -8,6 +8,7 @@ import { CinemaScopeProvider, useCinemaScope } from '@/lib/cinema-scope';
 
 const NAV = [
   { href: '/', label: 'Overview' },
+  { href: '/insights', label: 'Insights' },
   { href: '/branding', label: 'Branding & theme' },
   { href: '/releases', label: 'Releases' },
   { href: '/venues', label: 'Cinemas' },
