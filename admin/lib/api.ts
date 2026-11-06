@@ -326,6 +326,13 @@ export interface Concession {
   sortOrder: number;
   imageAssetId: string | null;
   image: ImageRef | null;
+  featured: boolean;
+  badge: string | null;
+  compareAtMinor: number | null;
+  filmId: string | null;
+  limitedEdition: boolean;
+  availableFrom: string | null;
+  availableUntil: string | null;
 }
 
 export interface Voucher {
