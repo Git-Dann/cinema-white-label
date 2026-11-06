@@ -84,6 +84,9 @@ jobs:
           brew install xcodegen
           xcodegen generate
 
+      # Signs with Apple's cloud-managed distribution certificate. Signing with
+      # "Apple Development" made every fresh runner create a new development
+      # certificate until the account hit Apple's limit.
       - name: Archive
         if: steps.key.outputs.ready == 'true'
         working-directory: ios
@@ -92,6 +95,7 @@ jobs:
           xcodebuild archive \
             -project Cinema.xcodeproj -scheme Northlight -configuration "Northlight Release" \
             -destination "generic/platform=iOS" -archivePath "$RUNNER_TEMP/Northlight.xcarchive" \
+            CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY="Apple Distribution" \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey.p8" \
             -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
