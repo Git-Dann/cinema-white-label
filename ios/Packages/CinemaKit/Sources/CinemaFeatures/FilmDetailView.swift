@@ -277,6 +277,7 @@ struct ShowtimesSection: View {
     @Environment(\.startBooking) private var startBooking
     @State private var dates: [String] = []
     @State private var selectedDate: String?
+    @State private var failed = false
     @State private var screenings: [ScreeningSummary] = []
     @State private var loading = false
     @State private var showingVenuePicker = false
@@ -322,8 +323,14 @@ struct ShowtimesSection: View {
     private var timesByFormat: some View {
         let groups = Dictionary(grouping: screenings) { ($0.formats + $0.attributes).joined(separator: " · ") }
         return VStack(alignment: .leading, spacing: Spacing.l) {
-            if loading { ProgressView().frame(maxWidth: .infinity) }
-            ForEach(groups.keys.sorted(), id: \.self) { key in
+            if loading {
+                ProgressView().frame(maxWidth: .infinity, minHeight: 64)
+            } else if failed {
+                InfoBanner(.error, "We couldn't load showtimes.", actionTitle: "Try again") { Task { await loadScreenings() } }
+            } else if screenings.isEmpty && !dates.isEmpty {
+                Text("No showtimes on this day.").font(.subheadline).foregroundStyle(palette.textMuted)
+            }
+            ForEach(loading ? [] : groups.keys.sorted(), id: \.self) { key in
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     Text(key).font(.headline).foregroundStyle(palette.textPrimary)
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: Spacing.xs)], spacing: Spacing.xs) {
@@ -363,16 +370,37 @@ struct ShowtimesSection: View {
     private func loadDates() async {
         guard let venue = app.selectedVenue else { return }
         loading = true
-        dates = (try? await app.service.screeningDates(venueId: venue.id, filmId: film.id)) ?? []
+        do {
+            dates = try await app.service.screeningDates(venueId: venue.id, filmId: film.id)
+        } catch {
+            if Task.isCancelled { return }
+            dates = []
+            failed = true
+        }
+        let previous = selectedDate
         if selectedDate == nil || !dates.contains(selectedDate!) { selectedDate = dates.first }
         if dates.isEmpty { screenings = []; loading = false }
+        // Same day as before (e.g. after changing cinema): the date task won't rerun, so load here.
+        else if selectedDate == previous { await loadScreenings() }
     }
 
     private func loadScreenings() async {
-        guard let venue = app.selectedVenue, let date = selectedDate else { return }
+        guard let venue = app.selectedVenue, let date = selectedDate else { loading = false; return }
         loading = true
-        defer { loading = false }
-        screenings = (try? await app.service.screenings(venueId: venue.id, filmId: film.id, date: date)) ?? []
+        failed = false
+        do {
+            let result = try await app.service.screenings(venueId: venue.id, filmId: film.id, date: date)
+            // Ignore a slow answer for a day the customer has already moved away from.
+            guard date == selectedDate, !Task.isCancelled else { return }
+            screenings = result
+            loading = false
+        } catch {
+            // A cancelled request just means a newer one replaced it; never blank the list for that.
+            guard date == selectedDate, !Task.isCancelled else { return }
+            screenings = []
+            failed = true
+            loading = false
+        }
     }
 }
 
