@@ -8,7 +8,7 @@ struct FoodOrderTests {
     let menu = PreviewFixtures.menu
 
     @Test func menuGroupsSpecialsTieInsAndDeals() {
-        #expect(menu.specials.map(\.id) == ["tide-caramel", "hot-choc", "combo-duo", "combo-family", "ember-bucket"])
+        #expect(menu.specials.map(\.id) == ["ember-bucket", "tide-caramel", "hot-choc", "combo-duo", "combo-family"])
         #expect(menu.filmTieIns.map(\.film.title) == ["Saltmarsh", "Ember Protocol"])
         #expect(menu.filmTieIns.last?.items.map(\.id) == ["ember-bucket"])
         #expect(Set(menu.deals.map(\.id)) == ["combo-duo", "combo-family", "ember-bucket"])

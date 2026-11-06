@@ -2,7 +2,7 @@ import SwiftUI
 import CinemaCore
 import CinemaDesign
 
-/// Account: rewards, membership, appearance, favourite cinemas, help and legal.
+/// Account, opened from the avatar: rewards, membership, appearance, favourite cinemas, help and legal.
 /// Sign in with Apple and notifications are not shown until real.
 struct AccountView: View {
     @Environment(AppModel.self) private var app
@@ -14,14 +14,20 @@ struct AccountView: View {
     var body: some View {
         @Bindable var store = app.configStore
         List {
-            // Title and operator logo share one line; the system bar is hidden on this screen.
+            // Who you are here: the avatar, and the plan if you're a member.
             Section {
-                HStack(alignment: .center) {
-                    Text("Account").font(.largeTitle.weight(.bold)).foregroundStyle(palette.textPrimary)
-                        .accessibilityAddTraits(.isHeader)
-                    Spacer()
-                    BrandLogo(config: app.config).frame(height: 28)
+                let tier = AvatarTier(membership: app.membership, plans: app.membershipPlans)
+                HStack(spacing: Spacing.m) {
+                    AvatarView(tier: tier, size: 56)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(tier.planName.map { "\($0) member" } ?? "Guest").font(.title3.weight(.bold)).foregroundStyle(palette.textPrimary)
+                        Text(tier.planName == nil ? "Book as a guest. Your tickets and points stay on this phone." : "Your discounts apply automatically when you book.")
+                            .font(.subheadline).foregroundStyle(palette.textSecondary)
+                    }
+                    Spacer(minLength: 0)
+                    BrandLogo(config: app.config).frame(height: 22).accessibilityHidden(true)
                 }
+                .accessibilityElement(children: .combine)
                 .listRowInsets(EdgeInsets(top: Spacing.xs, leading: 0, bottom: 0, trailing: 0))
                 .listRowBackground(Color.clear)
             }
@@ -87,7 +93,7 @@ struct AccountView: View {
         .scrollContentBackground(.hidden)
         .background(palette.background)
         .navigationTitle("Account")
-        .toolbar(.hidden, for: .navigationBar)
+        .navigationBarTitleDisplayMode(.inline)
         .listSectionSpacing(Spacing.l)
         .navigationDestination(isPresented: $showHistory) { PointsHistoryView() }
         .navigationDestination(isPresented: $showPlans) { MembershipPlansView() }

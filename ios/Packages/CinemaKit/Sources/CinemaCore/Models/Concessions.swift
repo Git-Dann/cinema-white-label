@@ -65,8 +65,12 @@ public struct ConcessionProduct: Codable, Sendable, Hashable, Identifiable {
 public extension ConcessionMenu {
     /// Every product once, in menu order.
     var allItems: [ConcessionProduct] { categories.flatMap(\.items) }
-    /// The Specials row: featured products that can be ordered first, sold-out ones last.
-    var specials: [ConcessionProduct] { allItems.filter(\.isFeatured).sorted { $0.isAvailable && !$1.isAvailable } }
+    /// The Specials row: limited editions lead, then the rest in menu order; sold-out ones go last.
+    var specials: [ConcessionProduct] {
+        let featured = allItems.filter(\.isFeatured)
+        func rank(_ p: ConcessionProduct) -> Int { !p.isAvailable ? 2 : (p.isLimitedEdition ? 0 : 1) }
+        return featured.enumerated().sorted { (rank($0.element), $0.offset) < (rank($1.element), $1.offset) }.map(\.element)
+    }
     /// Merchandise and food made for a film, grouped by film in menu order.
     var filmTieIns: [(film: ConcessionProduct.FilmLink, items: [ConcessionProduct])] {
         var order: [ConcessionProduct.FilmLink] = []

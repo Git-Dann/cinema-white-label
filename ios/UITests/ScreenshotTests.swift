@@ -27,6 +27,16 @@ final class ScreenshotTests: XCTestCase {
         return e
     }
 
+    /// The tab bar minimises while scrolling down. Tapping the current tab scrolls
+    /// to the top, which brings the full bar back; retry a few times to be safe.
+    private func showTabBar(current: String) {
+        for _ in 0..<4 where !(app.tabBars.buttons["Films"].exists && app.tabBars.buttons["Films"].isHittable) {
+            app.tabBars.buttons[current].firstMatch.tap()
+            app.swipeDown()
+            sleep(1)
+        }
+    }
+
     func testBookingJourneyScreenshots() {
         // Home
         _ = element(app.descendants(matching: .any), "label BEGINSWITH 'Featured'", timeout: 25)
@@ -97,22 +107,42 @@ final class ScreenshotTests: XCTestCase {
         sleep(1)
         shot("ticket-detail")
 
-        // Account: rewards balance (demo points plus those just earned) and memberships.
-        app.tabBars.buttons["Account"].tap()
+        // Food tab: specials, film tie-ins and a pre-order for the booking just made.
+        showTabBar(current: "Tickets")
+        app.tabBars.buttons["Food"].tap()
+        _ = element(app.staticTexts, "label == 'Specials'")
+        sleep(2)
+        shot("food-tab")
+        element(app.buttons, "label CONTAINS 'collectable bucket'").tap()
+        sleep(1)
+        shot("food-product")
+        element(app.buttons, "label BEGINSWITH 'Add to order'").tap()
+        sleep(1)
+        app.swipeUp()
+        sleep(1)
+        shot("food-menu")
+        element(app.buttons, "label BEGINSWITH 'Review order'").tap()
+        _ = element(app.buttons, "label BEGINSWITH 'Pay £'")
+        sleep(1)
+        shot("food-order")
+        element(app.buttons, "label BEGINSWITH 'Pay £'").tap()
+        _ = element(app.staticTexts, "label == 'Added to your booking'")
+        sleep(1)
+        shot("food-confirmed")
+        app.buttons["Done"].tap()
+        sleep(1)
+
+        // Account opens from the avatar at the top right.
+        element(app.buttons, "label BEGINSWITH 'Account'").tap()
         _ = element(app.descendants(matching: .any), "label CONTAINS 'points'")
         sleep(1)
         shot("account")
         app.swipeUp()
         sleep(1)
         shot("account-membership")
-
-        // The tab bar minimises while scrolling down. Tapping the current tab scrolls
-        // to the top, which brings the full bar back; retry a few times to be safe.
-        for _ in 0..<4 where !(app.tabBars.buttons["Films"].exists && app.tabBars.buttons["Films"].isHittable) {
-            app.tabBars.buttons["Account"].firstMatch.tap()
-            app.swipeDown()
-            sleep(1)
-        }
+        app.buttons["Done"].tap()
+        sleep(1)
+        showTabBar(current: "Food")
 
         // Films and Cinemas tabs, for the layout review.
         app.tabBars.buttons["Films"].tap()

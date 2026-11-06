@@ -10,7 +10,7 @@ import CinemaCore
 @Observable
 public final class AppNavigator {
     public static let shared = AppNavigator()
-    public enum Destination: Hashable { case home, films, cinemas, tickets, account }
+    public enum Destination: Hashable { case home, films, cinemas, food, tickets, account }
     public var requested: Destination?
     public var requestedBookingId: String?
 }
