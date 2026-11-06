@@ -1,0 +1,3 @@
+getpwuid_r did not find a match for uid 501
+Timestamp               Ty Process[PID:TID]
+2026-11-06 11:24:14.652 I  Northlight[13165:aba9] [cinema.liveactivity:controller] Started activity CCE48274-7B39-4890-B605-B4D23D5AA099
