@@ -84,6 +84,19 @@ jobs:
           brew install xcodegen
           xcodegen generate
 
+      # Signing on a fresh runner creates an Apple Development certificate. Record
+      # the ones that exist first, so the one this run makes can be revoked at the
+      # end; otherwise every run leaves one behind until Apple's limit is reached.
+      - name: Note existing development certificates
+        if: steps.key.outputs.ready == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_PATH: ${{ runner.temp }}/keys/AuthKey.p8
+        run: |
+          python3 -m pip install --quiet --break-system-packages pyjwt cryptography
+          python3 ios/scripts/asc_dev_certs.py snapshot "$RUNNER_TEMP/dev-certs.json"
+
       - name: Archive
         if: steps.key.outputs.ready == 'true'
         working-directory: ios
@@ -125,6 +138,16 @@ jobs:
             ios/archive.log
             ios/upload.log
           if-no-files-found: ignore
+
+      - name: Revoke the development certificate this run created
+        if: always() && steps.key.outputs.ready == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_PATH: ${{ runner.temp }}/keys/AuthKey.p8
+        run: |
+          test -f "$RUNNER_TEMP/dev-certs.json" || { echo "No snapshot, so nothing is revoked."; exit 0; }
+          python3 ios/scripts/asc_dev_certs.py revoke-new "$RUNNER_TEMP/dev-certs.json"
 
       - name: Remove key
         if: always()
