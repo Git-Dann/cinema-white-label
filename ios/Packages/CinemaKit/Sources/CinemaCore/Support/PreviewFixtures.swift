@@ -100,27 +100,44 @@ public enum PreviewFixtures {
         return AvailabilitySnapshot(screeningId: screening.id, serverTime: Date(), version: 1, seats: seats, yourHold: nil)
     }
 
-    public static let menu = ConcessionMenu(
-        features: VenueFeatures(concessions: true, seatDelivery: true),
-        categories: [
-            .init(name: "Popcorn", items: [
-                product("pop-sweet", "Sweet popcorn", 650, dietary: ["Vegan", "Gluten free"], groups: [sizeGroup(195)]),
-                product("pop-salt", "Salted popcorn", 650, dietary: ["Vegan", "Gluten free"], groups: [sizeGroup(195)]),
-            ]),
-            .init(name: "Drinks", items: [
-                product("drink", "Fountain drink", 450, dietary: ["Vegan"], groups: [sizeGroup(135), .init(id: "drink", name: "Drink", min: 1, max: 1, options: [.init(id: "cola", name: "Cola", priceMinor: 0), .init(id: "lemonade", name: "Sparkling lemonade", priceMinor: 0)])]),
-            ]),
-            .init(name: "Combos", items: [
-                product("combo", "Date night combo", 1595, bundle: ["Large popcorn", "2 × regular drinks"], groups: [
-                    .init(id: "popcorn", name: "Popcorn", min: 1, max: 1, options: [.init(id: "sweet", name: "Sweet", priceMinor: 0), .init(id: "salted", name: "Salted", priceMinor: 0)]),
-                    .init(id: "drinks", name: "Drinks", min: 2, max: 2, options: [.init(id: "cola", name: "Cola", priceMinor: 0), .init(id: "lemonade", name: "Sparkling lemonade", priceMinor: 0), .init(id: "water", name: "Still water", priceMinor: 0)]),
+    /// Mirrors the demo menu on the server, specials and film tie-ins included, with bundled photos.
+    public static let menu: ConcessionMenu = {
+        let popcorn: ConcessionProduct.ModifierGroup = .init(id: "popcorn", name: "Popcorn", min: 1, max: 1, options: [.init(id: "sweet", name: "Sweet", priceMinor: 0), .init(id: "salted", name: "Salted", priceMinor: 0), .init(id: "mix", name: "Sweet & salty", priceMinor: 0)])
+        let drinks: [ConcessionProduct.ModifierGroup.Option] = [.init(id: "cola", name: "Cola", priceMinor: 0), .init(id: "lemonade", name: "Sparkling lemonade", priceMinor: 0), .init(id: "water", name: "Still water", priceMinor: 0)]
+        let ember = ConcessionProduct.FilmLink(id: "ember-protocol", title: "Ember Protocol")
+        let tide = ConcessionProduct.FilmLink(id: "saltmarsh", title: "Saltmarsh")
+        return ConcessionMenu(
+            features: VenueFeatures(concessions: true, seatDelivery: true),
+            categories: [
+                .init(name: "Popcorn", items: [
+                    product("pop-sweet", "Sweet popcorn", 650, dietary: ["Vegan", "Gluten free"], groups: [sizeGroup(195)]),
+                    product("pop-salt", "Salted popcorn", 650, dietary: ["Vegan", "Gluten free"], groups: [sizeGroup(195)]),
+                    product("tide-caramel", "Sea salt caramel popcorn", 725, allergens: ["Milk"], dietary: ["Vegetarian"], groups: [sizeGroup(220)],
+                            description: "Made for the film: salted caramel with a pinch of sea salt.", featured: true, badge: "\(tide.title) special", film: tide),
                 ]),
-            ]),
-            .init(name: "Sweets", items: [
-                product("icecream", "Vanilla ice cream tub", 425, allergens: ["Milk"], stock: .out),
-            ]),
-        ]
-    )
+                .init(name: "Drinks", items: [
+                    product("drink", "Fountain drink", 450, dietary: ["Vegan"], groups: [sizeGroup(135), .init(id: "drink", name: "Drink", min: 1, max: 1, options: drinks)]),
+                    product("hot-choc", "Hot chocolate", 395, allergens: ["Milk"], dietary: ["Vegetarian"],
+                            groups: [.init(id: "toppings", name: "Toppings", min: 0, max: 2, options: [.init(id: "marshmallows", name: "Marshmallows", priceMinor: 50), .init(id: "cream", name: "Whipped cream", priceMinor: 50)])],
+                            description: "Rich and warming, with optional marshmallows or cream.", featured: true, badge: "Winter special"),
+                ]),
+                .init(name: "Combos", items: [
+                    product("combo-duo", "Date night combo", 1595, bundle: ["Large popcorn", "2 × regular drinks"], groups: [popcorn, .init(id: "drinks", name: "Drinks", min: 2, max: 2, options: drinks)],
+                            featured: true, compareAt: 1745),
+                    product("combo-family", "Family sharing bundle", 2295, bundle: ["2 × large popcorn", "4 × regular drinks"], groups: [.init(id: "popcorn", name: "Popcorn", min: 1, max: 2, options: popcorn.options)],
+                            description: "Enough for four: two large popcorns and four drinks.", featured: true, compareAt: 2790),
+                ]),
+                .init(name: "Merchandise", items: [
+                    product("ember-bucket", "\(ember.title) collectable bucket", 1295, dietary: ["Vegan"], bundle: ["Collectable bucket", "Large popcorn"], groups: [popcorn],
+                            description: "A limited run bucket for the film, filled with large popcorn. Keep the bucket.", featured: true, limited: true, film: ember),
+                ]),
+                .init(name: "Sweets", items: [
+                    product("choc", "Chocolate buttons", 350, allergens: ["Milk", "Soy"], dietary: ["Vegetarian"]),
+                    product("icecream", "Vanilla ice cream tub", 425, allergens: ["Milk"], stock: .out),
+                ]),
+            ]
+        )
+    }()
 
     /// Fictional points scheme: 10 points per £1, £1 off per 200 points (5% back).
     public static let loyaltyProgram = LoyaltyProgramInfo(name: "Northlight Rewards", earnPointsPerPound: 10, redeemPointsPerPound: 200, minRedeemPoints: 200)
@@ -144,8 +161,16 @@ public enum PreviewFixtures {
         .init(id: "size", name: "Size", min: 1, max: 1, options: [.init(id: "regular", name: "Regular", priceMinor: 0), .init(id: "large", name: "Large", priceMinor: largeExtra)])
     }
 
-    static func product(_ id: String, _ name: String, _ price: Int, allergens: [String] = [], dietary: [String] = [], bundle: [String] = [], groups: [ConcessionProduct.ModifierGroup] = [], stock: ConcessionProduct.Stock = .inStock) -> ConcessionProduct {
-        ConcessionProduct(id: id, sku: id.uppercased(), name: name, description: nil, priceMinor: price, allergens: allergens, dietary: dietary, calories: nil, stockStatus: stock, modifierGroups: groups, bundleItems: bundle, image: nil)
+    static func product(_ id: String, _ name: String, _ price: Int, allergens: [String] = [], dietary: [String] = [], bundle: [String] = [], groups: [ConcessionProduct.ModifierGroup] = [], stock: ConcessionProduct.Stock = .inStock,
+                        description: String? = nil, featured: Bool = false, badge: String? = nil, compareAt: Int? = nil, limited: Bool = false, film: ConcessionProduct.FilmLink? = nil) -> ConcessionProduct {
+        ConcessionProduct(id: id, sku: id.uppercased(), name: name, description: description, priceMinor: price, allergens: allergens, dietary: dietary, calories: nil, stockStatus: stock, modifierGroups: groups, bundleItems: bundle,
+                          image: foodImage(id), featured: featured, badge: badge, compareAtMinor: compareAt, limitedEdition: limited, film: film)
+    }
+
+    /// Bundled demo photo for a product (PreviewData/artwork/food), so demo builds never show an empty tile.
+    static func foodImage(_ id: String) -> ImageRef? {
+        guard let url = Bundle.module.url(forResource: "food-\(id)", withExtension: "jpg", subdirectory: "PreviewData/artwork/food") else { return nil }
+        return ImageRef(id: "food-\(id)", url: url.absoluteString, width: 600, height: 450, aspectRatio: 4.0 / 3.0, focalPoint: .init(x: 0.5, y: 0.5), dominantColor: nil, attribution: "Photo: Unsplash", renditions: [])
     }
 }
 

@@ -55,6 +55,24 @@ const concessionBody = z.object({
   sortOrder: z.number().int().default(0),
   /** A PRODUCT image uploaded through POST media, or null for none. */
   imageAssetId: z.string().nullable().default(null),
+  featured: z.boolean().default(false),
+  badge: z.string().trim().max(24).nullable().default(null),
+  compareAtMinor: z.number().int().min(0).max(100_000).nullable().default(null),
+  filmId: z.string().nullable().default(null),
+  limitedEdition: z.boolean().default(false),
+  availableFrom: z.string().datetime().nullable().default(null),
+  availableUntil: z.string().datetime().nullable().default(null),
+});
+
+/** Cross-field rules shared by create and update (update checks the merged result). */
+function assertProductRules(p: { priceMinor: number; compareAtMinor: number | null; availableFrom: Date | string | null; availableUntil: Date | string | null }) {
+  if (p.compareAtMinor !== null && p.compareAtMinor <= p.priceMinor) throw Errors.validation('The "was" price must be higher than the price');
+  if (p.availableFrom && p.availableUntil && new Date(p.availableUntil) <= new Date(p.availableFrom)) throw Errors.validation('The sale must end after it starts');
+}
+
+const dates = (b: { availableFrom?: string | null; availableUntil?: string | null }) => ({
+  ...(b.availableFrom !== undefined ? { availableFrom: b.availableFrom ? new Date(b.availableFrom) : null } : {}),
+  ...(b.availableUntil !== undefined ? { availableUntil: b.availableUntil ? new Date(b.availableUntil) : null } : {}),
 });
 
 const voucherBody = z
@@ -255,6 +273,10 @@ export class AdminCommerceController {
     if (!asset || asset.kind !== 'PRODUCT') throw Errors.validation('Choose an image uploaded for food and drink');
   }
 
+  private async assertFilm(t: Tenant, filmId: string | null | undefined) {
+    if (filmId && !(await this.prisma.film.findFirst({ where: { id: filmId, tenantId: t.id } }))) throw Errors.notFound('Film');
+  }
+
   private async assertVenue(t: Tenant, venueId: string | null | undefined) {
     if (venueId && !(await this.prisma.venue.findFirst({ where: { id: venueId, tenantId: t.id } }))) throw Errors.notFound('Cinema');
   }
@@ -264,8 +286,10 @@ export class AdminCommerceController {
   async createConcession(@CurrentTenant() t: Tenant, @CurrentAdmin() a: AdminClaims, @Body(new ZodPipe(concessionBody)) b: z.infer<typeof concessionBody>) {
     await this.assertVenue(t, b.venueId);
     await this.assertProductImage(t, b.imageAssetId);
+    await this.assertFilm(t, b.filmId);
+    assertProductRules(b);
     const row = await this.prisma.concessionProduct
-      .create({ data: { ...b, tenantId: t.id, modifierGroups: b.modifierGroups as Prisma.InputJsonValue } })
+      .create({ data: { ...b, ...dates(b), tenantId: t.id, modifierGroups: b.modifierGroups as Prisma.InputJsonValue } })
       .catch((e) => {
         if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') throw Errors.validation('A product with this SKU already exists');
         throw e;
@@ -281,7 +305,9 @@ export class AdminCommerceController {
     if (!existing) throw Errors.notFound('Product');
     await this.assertVenue(t, b.venueId);
     await this.assertProductImage(t, b.imageAssetId);
-    const row = await this.prisma.concessionProduct.update({ where: { id }, data: { ...b, modifierGroups: b.modifierGroups as Prisma.InputJsonValue | undefined } });
+    await this.assertFilm(t, b.filmId);
+    assertProductRules({ ...existing, ...b, ...dates(b) });
+    const row = await this.prisma.concessionProduct.update({ where: { id }, data: { ...b, ...dates(b), modifierGroups: b.modifierGroups as Prisma.InputJsonValue | undefined } });
     await this.audit.record({ tenantId: t.id, actorId: a.sub, action: 'concession.update', entityType: 'ConcessionProduct', entityId: id, data: b });
     return (await this.withImages(t, [row]))[0];
   }

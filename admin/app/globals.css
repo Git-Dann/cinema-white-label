@@ -2356,3 +2356,26 @@ dialog.sheet form {
   background: rgba(61, 214, 181, 0.12);
   color: var(--link);
 }
+
+/* Food: specials, deals and merchandise */
+.badge-special {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+.was-price {
+  margin-right: 6px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.switch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1) var(--s3);
+  margin-bottom: var(--s1);
+}
+/* On a photo the flag needs a solid fill to stay readable. */
+.product-flag.badge-special {
+  background: var(--warning);
+  color: var(--bg);
+  backdrop-filter: none;
+}

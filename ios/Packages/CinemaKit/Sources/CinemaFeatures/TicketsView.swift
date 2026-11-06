@@ -86,6 +86,16 @@ struct TicketDetailView: View {
                 }
                 details
                 if let food = booking.concessions, !food.isEmpty { foodSection(food) }
+                if app.config.features.concessions, booking.canPreorder(now: Date()) {
+                    Button {
+                        app.selectedVenueID = booking.venue.id
+                        AppNavigator.shared.requested = .food
+                    } label: {
+                        Label(booking.concessions?.isEmpty == false ? "Add more food and drink" : "Pre-order food and drink", systemImage: "popcorn.fill")
+                    }
+                    .buttonStyle(.cinemaGlass)
+                    .accessibilityHint("Opens the menu for this booking")
+                }
                 walletSection
                 Button { showingCalendar = true } label: { Label("Add to Calendar", systemImage: "calendar.badge.plus") }
                     .buttonStyle(.cinemaGlass)

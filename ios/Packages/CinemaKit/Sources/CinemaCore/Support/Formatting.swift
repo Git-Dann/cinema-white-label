@@ -37,6 +37,11 @@ public struct Formatters: Sendable {
     }
 
     /// "Thursday 5 November"
+    /// "Fri 7 Nov, 19:30" in the venue's time zone.
+    public func dayAndTime(_ date: Date, timeZone: String) -> String {
+        "\(shortDate(date, timeZone: timeZone)), \(time(date, timeZone: timeZone))"
+    }
+
     public func longDate(_ date: Date, timeZone: String) -> String {
         let f = DateFormatter()
         f.locale = locale

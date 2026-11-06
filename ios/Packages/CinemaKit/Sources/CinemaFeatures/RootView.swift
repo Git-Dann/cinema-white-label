@@ -3,13 +3,15 @@ import CoreSpotlight
 import CinemaCore
 import CinemaDesign
 
-/// Five destinations. Booking is a focused task presented from film or cinema
-/// screens, never a permanent tab. `sidebarAdaptable` lets expanded displays
+/// Five destinations: Home, Films, Cinemas, Food and Tickets. Account opens as a
+/// sheet from the avatar at the top right of each. Booking is a focused task
+/// presented from film or cinema screens, never a permanent tab. `sidebarAdaptable` lets expanded displays
 /// (iPhone Duo inner display, iPad) use a sidebar automatically.
 public struct RootView: View {
     @State var app: AppModel
     @State private var tab: AppTab = .home
     @State private var booking: BookingRequest?
+    @State private var showingProfile = false
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.scenePhase) private var scenePhase
 
@@ -18,21 +20,24 @@ public struct RootView: View {
     public var body: some View {
         TabView(selection: $tab) {
             Tab("Home", systemImage: "house.fill", value: AppTab.home) {
-                NavigationStack { HomeView() }
+                NavigationStack { HomeView().profileToolbar() }
             }
             Tab("Films", systemImage: "film.stack", value: AppTab.films) {
-                NavigationStack { FilmsView() }
+                NavigationStack { FilmsView().profileToolbar() }
             }
             Tab("Cinemas", systemImage: "mappin.and.ellipse", value: AppTab.cinemas) {
-                NavigationStack { CinemasView() }
+                NavigationStack { CinemasView().profileToolbar() }
+            }
+            // Food takes the place Account had; Account opens from the avatar on every tab.
+            if app.config.features.concessions {
+                Tab("Food", systemImage: "popcorn.fill", value: AppTab.food) {
+                    NavigationStack { FoodView().profileToolbar() }
+                }
             }
             Tab("Tickets", systemImage: "ticket.fill", value: AppTab.tickets) {
-                NavigationStack { TicketsView() }
+                NavigationStack { TicketsView().profileToolbar() }
             }
             .badge(app.tickets.upcoming().count)
-            Tab("Account", systemImage: "person.crop.circle", value: AppTab.account) {
-                NavigationStack { AccountView() }
-            }
         }
         .tabViewStyle(.sidebarAdaptable)
         // The tab bar shrinks while scrolling down and returns on scroll up.
@@ -40,6 +45,16 @@ public struct RootView: View {
         .environment(app)
         .environment(\.mediaBaseURL, app.mediaBaseURL)
         .environment(\.startBooking, StartBookingAction { booking = $0 })
+        .environment(\.showProfile, ShowProfileAction { showingProfile = true })
+        .sheet(isPresented: $showingProfile) {
+            NavigationStack {
+                AccountView()
+                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showingProfile = false } } }
+            }
+            .environment(app)
+            .environment(\.mediaBaseURL, app.mediaBaseURL)
+            .cinemaTheme(app.configStore.activeTheme(increasedContrast: contrast == .increased), typography: app.config.typography)
+        }
         .fullScreenCover(item: $booking) { request in
             BookingFlowView(request: request) { result in
                 booking = nil
@@ -62,7 +77,14 @@ public struct RootView: View {
         .onContinueUserActivity(CSSearchableItemActionType) { SpotlightIndexer.handle($0) }
         .onChange(of: AppNavigator.shared.requested) { _, destination in
             guard let destination else { return }
-            tab = switch destination { case .home: .home; case .films: .films; case .cinemas: .cinemas; case .tickets: .tickets; case .account: .account }
+            switch destination {
+            case .home: tab = .home
+            case .films: tab = .films
+            case .cinemas: tab = .cinemas
+            case .food: tab = app.config.features.concessions ? .food : .home
+            case .tickets: tab = .tickets
+            case .account: showingProfile = true
+            }
             AppNavigator.shared.requested = nil
         }
         .onChange(of: app.tickets.bookings) { _, _ in
@@ -77,12 +99,14 @@ public struct RootView: View {
         case "tickets": tab = .tickets
         case "cinemas": tab = .cinemas
         case "film", "films": tab = .films
+        case "food": if app.config.features.concessions { tab = .food }
+        case "account": showingProfile = true
         default: break
         }
     }
 }
 
-enum AppTab: Hashable { case home, films, cinemas, tickets, account }
+enum AppTab: Hashable { case home, films, cinemas, food, tickets }
 
 /// Identifies a screening the customer wants to book.
 public struct BookingRequest: Identifiable, Hashable, Sendable {

@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { api, Concession, errorDetails, errorMessage, mediaUrl, ModifierGroup, StockStatus, tenantPath, Venue } from '@/lib/api';
+import { api, Concession, errorDetails, errorMessage, Film, mediaUrl, ModifierGroup, StockStatus, tenantPath, Venue } from '@/lib/api';
 import { MAX_UPLOAD_BYTES, readFileBase64 } from '@/lib/files';
 import { SafeImage } from '@/components/SafeImage';
 import { useSession, useTenantData } from '@/lib/session';
@@ -42,6 +42,15 @@ interface ProductForm {
   groups: GroupForm[];
   imageAssetId: string | null;
   imageUrl: string | null;
+  featured: boolean;
+  limitedEdition: boolean;
+  badge: string;
+  compareAt: string;
+  filmId: string;
+  /** yyyy-mm-dd in the operator's browser time zone, or empty. */
+  onSaleFrom: string;
+  /** Last day on sale, inclusive. */
+  onSaleTo: string;
 }
 
 const EMPTY: ProductForm = {
@@ -61,7 +70,25 @@ const EMPTY: ProductForm = {
   groups: [],
   imageAssetId: null,
   imageUrl: null,
+  featured: false,
+  limitedEdition: false,
+  badge: '',
+  compareAt: '',
+  filmId: '',
+  onSaleFrom: '',
+  onSaleTo: '',
 };
+
+const pad = (n: number) => String(n).padStart(2, '0');
+const localDay = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+/** Start of a yyyy-mm-dd day in local time, as ISO. */
+const dayStart = (day: string, plusDays = 0) => {
+  const [y, m, d] = day.split('-').map(Number);
+  return new Date(y, m - 1, d + plusDays).toISOString();
+};
+
+/** Virtual category chip: featured, limited, film tie-ins and deals across every category. */
+const SPECIALS = '__specials';
 
 const STOCK_LABEL: Record<StockStatus, string> = { inStock: 'In stock', low: 'Low stock', out: 'Out of stock' };
 const STOCK_CLASS: Record<StockStatus, string> = { inStock: 'badge-success', low: 'badge-warning', out: 'badge-danger' };
@@ -98,6 +125,14 @@ function toForm(p: Concession): ProductForm {
     sortOrder: String(p.sortOrder),
     imageAssetId: p.imageAssetId,
     imageUrl: p.image?.url ?? null,
+    featured: p.featured,
+    limitedEdition: p.limitedEdition,
+    badge: p.badge ?? '',
+    compareAt: p.compareAtMinor == null ? '' : minorToInput(p.compareAtMinor),
+    filmId: p.filmId ?? '',
+    onSaleFrom: p.availableFrom ? localDay(new Date(p.availableFrom)) : '',
+    // Stored as the moment the sale ends; shown as the last day on sale.
+    onSaleTo: p.availableUntil ? localDay(new Date(new Date(p.availableUntil).getTime() - 1)) : '',
     groups: p.modifierGroups.map((g) => ({
       key: nextKey(),
       id: g.id,
@@ -140,6 +175,9 @@ function toBody(f: ProductForm): { body?: Record<string, unknown>; error?: strin
   }
   if (new Set(groups.map((g) => g.id)).size !== groups.length) return { error: 'Modifier group names must be different.' };
   const sortOrder = Number.parseInt(f.sortOrder, 10);
+  const compareAt = f.compareAt.trim() === '' ? null : inputToMinor(f.compareAt);
+  if (compareAt !== null && (Number.isNaN(compareAt) || compareAt <= price)) return { error: 'The "was" price must be higher than the price, or left empty.' };
+  if (f.onSaleFrom && f.onSaleTo && f.onSaleTo < f.onSaleFrom) return { error: 'The last day on sale must be on or after the first.' };
   return {
     body: {
       sku: f.sku,
@@ -157,14 +195,30 @@ function toBody(f: ProductForm): { body?: Record<string, unknown>; error?: strin
       bundleItems: list(f.bundleItems),
       sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
       imageAssetId: f.imageAssetId,
+      featured: f.featured,
+      limitedEdition: f.limitedEdition,
+      badge: f.badge.trim() || null,
+      compareAtMinor: compareAt,
+      filmId: f.filmId || null,
+      availableFrom: f.onSaleFrom ? dayStart(f.onSaleFrom) : null,
+      availableUntil: f.onSaleTo ? dayStart(f.onSaleTo, 1) : null,
     },
   };
 }
+
+/** Where a product is in its sale window right now. */
+function saleState(p: Concession, now = Date.now()): 'scheduled' | 'ended' | null {
+  if (p.availableFrom && new Date(p.availableFrom).getTime() > now) return 'scheduled';
+  if (p.availableUntil && new Date(p.availableUntil).getTime() <= now) return 'ended';
+  return null;
+}
+const isPromoted = (p: Concession) => p.featured || p.limitedEdition || !!p.filmId || p.compareAtMinor != null;
 
 export default function FoodPage() {
   const { tenant, can } = useSession();
   const products = useTenantData<Concession[]>(tenantPath(tenant, '/concessions'));
   const venues = useTenantData<Venue[]>(tenantPath(tenant, '/venues'));
+  const films = useTenantData<Film[]>(tenantPath(tenant, '/films'));
   const [editing, setEditing] = useState<Concession | 'new' | null>(null);
   const [form, setForm] = useState<ProductForm>(EMPTY);
   const [busy, setBusy] = useState(false);
@@ -184,8 +238,8 @@ export default function FoodPage() {
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return grouped
-      .filter(([c]) => category === 'all' || c === category)
-      .map(([c, items]) => [c, q ? items.filter((p) => `${p.name} ${p.sku}`.toLowerCase().includes(q)) : items] as const)
+      .filter(([c]) => category === 'all' || category === SPECIALS || c === category)
+      .map(([c, items]) => [c, items.filter((p) => (category !== SPECIALS || isPromoted(p)) && (!q || `${p.name} ${p.sku}`.toLowerCase().includes(q)))] as const)
       .filter(([, items]) => items.length > 0);
   }, [grouped, category, query]);
 
@@ -283,7 +337,7 @@ export default function FoodPage() {
     <>
       <PageHeader
         title="Food & drink"
-        description="Products customers can add to a booking or order to their seat. Prices are in pounds and include VAT."
+        description="The menu, specials and merchandise customers see in the app's Food tab and can pre-order for their booking. Prices are in pounds and include VAT."
         actions={
           can.canEditConcessions && (
             <button className="btn btn-primary" onClick={startNew}>
@@ -415,6 +469,53 @@ export default function FoodPage() {
             </div>
 
             <fieldset className="plain choices">
+              <legend className="choices-title">Promotion</legend>
+              <p className="help">How the app shows this product in Food: as a special, a deal with a saving, a limited edition or a film tie-in.</p>
+              <div className="form-grid">
+                <div className="field span-all switch-row">
+                  <label className="switch">
+                    <input type="checkbox" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} />
+                    Show in Specials
+                  </label>
+                  <label className="switch">
+                    <input type="checkbox" checked={form.limitedEdition} onChange={(e) => setForm({ ...form, limitedEdition: e.target.checked })} />
+                    Limited edition
+                  </label>
+                </div>
+                <div className="field">
+                  <label htmlFor="p-badge">Label (optional)</label>
+                  <input id="p-badge" maxLength={24} value={form.badge} onChange={set('badge')} placeholder="Winter special" />
+                </div>
+                <div className="field">
+                  <label htmlFor="p-was">Was price (optional)</label>
+                  <input id="p-was" inputMode="decimal" value={form.compareAt} onChange={set('compareAt')} placeholder="17.45" aria-describedby="p-was-help" />
+                  <p id="p-was-help" className="help">
+                    Shows the saving on bundles and deals.
+                  </p>
+                </div>
+                <div className="field span-2">
+                  <label htmlFor="p-film">Film tie-in</label>
+                  <select id="p-film" value={form.filmId} onChange={set('filmId')}>
+                    <option value="">Not linked to a film</option>
+                    {(films.data ?? []).map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="p-from">First day on sale</label>
+                  <input id="p-from" type="date" value={form.onSaleFrom} onChange={set('onSaleFrom')} />
+                </div>
+                <div className="field">
+                  <label htmlFor="p-to">Last day on sale</label>
+                  <input id="p-to" type="date" value={form.onSaleTo} onChange={set('onSaleTo')} min={form.onSaleFrom || undefined} />
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset className="plain choices">
               <legend className="choices-title">Choices</legend>
               <p className="help">Options customers pick when they add this item, such as size or flavour.</p>
               {form.groups.map((g, gi) => (
@@ -501,10 +602,16 @@ export default function FoodPage() {
       {grouped.length > 0 && (
         <div className="menu-toolbar">
           <div className="chips" role="group" aria-label="Category">
-            {[['all', 'All'] as const, ...grouped.map(([c]) => [c, c] as const)].map(([value, label]) => (
+            {[['all', 'All'] as const, [SPECIALS, 'Specials & merch'] as const, ...grouped.map(([c]) => [c, c] as const)].map(([value, label]) => (
               <button key={value} className={`chip${category === value ? ' selected' : ''}`} aria-pressed={category === value} onClick={() => setCategory(value)}>
                 {label}
-                <span className="chip-count">{value === 'all' ? grouped.reduce((n, [, items]) => n + items.length, 0) : grouped.find(([c]) => c === value)?.[1].length}</span>
+                <span className="chip-count">
+                  {value === 'all'
+                    ? grouped.reduce((n, [, items]) => n + items.length, 0)
+                    : value === SPECIALS
+                      ? grouped.reduce((n, [, items]) => n + items.filter(isPromoted).length, 0)
+                      : grouped.find(([c]) => c === value)?.[1].length}
+                </span>
               </button>
             ))}
           </div>
@@ -523,20 +630,32 @@ export default function FoodPage() {
                 <button className="product-media" onClick={() => can.canEditConcessions && startEdit(p)} disabled={!can.canEditConcessions} aria-label={`Edit ${p.name}`}>
                   <SafeImage src={mediaUrl(p.image?.url, 500)} alt="" loading="lazy" style={{ background: p.image?.dominantColor ?? undefined }} fallback={<ProductPlaceholder name={p.name} />} />
                   {p.stockStatus !== 'inStock' && <span className={`badge product-flag ${STOCK_CLASS[p.stockStatus]}`}>{STOCK_LABEL[p.stockStatus]}</span>}
-                  {!p.available && <span className="badge product-flag product-flag-right">Hidden</span>}
+                  {!p.available ? (
+                    <span className="badge product-flag product-flag-right">Hidden</span>
+                  ) : saleState(p) ? (
+                    <span className="badge product-flag product-flag-right">{saleState(p) === 'scheduled' ? 'Scheduled' : 'Sale ended'}</span>
+                  ) : p.featured ? (
+                    <span className="badge product-flag product-flag-right badge-special">Special</span>
+                  ) : null}
                 </button>
                 <div className="product-body">
                   <div className="product-title-row">
                     <h3 className="product-name">{p.name}</h3>
-                    <span className="product-price num">{formatMoney(p.priceMinor, cur)}</span>
+                    <span className="product-price num">
+                      {p.compareAtMinor != null && <s className="was-price">{formatMoney(p.compareAtMinor, cur)}</s>}
+                      {formatMoney(p.priceMinor, cur)}
+                    </span>
                   </div>
                   <p className="product-meta">
                     {[p.bundleItems.join(', '), p.modifierGroups.length ? `Choose ${p.modifierGroups.map((g) => g.name.toLowerCase()).join(', ')}` : '']
                       .filter(Boolean)
                       .join(' · ') || p.sku}
                   </p>
-                  {(p.venueId || p.dietary.length > 0 || p.allergens.length > 0) && (
+                  {(p.venueId || p.dietary.length > 0 || p.allergens.length > 0 || p.badge || p.limitedEdition || p.filmId) && (
                     <div className="tags">
+                      {p.badge && <span className="badge badge-special">{p.badge}</span>}
+                      {p.limitedEdition && p.badge?.toLowerCase() !== 'limited edition' && <span className="badge badge-special">Limited edition</span>}
+                      {p.filmId && <span className="badge badge-scope">{films.data?.find((f) => f.id === p.filmId)?.title ?? 'Film tie-in'}</span>}
                       {p.venueId && <span className="badge badge-scope">{scope.label(p.venueId)} only</span>}
                       {p.dietary.map((d) => (
                         <span key={d} className="badge badge-success">
