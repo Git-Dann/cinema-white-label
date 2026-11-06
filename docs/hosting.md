@@ -10,6 +10,13 @@ Three Vercel projects from this one repository, plus a Supabase database:
 
 Production deployments come from `main`, so the platform code must be merged to `main` first.
 
+**Keeping inside the free plan's 100 deployments a day.** The limit is per Vercel team, so every project on the team shares it. Each project's `vercel.json` sets `git.deploymentEnabled`:
+- Only `main` deploys the API and the marketing site.
+- The portal also deploys previews for `claude/**` pull request branches.
+- Other branches, including `ci-screenshots`, create no deployment at all.
+
+The `cinema-white-label` project currently builds from the repository root rather than `site`, so the root `vercel.json` carries its rules. `ignoreCommand` still skips builds when a project's folder did not change.
+
 ## 1. Database (Supabase)
 
 1. supabase.com › New project › name `cinema-platform`, region **London (eu-west-2)**, free plan. Click **Generate a password** and save it in your password manager.
