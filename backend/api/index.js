@@ -5,14 +5,14 @@ require('reflect-metadata');
 const { NestFactory } = require('@nestjs/core');
 const { SwaggerModule } = require('@nestjs/swagger');
 const { AppModule } = require('../dist/app.module');
-const { configureApp, openApiDocument } = require('../dist/bootstrap');
+const { configureApp, docsOptions, openApiDocument } = require('../dist/bootstrap');
 
 let ready;
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false, logger: ['error', 'warn'] });
   configureApp(app);
-  SwaggerModule.setup('docs', app, openApiDocument(app));
+  SwaggerModule.setup('docs', app, openApiDocument(app), docsOptions);
   await app.init();
   return app.getHttpAdapter().getInstance();
 }
