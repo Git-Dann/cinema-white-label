@@ -52,10 +52,13 @@ describe('TMDB demo catalogue and rolling screenings (integration)', () => {
   afterEach(() => app.get(Clock).reset());
   afterAll(async () => {
     // Put Kestrel back as the seed left it, for the other suites.
-    const imported = await prisma.filmExternalId.findMany({ where: { tenantId, provider: 'tmdb' }, select: { filmId: true } });
-    await prisma.screening.deleteMany({ where: { filmId: { in: imported.map((f) => f.filmId) } } });
-    await prisma.film.deleteMany({ where: { id: { in: imported.map((f) => f.filmId) } } });
+    // Move the screenings back onto the fictional films before removing the imported ones,
+    // so later suites still find Kestrel screenings.
+    const imported = (await prisma.filmExternalId.findMany({ where: { tenantId, provider: 'tmdb' }, select: { filmId: true } })).map((f) => f.filmId);
     await prisma.film.updateMany({ where: { tenantId }, data: { hidden: false } });
+    await prisma.film.updateMany({ where: { id: { in: imported } }, data: { hidden: true } });
+    await ensureScreeningHorizon(prisma, tenantId, new Date());
+    await prisma.film.deleteMany({ where: { id: { in: imported } } });
     await app.close();
   });
 
