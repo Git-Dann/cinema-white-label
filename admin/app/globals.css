@@ -3002,3 +3002,215 @@ dialog.sheet form {
 .tmdb-note {
   margin: calc(-1 * var(--s1)) 0 var(--s2);
 }
+
+/* ---------------- Year ahead (sample AI forecast) ---------------- */
+.ya-note {
+  margin: calc(-1 * var(--s1)) 0 var(--s3);
+}
+.ya-card {
+  margin-bottom: var(--s2);
+}
+.ya-legend {
+  display: inline-flex;
+  gap: var(--s2);
+  font-size: 12px;
+  color: var(--muted);
+}
+.ya-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  margin-right: 4px;
+  vertical-align: -1px;
+}
+.ya-swatch.fc {
+  background: var(--ai);
+}
+.ya-swatch.ly {
+  background: transparent;
+  border: 1px dashed var(--muted);
+}
+.ya-ly {
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  opacity: 0.7;
+}
+.ya-release {
+  opacity: 0;
+  animation: ins-fade 0.5s ease-out forwards;
+}
+.ya-release-label {
+  fill: var(--text-2);
+  font-size: 11px;
+  font-weight: 600;
+}
+.ya-kinds {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px var(--s2);
+  margin: var(--s2) 0 0;
+  padding: 0;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.ya-bars {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 6px;
+  height: 200px;
+  align-items: end;
+}
+.ya-bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 6px;
+}
+.ya-bar {
+  width: 100%;
+  max-width: 28px;
+  border-radius: 4px 4px 0 0;
+  background: var(--surface-3);
+  transform-origin: bottom;
+  animation: ya-rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.ya-bar.hot {
+  background: var(--ai);
+}
+.ya-bar-label {
+  font-size: 11px;
+  color: var(--muted);
+}
+.ya-rota {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed var(--warning);
+  pointer-events: none;
+}
+.ya-rota span {
+  position: absolute;
+  right: 0;
+  top: -18px;
+  font-size: 11px;
+  color: var(--warning);
+}
+.ya-actions {
+  margin: var(--s2) 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.ya-stock {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.ya-stock li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  animation: ins-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.ya-stock li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.ya-stock-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  white-space: nowrap;
+}
+.ya-change {
+  font-weight: 700;
+  color: var(--text-2);
+}
+.ya-change.up {
+  color: var(--success);
+}
+.ya-gantt-months {
+  display: grid;
+  grid-template-columns: 220px repeat(12, minmax(0, 1fr));
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.ya-gantt-months::before {
+  content: '';
+}
+.ya-gantt-row {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  align-items: center;
+  gap: 0;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+.ya-gantt-name {
+  display: flex;
+  flex-direction: column;
+  padding-right: var(--s2);
+  font-size: 13px;
+}
+.ya-gantt-track {
+  position: relative;
+  height: 14px;
+  background: var(--surface-2);
+  border-radius: 4px;
+}
+.ya-gantt-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+  opacity: 0.9;
+  transform-origin: left;
+  animation: ins-grow 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.ya-gantt-release {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: var(--text);
+  border-radius: 1px;
+}
+@keyframes ya-rise {
+  from {
+    transform: scaleY(0);
+  }
+}
+@media (max-width: 700px) {
+  .ya-gantt-months,
+  .ya-gantt-row {
+    grid-template-columns: 120px 1fr;
+  }
+  .ya-gantt-months {
+    grid-template-columns: 120px repeat(12, minmax(0, 1fr));
+  }
+  .ya-gantt-name .muted {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ya-release,
+  .ya-bar,
+  .ya-stock li,
+  .ya-gantt-bar {
+    animation: none;
+    opacity: 1;
+  }
+}
