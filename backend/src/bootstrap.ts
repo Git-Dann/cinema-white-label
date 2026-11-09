@@ -42,3 +42,16 @@ export function openApiDocument(app: INestApplication) {
     .build();
   return SwaggerModule.createDocument(app, config);
 }
+
+/**
+ * Swagger UI options. The UI's own CSS and scripts load from a CDN, pinned to
+ * the swagger-ui-dist version @nestjs/swagger ships, because the serverless
+ * bundle on Vercel does not include swagger-ui-dist's static files.
+ */
+const SWAGGER_UI = 'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.34.1';
+export const docsOptions = {
+  customSiteTitle: 'Cinema Platform API',
+  customCssUrl: `${SWAGGER_UI}/swagger-ui.css`,
+  customJs: [`${SWAGGER_UI}/swagger-ui-bundle.js`, `${SWAGGER_UI}/swagger-ui-standalone-preset.js`],
+  customfavIcon: `${SWAGGER_UI}/favicon-32x32.png`,
+};
