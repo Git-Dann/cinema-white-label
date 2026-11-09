@@ -82,11 +82,16 @@ struct AccountView: View {
                 if let url = URL(string: app.config.legal.termsUrl) { Link("Terms of use", destination: url) }
                 if let url = URL(string: app.config.legal.privacyUrl) { Link("Privacy notice", destination: url) }
             }
-            Section("About") {
+            Section {
                 LabeledContent("Operator", value: app.config.legal.companyName)
                 LabeledContent("Configuration", value: "v\(app.config.version) (\(app.configStore.source.rawValue))")
                 if let reason = app.configStore.lastRejection {
                     Text("A newer configuration was rejected: \(reason)").font(.footnote).foregroundStyle(palette.warning)
+                }
+            } header: { Text("About") } footer: {
+                // TMDB's terms ask apps using its data to say so (demo catalogue only).
+                if (app.nowShowing + app.comingSoon).contains(where: { $0.poster?.attribution == "Image: TMDB" }) {
+                    Text("Film data and images from TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.")
                 }
             }
         }
