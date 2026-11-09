@@ -73,10 +73,22 @@ public final class AppModel {
         await analytics.record(.appOpened)
         async let config: Void = refreshConfig()
         async let content: Void = loadContent()
-        async let tickets: Void = self.tickets.refresh(using: service)
+        async let tickets: Void = refreshTickets()
         // Load rewards and membership up front so Account is ready before it is opened.
         async let account: Void = loadAccount()
         _ = await (config, content, tickets, account)
+    }
+
+    /// Refreshes tickets, retrying once after a moment (the API can be waking up), and
+    /// reports a failure that isn't a lost connection so it shows in the portal.
+    public func refreshTickets() async {
+        await tickets.refresh(using: service)
+        guard tickets.isOffline || tickets.refreshProblem != nil else { return }
+        try? await Task.sleep(for: .seconds(2))
+        await tickets.refresh(using: service)
+        if let problem = tickets.refreshProblem {
+            await analytics.record(.ticketsRefreshFailed, ["reason": String(problem.prefix(120))])
+        }
     }
 
     public func refreshConfig() async {

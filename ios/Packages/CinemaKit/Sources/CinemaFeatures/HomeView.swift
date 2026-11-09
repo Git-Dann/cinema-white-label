@@ -186,62 +186,171 @@ struct PromotionCard: View {
     @Environment(\.palette) private var palette
     @Environment(\.openURL) private var openURL
 
-    private var symbol: String {
-        switch promotion.action {
-        case .voucher: return "ticket"
-        case .film: return "film"
-        case .link: return "safari"
-        case .none: return "megaphone"
+    private var film: Film? { if case .film(let id) = promotion.action { app.film(id: id) } else { nil } }
+
+    /// "10% off", "£2 off" or "2 for 1" pulled from the title, shown big.
+    private var headline: String? {
+        let text = promotion.title
+        for pattern in [#"\d+%\s*off"#, #"£\d+(?:\.\d{2})?\s*off"#, #"\d\s*for\s*\d"#] {
+            if let r = text.range(of: pattern, options: [.regularExpression, .caseInsensitive]) { return String(text[r]).uppercased() }
         }
+        return nil
+    }
+
+    /// The title without the figure, so it isn't said twice ("New here?").
+    private var lead: String {
+        guard let h = headline, let r = promotion.title.range(of: h, options: .caseInsensitive) else { return promotion.title }
+        return promotion.title.replacingCharacters(in: r, with: "").trimmingCharacters(in: .whitespacesAndNewlines.union(.init(charactersIn: "–-·,:")))
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            Image(systemName: symbol)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(palette.actionPrimary)
-                .accessibilityHidden(true)
-            Text(promotion.title)
-                .font(.headline)
-                .foregroundStyle(palette.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(promotion.body)
-                .font(.subheadline)
-                .foregroundStyle(palette.textSecondary)
-                .lineLimit(3)
-            Spacer(minLength: Spacing.s)
-            if promotion.hasButton { action }
+        Group {
+            if let film { filmCard(film) } else { offerCard }
         }
-        .frame(maxHeight: .infinity, alignment: .topLeading)
-        .cardStyle()
-        .frame(width: 280, height: 220)
+        .frame(width: 300, height: 236)
+        .clipShape(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous))
         .accessibilityElement(children: .contain)
     }
 
+    // MARK: Discount and link offers: a ticket with the saving front and centre.
+
+    private var offerCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(lead.isEmpty ? "Offer" : lead.uppercased())
+                    .font(.caption.weight(.heavy)).tracking(1.2)
+                    .foregroundStyle(palette.actionPrimaryText.opacity(0.75))
+                Text(headline ?? promotion.title)
+                    .font(.system(size: headline == nil ? 26 : 40, weight: .black))
+                    .minimumScaleFactor(0.6).lineLimit(2)
+                    .foregroundStyle(palette.actionPrimaryText)
+                Text(promotion.body)
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(palette.actionPrimaryText.opacity(0.85))
+                    .lineLimit(2)
+            }
+            .padding(Spacing.m)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background {
+                ZStack {
+                    LinearGradient(colors: [palette.actionPrimary, palette.actionPrimary.mix(with: palette.background, by: 0.35)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    // A soft spotlight for depth.
+                    RadialGradient(colors: [palette.actionPrimaryText.opacity(0.18), .clear], center: .topTrailing, startRadius: 0, endRadius: 220)
+                    Image(systemName: promotion.isVoucher ? "ticket.fill" : "sparkles")
+                        .font(.system(size: 120, weight: .bold))
+                        .foregroundStyle(palette.actionPrimaryText.opacity(0.08))
+                        .rotationEffect(.degrees(-18))
+                        .offset(x: 110, y: 20)
+                        .accessibilityHidden(true)
+                }
+            }
+            perforation
+            HStack(spacing: Spacing.s) {
+                if case .voucher(let code) = promotion.action {
+                    Text(code)
+                        .font(.subheadline.monospaced().weight(.bold))
+                        .foregroundStyle(palette.textPrimary)
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(palette.textMuted, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
+                        .accessibilityLabel("Code \(code.map(String.init).joined(separator: " "))")
+                }
+                Spacer(minLength: 0)
+                if promotion.hasButton { action(filled: true) }
+            }
+            .padding(.horizontal, Spacing.m)
+            .frame(height: 64)
+            .background(palette.surfaceElevated)
+        }
+    }
+
+    /// Ticket-stub edge between the offer and the code.
+    private var perforation: some View {
+        ZStack {
+            palette.surfaceElevated
+            Line().stroke(palette.border, style: StrokeStyle(lineWidth: 1, dash: [5, 4])).frame(height: 1).padding(.horizontal, 14)
+            HStack {
+                Circle().fill(palette.background).frame(width: 16, height: 16).offset(x: -8)
+                Spacer()
+                Circle().fill(palette.background).frame(width: 16, height: 16).offset(x: 8)
+            }
+        }
+        .frame(height: 12)
+        .accessibilityHidden(true)
+    }
+
+    // MARK: Film offers: the film's artwork, full bleed.
+
+    private func filmCard(_ film: Film) -> some View {
+        ZStack(alignment: .bottomLeading) {
+            ArtworkImage(film.backdrop ?? film.poster, fallbackTitle: film.title)
+                .frame(width: 300, height: 236)
+                .clipped()
+                .accessibilityHidden(true)
+            LinearGradient(colors: [.clear, palette.artworkScrim.opacity(0.65), palette.artworkScrim.opacity(0.95)], startPoint: .top, endPoint: .bottom)
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(promotion.title.uppercased())
+                    .font(.caption.weight(.heavy)).tracking(1.2)
+                    .foregroundStyle(palette.membership)
+                    .lineLimit(1)
+                Text(film.title)
+                    .font(.title2.weight(.black))
+                    .foregroundStyle(.white)
+                    .lineLimit(1).minimumScaleFactor(0.7)
+                Text(promotion.body)
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.85))
+                    .lineLimit(2)
+                if promotion.hasButton { action(filled: true).padding(.top, Spacing.xs) }
+            }
+            .padding(Spacing.m)
+        }
+    }
+
     @ViewBuilder
-    private var action: some View {
+    private func action(filled: Bool) -> some View {
         let label = promotion.ctaLabel ?? ""
         switch promotion.action {
         case .voucher(let code):
             Button(label) { showVoucher(VoucherCode(code: code, title: promotion.title)) }
-                .buttonStyle(.cinemaCompact)
+                .buttonStyle(OfferButtonStyle())
                 .accessibilityHint("Shows the code \(code)")
         case .film(let id):
-            // Only offer the button when the film is in the loaded catalogue.
             if let film = app.film(id: id) {
                 NavigationLink(value: film) { Text(label) }
-                    .buttonStyle(.cinemaCompact)
+                    .buttonStyle(OfferButtonStyle())
                     .accessibilityHint("Opens \(film.title)")
             }
         case .link(let url):
             Button(label) { openURL(url) }
-                .buttonStyle(.cinemaCompact)
+                .buttonStyle(OfferButtonStyle())
                 .accessibilityHint("Opens in Safari")
                 .accessibilityAddTraits(.isLink)
         case .none:
             EmptyView()
         }
     }
+}
+
+/// Filled, high-contrast call to action for offers.
+struct OfferButtonStyle: ButtonStyle {
+    @Environment(\.palette) private var palette
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline.weight(.bold))
+            .lineLimit(1)
+            .padding(.horizontal, Spacing.m)
+            .frame(minHeight: 40)
+            .foregroundStyle(palette.actionPrimaryText)
+            .background(palette.actionPrimary, in: Capsule())
+            .opacity(configuration.isPressed ? 0.8 : 1)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .contentShape(Capsule())
+    }
+}
+
+private struct Line: Shape {
+    func path(in rect: CGRect) -> Path { Path { p in p.move(to: CGPoint(x: 0, y: rect.midY)); p.addLine(to: CGPoint(x: rect.maxX, y: rect.midY)) } }
 }
 
 /// Shows a voucher code large enough to read out, with a copy button.

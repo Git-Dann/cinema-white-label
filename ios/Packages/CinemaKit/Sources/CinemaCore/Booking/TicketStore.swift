@@ -9,6 +9,8 @@ import Observation
 public final class TicketStore {
     public private(set) var bookings: [Booking] = []
     public private(set) var isOffline = false
+    /// Why the last refresh failed when it was not a lost connection, e.g. "unauthorised · 401".
+    public private(set) var refreshProblem: String?
     public private(set) var lastUpdated: Date?
 
     private let cacheURL: URL
@@ -33,10 +35,16 @@ public final class TicketStore {
             let fresh = try await service.bookings()
             bookings = fresh
             isOffline = false
+            refreshProblem = nil
             lastUpdated = Date()
             persist()
+        } catch let e as APIError where e.code != .network {
+            // The server answered, so this is not "offline": keep the reason to show and report.
+            isOffline = false
+            refreshProblem = "\(e.rawCode) · \(e.status)"
         } catch {
             isOffline = true
+            refreshProblem = nil
         }
     }
 
