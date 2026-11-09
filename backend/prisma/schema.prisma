@@ -245,6 +245,9 @@ model Film {
   director         String?
   cast             String[]
   originalLanguage String   @default("en")
+  /// Hidden films are left out of listings (e.g. the fictional catalogue once a
+  /// real demo catalogue is loaded). Existing bookings still resolve them.
+  hidden           Boolean  @default(false)
   /// Field-level provenance: { fieldName: providerId }.
   provenance       Json     @default("{}")
   createdAt        DateTime @default(now())
