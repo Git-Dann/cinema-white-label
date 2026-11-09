@@ -3258,9 +3258,6 @@ dialog.sheet form {
   align-items: baseline;
   gap: var(--s2);
 }
-.nw-week.busy {
-  box-shadow: inset 3px 0 0 #c98500;
-}
 .nw-meter {
   position: relative;
   height: 8px;
@@ -3295,8 +3292,17 @@ dialog.sheet form {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  border-left: 3px solid;
-  padding-left: var(--s2);
+  padding: var(--s2) var(--s3);
+  border-radius: 10px;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+}
+.nw-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: var(--s1);
+  vertical-align: 1px;
 }
 .nw-orders {
   list-style: none;
@@ -3359,9 +3365,6 @@ dialog.sheet form {
   content: '•';
   position: absolute;
   left: var(--s1);
-}
-.mw-coming {
-  box-shadow: inset 3px 0 0 #3987e5;
 }
 @media (max-width: 720px) {
   .nw-summary {

@@ -104,8 +104,9 @@ export default function NextWeeksPage() {
               {w.gap > 0 ? `Add ${w.shifts} × ${SHIFT_HOURS} h shifts, mostly Friday to Sunday evenings.` : 'Standard rota covers it.'}
             </p>
             {w.openings.map((o) => (
-              <div key={o.title} className="nw-opening" style={{ borderColor: KIND_COLOUR[o.kind] }}>
+              <div key={o.title} className="nw-opening">
                 <strong>
+                  <span className="nw-dot" style={{ background: KIND_COLOUR[o.kind] }} aria-hidden="true" />
                   {weekdayLabel(addDays(w.date, 4))}: {o.title} opens
                 </strong>
                 <span className="muted small">{bigNight(o.kind)}</span>

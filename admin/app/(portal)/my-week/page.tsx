@@ -62,7 +62,7 @@ export default function MyWeekPage() {
         </section>
 
         {next && opening && (
-          <section className="card mw-card mw-coming" aria-labelledby="mw-coming">
+          <section className="card mw-card" aria-labelledby="mw-coming">
             <h2 id="mw-coming" className="h3">Coming up</h2>
             <p>
               <strong>{next.title}</strong> opens {weekdayLabel(opening)}. It will be one of the busiest weekends of the year, so extra shifts will be offered first to people who ask.
