@@ -60,8 +60,14 @@ final class ScreenshotTests: XCTestCase {
         sleep(1)
         shot("seat-map-premiere")
 
-        element(app.buttons, "label CONTAINS 'VIP bed, sold in pairs, available'").tap()
-        sleep(1)
+        // Demo sales are random per day, so a bed's partner may be taken; try beds until a pair sticks.
+        let beds = app.buttons.matching(NSPredicate(format: "label CONTAINS 'VIP bed, sold in pairs, available'"))
+        XCTAssertTrue(beds.firstMatch.waitForExistence(timeout: 10))
+        for i in 0..<min(beds.count, 8) {
+            beds.element(boundBy: i).tap()
+            sleep(1)
+            if !app.staticTexts["No seats selected"].exists { break }
+        }
         shot("seat-selected")
 
         // Tickets
