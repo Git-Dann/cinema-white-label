@@ -29,6 +29,7 @@ export class FilmsService {
     const films = await this.prisma.film.findMany({
       where: {
         tenantId,
+        hidden: false,
         ...(opts.q ? { OR: [{ title: { contains: opts.q, mode: 'insensitive' } }, { cast: { has: opts.q } }, { director: { contains: opts.q, mode: 'insensitive' } }] } : {}),
       },
       include: { assets: true },

@@ -1,8 +1,13 @@
-import { Controller, Get, Module, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Headers, Module, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiExcludeController, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Tenant } from '@prisma/client';
+import { Clock } from '../common/clock';
+import { Errors } from '../common/errors';
+import { PrismaService } from '../common/prisma.service';
 import { CurrentTenant, TenantGuard } from '../common/tenant-context';
 import { FilmsService } from './films.service';
+import { ensureScreeningHorizon } from './schedule';
+import { httpTmdbClient, importTmdbDemoCatalogue, tmdbDemoEnabled } from './tmdb-demo';
 
 @ApiTags('Films')
 @Controller('v1/t/:tenant/films')
@@ -23,5 +28,30 @@ export class FilmsController {
   }
 }
 
-@Module({ controllers: [FilmsController], providers: [FilmsService], exports: [FilmsService] })
+/**
+ * Daily housekeeping, called by Vercel Cron with `Authorization: Bearer $CRON_SECRET`:
+ * refreshes the TMDB demo catalogue when it is on, and keeps a week of screenings
+ * programmed for every operator. Off (404) unless CRON_SECRET is set.
+ */
+@ApiExcludeController()
+@Controller('v1/cron')
+export class CronController {
+  constructor(private readonly prisma: PrismaService, private readonly clock: Clock) {}
+
+  @Get('daily')
+  async daily(@Headers('authorization') auth?: string) {
+    const secret = process.env.CRON_SECRET;
+    if (!secret) throw Errors.notFound('Route');
+    if (auth !== `Bearer ${secret}`) throw Errors.unauthorised();
+    const now = this.clock.now();
+    const results: Record<string, unknown> = {};
+    for (const t of await this.prisma.tenant.findMany({ select: { id: true, slug: true } })) {
+      const films = tmdbDemoEnabled() ? await importTmdbDemoCatalogue(this.prisma, t.id, httpTmdbClient(), now) : null;
+      results[t.slug] = { films, screenings: await ensureScreeningHorizon(this.prisma, t.id, now) };
+    }
+    return results;
+  }
+}
+
+@Module({ controllers: [FilmsController, CronController], providers: [FilmsService], exports: [FilmsService] })
 export class CatalogueModule {}

@@ -224,6 +224,7 @@ export interface ImageRef {
   height: number;
   focalPoint: { x: number; y: number };
   dominantColor: string | null;
+  attribution?: string | null;
 }
 
 export interface FilmAsset {
@@ -243,6 +244,8 @@ export interface FilmAsset {
 
 export interface Film {
   id: string;
+  /** Left out of the app's listings (e.g. fictional films while the TMDB demo catalogue is on). */
+  hidden?: boolean;
   slug: string;
   title: string;
   tagline: string | null;

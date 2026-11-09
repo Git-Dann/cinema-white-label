@@ -74,6 +74,12 @@ function main(env = process.env) {
       // Specials, bundles and film tie-ins arrived later; operators without any featured products get the demo ones once.
       const { ensureFixtureMenuSpecials } = require('../dist/fixtures/menu-specials');
       console.log(`deploy-db: added ${await ensureFixtureMenuSpecials(prisma)} demo specials.`);
+      // Keep a week of screenings programmed, so the demo never runs out of showtimes.
+      const { ensureScreeningHorizon } = require('../dist/catalogue/schedule');
+      for (const t of await prisma.tenant.findMany({ select: { id: true, slug: true } })) {
+        const r = await ensureScreeningHorizon(prisma, t.id, new Date());
+        console.log(`deploy-db: ${t.slug}: ${r.created} screenings added, ${r.reassigned} moved to showing films.`);
+      }
       const { ensureFixtureProductImages } = require('../dist/fixtures/product-images');
       console.log(`deploy-db: gave ${await ensureFixtureProductImages(prisma)} demo products their artwork.`);
       await prisma.$disconnect();

@@ -2,7 +2,12 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "ignoreCommand": "git diff --quiet ${VERCEL_GIT_PREVIOUS_SHA:-HEAD^} HEAD -- . ../packages ../shared ../pnpm-lock.yaml",
-  "git": { "deploymentEnabled": { "**": false, "main": true } },
+  "git": {
+    "deploymentEnabled": {
+      "**": false,
+      "main": true
+    }
+  },
   "installCommand": "cd .. && pnpm install --frozen-lockfile",
   "buildCommand": "cd .. && pnpm --filter @cinema/contracts build && cd backend && npx prisma generate && pnpm build && node scripts/deploy-db.js",
   "outputDirectory": "public",
@@ -12,5 +17,16 @@
       "includeFiles": "{dist/**,prisma/schema.prisma,../shared/fixtures/artwork/**}"
     }
   },
-  "rewrites": [{ "source": "/(.*)", "destination": "/api" }]
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/v1/cron/daily",
+      "schedule": "20 5 * * *"
+    }
+  ]
 }

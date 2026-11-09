@@ -19,6 +19,8 @@ import { Clock } from '../common/clock';
 import { TenantsModule } from '../tenants/tenants.module';
 import { AdminCommerceController } from './admin-commerce.controller';
 import { AdminLayoutsController } from './admin-layouts.controller';
+import { ensureScreeningHorizon } from '../catalogue/schedule';
+import { httpTmdbClient, importTmdbDemoCatalogue, TMDB_NOTICE, tmdbDemoEnabled } from '../catalogue/tmdb-demo';
 
 const loginBody = z.object({ email: z.string().email(), password: z.string().min(1) });
 
@@ -275,9 +277,23 @@ export class AdminContentController {
     const now = this.clock.now();
     return rows.map((f) => ({
       ...filmDto(f, now),
+      hidden: f.hidden,
       provenance: f.provenance,
       assets: f.assets.map((x) => ({ id: x.id, kind: x.kind, provider: x.provider, width: x.width, height: x.height, focalX: x.focalX, focalY: x.focalY, isPreferred: x.isPreferred, licenceRef: x.licenceRef, attribution: x.attribution, expiresAt: x.expiresAt, url: `/v1/media/${x.id}?v=${x.updatedAt.getTime()}` })),
     }));
+  }
+
+  /** Demo only: loads real UK films from TMDB and programmes them (docs/decisions/0004). */
+  @Post('films/import-tmdb')
+  @HttpCode(200)
+  @Roles('OPERATOR_ADMIN')
+  async importTmdb(@CurrentTenant() t: Tenant, @CurrentAdmin() a: AdminClaims) {
+    if (!tmdbDemoEnabled()) throw Errors.validation('The TMDB demo catalogue is off. Set DEMO_CATALOGUE=tmdb and TMDB_API_KEY on the API.');
+    const now = this.clock.now();
+    const films = await importTmdbDemoCatalogue(this.prisma, t.id, httpTmdbClient(), now);
+    const screenings = await ensureScreeningHorizon(this.prisma, t.id, now);
+    await this.audit.record({ tenantId: t.id, actorId: a.sub, action: 'film.import_tmdb', entityType: 'Film', entityId: t.id, data: { ...films, ...screenings } });
+    return { ...films, screeningsCreated: screenings.created, screeningsMoved: screenings.reassigned, notice: TMDB_NOTICE };
   }
 
   @Post('films')
@@ -336,7 +352,7 @@ export class AdminContentController {
       this.prisma.booking.aggregate({ where: booked, _sum: { totalMinor: true } }),
       this.prisma.analyticsEvent.groupBy({ by: ['name'], where: { tenantId: t.id, occurredAt: { gte: since } }, _count: { _all: true } }),
       this.prisma.venue.count({ where: { tenantId: t.id } }),
-      this.prisma.film.count({ where: { tenantId: t.id } }),
+      this.prisma.film.count({ where: { tenantId: t.id, hidden: false } }),
     ]);
     return {
       currency: t.currency,

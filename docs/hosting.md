@@ -72,3 +72,14 @@ The three Vercel projects (marketing site, API, portal) share one account, and t
 If the comparison can't run (an unknown commit), the build goes ahead. To force a build, use Redeploy in the Vercel dashboard.
 
 The `ci-screenshots` branch (iOS test screenshots, pushed by `.github/workflows/ios.yml`) never deploys. Vercel reads config from the pushed commit, so the workflow writes a `vercel.json` with `git.deploymentEnabled: false` into each project folder on that branch; the project configs on `main` also list it as disabled.
+
+## Real films for demos (TMDB)
+
+1. Create a free account at themoviedb.org, then Settings › API, and copy the **API Read Access Token**.
+2. In Vercel › `cinema-api` › Settings › Environment Variables (Production) add:
+   - `TMDB_API_KEY` = the token
+   - `DEMO_CATALOGUE` = `tmdb`
+   - `CRON_SECRET` = any long random string (lets Vercel Cron run the daily refresh)
+3. Redeploy the API, then in the portal open **Films › Load real films (TMDB)**.
+
+Demo use only; see `docs/decisions/0004-tmdb-demo-catalogue.md`.

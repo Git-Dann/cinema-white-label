@@ -96,11 +96,47 @@ export default function FilmsPage() {
   const set = (k: keyof FilmForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => (f ? { ...f, [k]: e.target.value } : f));
 
-  const visible = (films.data ?? []).filter((f) => !filter || f.title.toLowerCase().includes(filter.toLowerCase()));
+  const [showHidden, setShowHidden] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const visible = (films.data ?? []).filter((f) => (showHidden || !f.hidden) && (!filter || f.title.toLowerCase().includes(filter.toLowerCase())));
+  const hiddenCount = (films.data ?? []).filter((f) => f.hidden).length;
+  const fromTmdb = (films.data ?? []).some((f) => !f.hidden && f.poster?.attribution === 'Image: TMDB');
+
+  async function importTmdb() {
+    if (!window.confirm('Load real UK films from TMDB? The fictional films are hidden from the app (not deleted) and screenings move to the real films.')) return;
+    setImporting(true);
+    setMsg({});
+    try {
+      const r = await api<{ films: number; created: number; hidden: number; screeningsCreated: number; screeningsMoved: number }>(tenantPath(tenant, '/films/import-tmdb'), { method: 'POST' });
+      setMsg({ ok: `${r.films} real films loaded (${r.created} new). ${r.screeningsMoved + r.screeningsCreated} screenings programmed.` });
+      films.reload();
+    } catch (err) {
+      setMsg({ error: errorMessage(err) });
+    } finally {
+      setImporting(false);
+    }
+  }
 
   return (
     <>
-      <PageHeader title="Films" description="Edit listings and choose how artwork is cropped in the app." />
+      <PageHeader
+        title="Films"
+        description="Edit listings and choose how artwork is cropped in the app."
+        actions={
+          can.canEditContent && (
+            <button className="btn" onClick={importTmdb} disabled={importing}>
+              {importing ? 'Loading…' : fromTmdb ? 'Refresh real films' : 'Load real films (TMDB)'}
+            </button>
+          )
+        }
+      />
+      {!selected && <ErrorNote message={msg.error} />}
+      {!selected && <SuccessNote message={msg.ok} />}
+      {fromTmdb && (
+        <p className="muted small tmdb-note">
+          Demo catalogue: film data and images from TMDB, refreshed daily. This product uses the TMDB API but is not endorsed or certified by TMDB.
+        </p>
+      )}
       <ErrorNote message={films.error} />
 
       {selected && form && (
@@ -213,11 +249,19 @@ export default function FilmsPage() {
           <label htmlFor="film-filter">Search films</label>
           <input id="film-filter" type="search" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Title" />
         </div>
-        {films.data && (
-          <span className="muted small">
-            {visible.length} of {films.data.length}
-          </span>
-        )}
+        <div className="row gap-1">
+          {hiddenCount > 0 && (
+            <label className="switch small">
+              <input type="checkbox" checked={showHidden} onChange={(e) => setShowHidden(e.target.checked)} />
+              Show {hiddenCount} hidden
+            </label>
+          )}
+          {films.data && (
+            <span className="muted small">
+              {visible.length} of {films.data.length}
+            </span>
+          )}
+        </div>
       </div>
       {films.loading && !films.data && <Loading />}
       <ul className="film-grid">
@@ -234,7 +278,9 @@ export default function FilmsPage() {
                 />
               </div>
               <div className="film-meta">
-                <div className="film-title">{f.title}</div>
+                <div className="film-title">
+                  {f.title} {f.hidden && <span className="badge">Hidden</span>}
+                </div>
                 <div className="muted small">
                   <span className="cert">{f.certificate}</span> {f.runtimeMinutes} min · {f.status === 'nowShowing' ? 'Now showing' : `From ${formatDate(f.releaseDate)}`}
                 </div>

@@ -2999,6 +2999,9 @@ dialog.sheet form {
     opacity: 1;
   }
 }
+.tmdb-note {
+  margin: calc(-1 * var(--s1)) 0 var(--s2);
+}
 
 /* ---------------- Year ahead (sample AI forecast) ---------------- */
 .ya-note {

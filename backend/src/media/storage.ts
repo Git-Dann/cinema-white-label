@@ -50,6 +50,13 @@ export class RoutedMediaStorage implements MediaStorage {
   constructor(private readonly db: BlobStore, private readonly local: MediaStorage) {}
 
   async read(storageKey: string) {
+    // Demo catalogue artwork (docs/decisions/0004): fetched from TMDB's image CDN on
+    // first request; our media endpoint resizes it and the CDN caches the result.
+    if (storageKey.startsWith('tmdb/')) {
+      const res = await fetch(`https://image.tmdb.org/t/p/${storageKey.slice('tmdb/'.length)}`);
+      if (!res.ok) throw Errors.notFound('Image');
+      return Buffer.from(await res.arrayBuffer());
+    }
     if (storageKey.startsWith('upload/')) {
       const row = await this.db.mediaBlob.findUnique({ where: { storageKey } });
       if (row) return Buffer.from(row.data);
