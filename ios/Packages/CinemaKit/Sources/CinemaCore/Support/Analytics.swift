@@ -28,6 +28,7 @@ public enum AnalyticsEventName: String, Codable, Sendable {
     case voucherApplied = "voucher_applied"
     case checkoutFailed = "checkout_failed"
     case bookingCancelled = "booking_cancelled"
+    case ticketsRefreshFailed = "tickets_refresh_failed"
     case membershipViewed = "membership_viewed"
     case membershipEngaged = "membership_engaged"
 }

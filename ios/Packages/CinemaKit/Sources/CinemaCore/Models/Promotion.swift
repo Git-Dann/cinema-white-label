@@ -30,6 +30,7 @@ public struct Promotion: Codable, Sendable, Hashable, Identifiable {
 
     /// Whether the card should show a button. Unknown or unsafe actions decode to `.none`.
     public var hasButton: Bool { action != .none && !(ctaLabel ?? "").isEmpty }
+    public var isVoucher: Bool { if case .voucher = action { true } else { false } }
 }
 
 extension Promotion.Action: Codable {

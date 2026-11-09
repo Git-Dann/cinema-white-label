@@ -16,6 +16,11 @@ struct TicketsView: View {
             if app.tickets.isOffline {
                 InfoBanner(.info, "You're offline. Showing tickets saved on this device.")
                     .listRowBackground(Color.clear)
+            } else if let problem = app.tickets.refreshProblem {
+                InfoBanner(.warning, "We couldn't update your tickets (\(problem)). Showing tickets saved on this device.", actionTitle: "Try again") {
+                    Task { await app.refreshTickets() }
+                }
+                .listRowBackground(Color.clear)
             }
             if upcoming.isEmpty && past.isEmpty {
                 ContentUnavailableView("No tickets yet", systemImage: "ticket", description: Text("Tickets you book appear here, and stay available without a connection."))
@@ -31,8 +36,8 @@ struct TicketsView: View {
         .scrollContentBackground(.hidden)
         .background(palette.background)
         .navigationTitle("Tickets")
-        .refreshable { await app.tickets.refresh(using: app.service) }
-        .task { await app.tickets.refresh(using: app.service) }
+        .refreshable { await app.refreshTickets() }
+        .task { await app.refreshTickets() }
     }
 }
 

@@ -44,6 +44,7 @@ export const EVENT_SCHEMAS = {
   membership_viewed: {},
   membership_engaged: { action: code },
   theme_load_failed: { reason: z.string().max(120) },
+  tickets_refresh_failed: { reason: z.string().max(120) },
 } as const satisfies Record<string, Record<string, z.ZodTypeAny>>;
 
 export type AnalyticsEventName = keyof typeof EVENT_SCHEMAS;

@@ -80,8 +80,10 @@ struct FoodView: View {
         .background(palette.background)
         .navigationTitle("Food & drink")
         .toolbarTitleDisplayMode(.inlineLarge)
-        .refreshable { await reload(force: true); await app.tickets.refresh(using: app.service) }
+        .refreshable { await reload(force: true); await app.refreshTickets() }
         .task(id: app.selectedVenueID) { await reload() }
+        // Pick up bookings made since launch, so a new ticket can take a pre-order straight away.
+        .task { await app.refreshTickets() }
         .safeAreaInset(edge: .bottom) { basketBar }
         .sheet(isPresented: $showingVenuePicker) { VenuePickerSheet() }
         .sheet(item: $viewing) { product in
