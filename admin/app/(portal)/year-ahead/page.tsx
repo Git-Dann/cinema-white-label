@@ -3,7 +3,9 @@
 import { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/ui';
 import { useSession } from '@/lib/session';
+import { useViewAs } from '@/lib/view-as';
 import { gbp, num, useTween } from '@/components/insights';
+import { dayLabel, forecast, type Kind, hoursNeeded, KIND_COLOUR, monthLabel, ROTA_HOURS, SLATE, START, STOCK, WEEKS, weekDate } from '@/lib/slate';
 
 /*
  * Year ahead: an AI-style plan built from the release slate. Every figure and
@@ -11,52 +13,9 @@ import { gbp, num, useTween } from '@/components/insights';
  * tentpoles), labelled on the page. Nothing reads bookings or the API.
  */
 
-type Kind = 'Superhero' | 'Family animation' | 'Action franchise' | 'Horror' | 'Awards drama' | 'Romcom';
-interface Release { title: string; studio: string; kind: Kind; week: number; pull: number }
-
-const START = new Date('2026-11-09T00:00:00Z');
-const WEEKS = 52;
-const weekDate = (w: number) => new Date(START.getTime() + w * 7 * 86400_000);
-const monthLabel = (d: Date) => d.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' });
-const dayLabel = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
-
-const KIND_COLOUR: Record<Kind, string> = {
-  Superhero: '#3987e5',
-  'Family animation': '#d95926',
-  'Action franchise': '#199e70',
-  Horror: '#c98500',
-  'Awards drama': '#9085e9',
-  Romcom: '#d55181',
-};
-
-const SLATE: Release[] = [
-  { title: 'Starfall: Legacy', studio: 'Major studio A', kind: 'Superhero', week: 4, pull: 1.0 },
-  { title: 'The Snow Lantern', studio: 'Major studio B', kind: 'Family animation', week: 6, pull: 0.8 },
-  { title: 'Ironclad Run', studio: 'Major studio C', kind: 'Action franchise', week: 11, pull: 0.55 },
-  { title: 'The Quiet Orchard', studio: 'Independent', kind: 'Awards drama', week: 14, pull: 0.3 },
-  { title: 'Second Chances', studio: 'Major studio C', kind: 'Romcom', week: 14, pull: 0.35 },
-  { title: 'Night Ward', studio: 'Genre label', kind: 'Horror', week: 20, pull: 0.4 },
-  { title: 'Vanguard Assemble', studio: 'Major studio A', kind: 'Superhero', week: 25, pull: 1.15 },
-  { title: 'Tidepool Friends 3', studio: 'Major studio B', kind: 'Family animation', week: 33, pull: 0.95 },
-  { title: 'Overdrive 9', studio: 'Major studio C', kind: 'Action franchise', week: 36, pull: 0.7 },
-  { title: 'The Hollow Lane', studio: 'Genre label', kind: 'Horror', week: 50, pull: 0.5 },
-];
-
-/** Weekly admissions forecast: seasonal base plus each release's opening and tail. */
-function forecast() {
-  return Array.from({ length: WEEKS }, (_, w) => {
-    const d = weekDate(w);
-    const m = d.getUTCMonth();
-    const season = [0.95, 0.8, 0.85, 1.0, 0.9, 0.95, 1.2, 1.25, 0.85, 0.9, 1.0, 1.15][m];
-    const holiday = (m === 11 && d.getUTCDate() > 18) || (m === 7) ? 0.15 : 0;
-    const lift = SLATE.reduce((a, r) => (w >= r.week ? a + r.pull * Math.exp(-(w - r.week) / (r.kind === 'Family animation' ? 3.5 : 2.2)) : a), 0);
-    const base = 9200 * (season + holiday);
-    return { week: w, date: d, admissions: Math.round(base * (1 + lift * 0.9)), lastYear: Math.round(base * (1 + 0.28 * Math.sin(w / 3.7)) * 0.93) };
-  });
-}
-
 export default function YearAheadPage() {
   const { tenantName } = useSession();
+  const { view } = useViewAs();
   const weeks = useMemo(forecast, []);
   const total = weeks.reduce((a, w) => a + w.admissions, 0);
   const lastYear = weeks.reduce((a, w) => a + w.lastYear, 0);
@@ -64,6 +23,15 @@ export default function YearAheadPage() {
   const revenue = total * 1180;
   const vTotal = useTween(total);
   const vRev = useTween(revenue);
+
+  if (view !== 'head-office') {
+    return (
+      <>
+        <PageHeader title="Year ahead" />
+        <p className="muted">The year-ahead plan is for head office. Venue managers see their own cinema in Next 6 weeks.</p>
+      </>
+    );
+  }
 
   return (
     <>
@@ -211,7 +179,7 @@ function DemandChart({ weeks }: { weeks: ReturnType<typeof forecast> }) {
 
 function Staffing({ weeks }: { weeks: ReturnType<typeof forecast> }) {
   // Monthly average: hours needed vs today's standard rota (420 h/week per cinema).
-  const ROTA = 420;
+  const ROTA = ROTA_HOURS;
   const byMonth = new Map<string, { label: string; total: number; n: number }>();
   for (const w of weeks) {
     const k = `${w.date.getUTCFullYear()}-${w.date.getUTCMonth()}`;
@@ -220,7 +188,7 @@ function Staffing({ weeks }: { weeks: ReturnType<typeof forecast> }) {
     e.n++;
     byMonth.set(k, e);
   }
-  const months = [...byMonth.values()].slice(0, 12).map((m) => ({ label: m.label, hours: Math.round(((m.total / m.n) / 4) * 0.045) }));
+  const months = [...byMonth.values()].slice(0, 12).map((m) => ({ label: m.label, hours: hoursNeeded(m.total / m.n) }));
   const max = Math.max(...months.map((m) => m.hours), ROTA) * 1.1;
   const busiest = months.filter((m) => m.hours > ROTA * 1.15);
   return (
@@ -248,13 +216,7 @@ function Staffing({ weeks }: { weeks: ReturnType<typeof forecast> }) {
 }
 
 function Stock() {
-  const rows = [
-    { item: 'Popcorn kernels', when: 'Order by 20 Nov', why: 'Starfall: Legacy and The Snow Lantern open within 2 weeks', change: '+45%' },
-    { item: 'Collectable buckets (Starfall)', when: 'Order by 13 Nov', why: 'Limited run, 8 week lead time from the supplier', change: '3,000 units' },
-    { item: 'Kids combos and juice', when: 'Order by 4 Dec', why: 'Family animation over the school holidays', change: '+60%' },
-    { item: 'Cups and lids (large)', when: 'Order by 27 Nov', why: 'Large size share rises on tentpole weekends', change: '+35%' },
-    { item: 'Hot food', when: 'Hold steady', why: 'No uplift forecast until summer', change: '0%' },
-  ];
+  const rows = STOCK;
   return (
     <ul className="ya-stock">
       {rows.map((r, i) => (

@@ -28,6 +28,7 @@ cd ios && xcodegen generate && open Cinema.xcodeproj   # Northlight / Kestrel sc
 - Mutating customer endpoints that create holds, bookings or payments require an `Idempotency-Key`.
 - Published auditorium layouts and config releases are immutable; changes create new versions.
 - Brand colours only reach the UI via resolved semantic tokens. No literal colours in views.
+- No coloured side-stripe accents (border-left or inset stripes) on rounded cards, in any UI. Show state with fills, chips or dots instead.
 - No fake integrations: development adapters must be labelled (simulated payment, demo Wallet state).
 - Keep business logic in `CinemaCore` (Linux-testable). SwiftUI targets stay thin; they cannot be compiled on Linux.
 - Do not add dependencies without a specific reason recorded in `docs/decisions`.

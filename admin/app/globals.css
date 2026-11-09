@@ -3214,3 +3214,169 @@ dialog.sheet form {
     opacity: 1;
   }
 }
+
+/* ---------------- Role views: Next 6 weeks, My week ---------------- */
+.view-switch label {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+}
+.nw-summary {
+  display: grid;
+  grid-template-columns: repeat(3, auto) 1fr;
+  gap: var(--s4);
+  align-items: end;
+  margin-bottom: var(--s4);
+}
+.nw-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--s1);
+}
+.nw-weeks {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--s4);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--s3);
+}
+.nw-week h2 {
+  margin: 0;
+  white-space: nowrap;
+}
+.nw-week {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  animation: ins-rise 420ms ease both;
+}
+.nw-week header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--s2);
+}
+.nw-meter {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+.nw-meter span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: #3987e5;
+}
+.nw-week.busy .nw-meter span {
+  background: #c98500;
+}
+.nw-meter i {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: currentColor;
+  opacity: 0.6;
+}
+.nw-hours,
+.nw-action {
+  margin: 0;
+}
+.nw-action.hot {
+  font-weight: 600;
+}
+.nw-opening {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--s2) var(--s3);
+  border-radius: 10px;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+}
+.nw-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: var(--s1);
+  vertical-align: 1px;
+}
+.nw-orders {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.nw-orders li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s2) 0;
+  border-top: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+}
+.nw-orders li.done strong {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+.nw-due {
+  white-space: nowrap;
+}
+.mw {
+  display: grid;
+  gap: var(--s3);
+  max-width: 460px;
+}
+.mw-card h2 {
+  margin-top: 0;
+}
+.mw-shifts,
+.mw-brief {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--s2);
+}
+.mw-shifts li {
+  padding: var(--s2) 0;
+  border-top: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+}
+.mw-when {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+.mw-role {
+  opacity: 0.75;
+}
+.mw-note {
+  margin-top: var(--s1);
+  padding: var(--s1) var(--s2);
+  border-radius: 8px;
+  background: color-mix(in srgb, #c98500 16%, transparent);
+  font-size: 0.875rem;
+}
+.mw-brief li {
+  padding: var(--s1) 0 var(--s1) var(--s3);
+  position: relative;
+}
+.mw-brief li::before {
+  content: '•';
+  position: absolute;
+  left: var(--s1);
+}
+@media (max-width: 720px) {
+  .nw-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+  .nw-copy {
+    grid-column: 1 / -1;
+    align-items: stretch;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nw-week {
+    animation: none;
+  }
+}
