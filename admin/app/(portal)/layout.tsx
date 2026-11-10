@@ -51,8 +51,8 @@ function Shell({ children }: { children: React.ReactNode }) {
             <span />
           </div>
           <div>
-            <div className="sidebar-title">Operator Portal</div>
-            <div className="sidebar-sub">White-label cinema</div>
+            <div className="sidebar-title">Seatfold</div>
+            <div className="sidebar-sub">Operator portal</div>
           </div>
         </div>
 

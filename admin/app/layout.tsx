@@ -7,7 +7,7 @@ const geist = Geist({ subsets: ['latin'], variable: '--font-geist', display: 'sw
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: { default: 'Operator Portal', template: '%s · Operator Portal' },
+  title: { default: 'Seatfold', template: '%s · Seatfold' },
   description: 'Branding, releases and content management for cinema operators.',
 };
 

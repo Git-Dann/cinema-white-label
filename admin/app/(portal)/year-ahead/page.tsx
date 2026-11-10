@@ -106,7 +106,7 @@ export default function YearAheadPage() {
 
 function DemandChart({ weeks }: { weeks: ReturnType<typeof forecast> }) {
   const [hover, setHover] = useState<number | null>(null);
-  const W = 1000, H = 300, L = 52, R = 12, T = 40, B = 28;
+  const W = 1000, H = 310, L = 52, R = 12, T = 56, B = 28;
   const max = Math.max(...weeks.map((w) => Math.max(w.admissions, w.lastYear))) * 1.08;
   const top = Math.ceil(max / 5000) * 5000;
   const x = (i: number) => L + (i / (WEEKS - 1)) * (W - L - R);
@@ -116,6 +116,20 @@ function DemandChart({ weeks }: { weeks: ReturnType<typeof forecast> }) {
   const ticks = Array.from({ length: top / 5000 + 1 }, (_, i) => i * 5000);
   const months = weeks.filter((w, i) => i === 0 || w.date.getUTCMonth() !== weeks[i - 1].date.getUTCMonth());
   const hw = hover !== null ? weeks[hover] : null;
+  // Release labels go in the first of three rows where they don't touch the previous label; near the
+  // right edge they hang to the left of their marker.
+  const labels = (() => {
+    const ends = [-Infinity, -Infinity, -Infinity];
+    return SLATE.map((r) => {
+      const w = r.title.length * 6.4;
+      const flip = x(r.week) + 4 + w > W - R;
+      const start = flip ? x(r.week) - 4 - w : x(r.week) + 4;
+      let row = ends.findIndex((e) => start > e + 10);
+      if (row < 0) row = ends.indexOf(Math.min(...ends));
+      ends[row] = start + w;
+      return { flip, y: T - 10 - row * 14 };
+    });
+  })();
   const releasesThatWeek = hover !== null ? SLATE.filter((r) => r.week === hover) : [];
 
   function move(e: React.PointerEvent<SVGSVGElement>) {
@@ -147,9 +161,9 @@ function DemandChart({ weeks }: { weeks: ReturnType<typeof forecast> }) {
         <path d={path('admissions')} fill="none" stroke="var(--ai)" strokeWidth="2" strokeLinejoin="round" pathLength={1} className="ins-line" />
         {SLATE.map((r, i) => (
           <g key={r.title} className="ya-release" style={{ animationDelay: `${400 + i * 70}ms` }}>
-            <line x1={x(r.week)} x2={x(r.week)} y1={y(weeks[r.week].admissions)} y2={T - 6 + (i % 2) * 14} stroke={KIND_COLOUR[r.kind]} strokeWidth="1" strokeDasharray="2 3" />
+            <line x1={x(r.week)} x2={x(r.week)} y1={y(weeks[r.week].admissions)} y2={labels[i].y + 4} stroke={KIND_COLOUR[r.kind]} strokeWidth="1" strokeDasharray="2 3" />
             <circle cx={x(r.week)} cy={y(weeks[r.week].admissions)} r={4 + r.pull * 3} fill={KIND_COLOUR[r.kind]} stroke="var(--surface)" strokeWidth="2" />
-            <text x={x(r.week) + 4} y={T - 10 + (i % 2) * 14} className="ya-release-label">{r.title}</text>
+            <text x={labels[i].flip ? x(r.week) - 4 : x(r.week) + 4} y={labels[i].y} textAnchor={labels[i].flip ? 'end' : 'start'} className="ya-release-label">{r.title}</text>
           </g>
         ))}
         {hw && hover !== null && <line x1={x(hover)} x2={x(hover)} y1={T} y2={y(0)} className="ins-cross" />}
