@@ -39,7 +39,7 @@ export default function LoginPage() {
         <div className="brand-mark" aria-hidden="true">
           <span />
         </div>
-        <h1 id="login-title" className="h2">Operator Portal</h1>
+        <h1 id="login-title" className="h2">Seatfold operator portal</h1>
         <p className="muted">Sign in to manage your cinema app’s branding, releases and content.</p>
         {error && (
           <p className="alert alert-error" role="alert">
