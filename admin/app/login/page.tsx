@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api, errorMessage, getToken, LoginUser, setSession } from '@/lib/api';
+import { api, errorMessage, getToken, LoginUser, rememberedEmail, setSession } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -10,9 +10,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [remember, setRemember] = useState(false);
 
   useEffect(() => {
     if (getToken()) router.replace('/');
+    const last = rememberedEmail();
+    if (last) {
+      setEmail(last);
+      setRemember(true);
+    }
   }, [router]);
 
   async function submit(e: FormEvent) {
@@ -20,12 +26,12 @@ export default function LoginPage() {
     setBusy(true);
     setError(null);
     try {
-      const res = await api<{ token: string; user: LoginUser }>('/v1/admin/auth/login', {
+      const res = await api<{ token: string; expiresIn: number; user: LoginUser }>('/v1/admin/auth/login', {
         method: 'POST',
-        body: { email, password },
+        body: { email, password, remember },
         auth: false,
       });
-      setSession(res.token, res.user);
+      setSession(res.token, res.user, remember);
       router.replace('/');
     } catch (err) {
       setError(errorMessage(err));
@@ -54,6 +60,12 @@ export default function LoginPage() {
           <label htmlFor="password">Password</label>
           <input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
+        <label className="check login-remember">
+          <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+          <span>
+            Remember me for 30 days <span className="muted small">on this device</span>
+          </span>
+        </label>
         <button className="btn btn-primary btn-block" type="submit" disabled={busy}>
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
