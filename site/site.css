@@ -446,3 +446,33 @@ main > section.section.section:is(.bg-band, .bg-dots):not(.section--hero) { disp
   .faq--2 > .faq__item:nth-child(2) { padding-top: 0; }
 }
 @media (min-width: 1024px) { #questions > .wrap { height: 100%; display: grid; align-content: center; } }
+
+/* ---------- who: chains and independents ---------- */
+.who__card { padding: var(--s-6); gap: var(--s-3); }
+.who__tag { color: var(--accent); }
+.who__list { list-style: none; padding: 0; margin: var(--s-2) 0 0; display: grid; gap: var(--s-3); }
+.who__list li { position: relative; padding-left: 22px; color: var(--ink); }
+.who__list li::before { content: ""; position: absolute; left: 2px; top: .62em; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+
+/* ---------- plan: the forecast through three roles (one screen: the shot fills what the head leaves) ---------- */
+.plan__head { align-items: end; }
+.plan__intro p { color: var(--ink); }
+.plan__panes { margin-top: var(--s-7); position: relative; }
+.plan__pane { height: 100%; align-items: start; }
+.plan__copy h3 { font-size: var(--t-card); font-weight: 500; }
+.plan__copy p { color: var(--ink); }
+.plan__shot { height: 100%; min-height: 0; overflow: hidden; border-radius: var(--r-lg); border: 1px solid rgb(255 255 255 / .12);
+  -webkit-mask-image: linear-gradient(#000 78%, transparent); mask-image: linear-gradient(#000 78%, transparent); }
+.plan__shot img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 0 0; }
+.plan__note { margin-top: var(--s-3); }
+@media (max-width: 1023px) {
+  .plan__head > *, .plan__copy, .plan__shot { grid-column: 1 / -1; }
+  .plan__intro { margin-top: var(--s-4); }
+  .plan__pane { height: auto; }
+  .plan__shot { height: auto; aspect-ratio: 1280 / 700; }
+  .plan__copy { margin-bottom: var(--s-4); }
+}
+@media (max-width: 639px) { #who, #plan, #platform { --hm: 2; } }
+
+/* ---------- platform ---------- */
+.platform .card { padding: var(--s-6); }
