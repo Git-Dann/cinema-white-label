@@ -40,25 +40,62 @@ export interface LoginUser {
   tenantSlug: string | null;
 }
 
-export function getToken(): string | null {
+/*
+ * "Remember me" keeps the session in localStorage (it survives closing the browser, and the API
+ * issues a 30-day token). Without it the session lives in sessionStorage and ends with the tab
+ * or window, on top of the API's 8-hour token.
+ */
+const REMEMBER_EMAIL_KEY = 'cinema.admin.rememberedEmail';
+
+function stores(): Storage[] {
+  const out: Storage[] = [];
   try {
-    return localStorage.getItem(TOKEN_KEY);
+    out.push(sessionStorage);
+  } catch {
+    /* unavailable */
+  }
+  try {
+    out.push(localStorage);
+  } catch {
+    /* unavailable */
+  }
+  return out;
+}
+
+export function getToken(): string | null {
+  for (const s of stores()) {
+    const t = s.getItem(TOKEN_KEY);
+    if (t) return t;
+  }
+  return null;
+}
+
+export function setSession(token: string, user: LoginUser, remember = false) {
+  clearSession();
+  const store = remember ? localStorage : sessionStorage;
+  store.setItem(TOKEN_KEY, token);
+  store.setItem(USER_KEY, JSON.stringify(user));
+  try {
+    if (remember) localStorage.setItem(REMEMBER_EMAIL_KEY, user.email);
+    else localStorage.removeItem(REMEMBER_EMAIL_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+/** The email of the last person who chose "Remember me" on this device, to prefill the sign-in form. */
+export function rememberedEmail(): string | null {
+  try {
+    return localStorage.getItem(REMEMBER_EMAIL_KEY);
   } catch {
     return null;
   }
 }
 
-export function setSession(token: string, user: LoginUser) {
-  localStorage.setItem(TOKEN_KEY, token);
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
-}
-
 export function clearSession() {
-  try {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-  } catch {
-    /* storage unavailable */
+  for (const s of stores()) {
+    s.removeItem(TOKEN_KEY);
+    s.removeItem(USER_KEY);
   }
 }
 

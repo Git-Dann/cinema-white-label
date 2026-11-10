@@ -61,15 +61,16 @@ Deploy, open the portal and sign in with `admin@northlight.example` / `operator-
 
 ## Builds only for what changed
 
-The three Vercel projects (marketing site, API, portal) share one account, and the free plan allows 100 deployments a day. Each project's `vercel.json` has an `ignoreCommand` that skips the build when nothing it depends on changed since that project's last deployment (`VERCEL_GIT_PREVIOUS_SHA`, or the previous commit on a first deploy):
+The three Vercel projects (marketing site, API, portal) share one account, and the free plan allows 100 deployments a day. The site and portal `vercel.json` files have an `ignoreCommand` that skips the build when nothing they depend on changed since that project's last deployment (`VERCEL_GIT_PREVIOUS_SHA`, or the previous commit on a first deploy):
 
 | Project | Builds when these change |
 |---|---|
 | `site` | `site/` |
-| `backend` | `backend/`, `packages/`, `shared/`, `pnpm-lock.yaml` |
 | `admin` | `admin/`, `packages/`, `pnpm-lock.yaml` |
 
-If the comparison can't run (an unknown commit), the build goes ahead. To force a build, use Redeploy in the Vercel dashboard.
+If the comparison can't run (an unknown commit), the build goes ahead.
+
+The API (`backend`) has no `ignoreCommand`: it builds on every push to `main`. An ignore rule also cancels a dashboard **Redeploy** when the code has not changed, and the API is redeployed by hand to pick up new environment variables (`ADMIN_ORIGINS`, `TMDB_API_KEY`), so it must always build.
 
 The `ci-screenshots` branch (iOS test screenshots, pushed by `.github/workflows/ios.yml`) never deploys. Vercel reads config from the pushed commit, so the workflow writes a `vercel.json` with `git.deploymentEnabled: false` into each project folder on that branch; the project configs on `main` also list it as disabled.
 

@@ -22,7 +22,10 @@ import { AdminLayoutsController } from './admin-layouts.controller';
 import { ensureScreeningHorizon } from '../catalogue/schedule';
 import { httpTmdbClient, importTmdbDemoCatalogue, TMDB_NOTICE, tmdbDemoEnabled } from '../catalogue/tmdb-demo';
 
-const loginBody = z.object({ email: z.string().email(), password: z.string().min(1) });
+const loginBody = z.object({ email: z.string().email(), password: z.string().min(1), remember: z.boolean().optional() });
+/** A normal sign-in lasts a working day; "Remember me" keeps the portal signed in on that device for 30 days. */
+export const ADMIN_SESSION_SECONDS = 60 * 60 * 8;
+export const ADMIN_REMEMBER_SECONDS = 60 * 60 * 24 * 30;
 
 @ApiTags('Admin')
 @Controller('v1/admin')
@@ -34,8 +37,9 @@ export class AdminAuthController {
   async login(@Body(new ZodPipe(loginBody)) body: z.infer<typeof loginBody>) {
     const user = await this.prisma.adminUser.findUnique({ where: { email: body.email.toLowerCase() }, include: { tenant: true } });
     if (!user || !verifyPassword(body.password, user.passwordHash)) throw Errors.unauthorised();
-    const token = signToken({ typ: 'admin', sub: user.id, role: user.role, tid: user.tenantId }, 60 * 60 * 8);
-    return { token, user: { id: user.id, email: user.email, name: user.name, role: user.role, tenantSlug: user.tenant?.slug ?? null } };
+    const ttl = body.remember ? ADMIN_REMEMBER_SECONDS : ADMIN_SESSION_SECONDS;
+    const token = signToken({ typ: 'admin', sub: user.id, role: user.role, tid: user.tenantId }, ttl);
+    return { token, expiresIn: ttl, user: { id: user.id, email: user.email, name: user.name, role: user.role, tenantSlug: user.tenant?.slug ?? null } };
   }
 
   @Get('me')
