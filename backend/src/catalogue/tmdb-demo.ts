@@ -84,8 +84,10 @@ export async function importTmdbDemoCatalogue(db: Db, tenantId: string, client: 
   let created = 0;
   let updated = 0;
   const kept: string[] = [];
-  for (const summary of picks) {
-    const m = await client.get(`/movie/${summary.id}`, { language: 'en-GB', append_to_response: 'release_dates,credits' });
+  // Fetch every film's details at once; one at a time was most of the import's time.
+  const details = await Promise.all(picks.map((p) => client.get(`/movie/${p.id}`, { language: 'en-GB', append_to_response: 'release_dates,credits' })));
+  for (const [pi, summary] of picks.entries()) {
+    const m = details[pi];
     const f = TmdbEnrichmentProvider.map(m).fields;
     const releaseDate = f.releaseDate || summary.release_date;
     if (!f.title || !releaseDate) continue;

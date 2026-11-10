@@ -5,7 +5,7 @@ import { zonedDate, zonedToUtc } from '../common/time';
 /** Daily start times used for generated demo screenings (venue local time). */
 export const SHOW_TIMES = ['12:30', '15:20', '18:10', '20:50'];
 
-type Db = Pick<PrismaClient, 'film' | 'auditorium' | 'screening' | 'screeningSeat' | 'booking'>;
+type Db = Pick<PrismaClient, 'film' | 'auditorium' | 'screening' | 'screeningSeat' | 'booking' | '$executeRaw'>;
 
 function rng(seed: number) {
   let s = seed >>> 0;
@@ -43,13 +43,16 @@ export async function ensureScreeningHorizon(db: Db, tenantId: string, now: Date
   const booked = new Set(
     (await db.booking.findMany({ where: { screeningId: { in: stale.map((s) => s.id) } }, select: { screeningId: true } })).map((b) => b.screeningId),
   );
-  let reassigned = 0;
-  for (const [i, s] of stale.entries()) {
-    if (booked.has(s.id)) continue;
-    const film = films[i % films.length];
-    await db.screening.update({ where: { id: s.id }, data: { filmId: film.id, endsAt: new Date(s.startsAt.getTime() + (film.runtimeMinutes + 20) * 60000) } });
-    reassigned++;
+  // One UPDATE per 500 rows, not one per screening: the first switch to a new catalogue can
+  // move a few hundred screenings, and row-by-row that outran the API's 60-second limit.
+  const moves = stale
+    .map((s, i) => ({ s, film: films[i % films.length] }))
+    .filter(({ s }) => !booked.has(s.id))
+    .map(({ s, film }) => Prisma.sql`(${s.id}, ${film.id}, ${new Date(s.startsAt.getTime() + (film.runtimeMinutes + 20) * 60000)}::timestamp(3))`);
+  for (let i = 0; i < moves.length; i += 500) {
+    await db.$executeRaw`UPDATE "Screening" AS s SET "filmId" = v.film, "endsAt" = v.ends FROM (VALUES ${Prisma.join(moves.slice(i, i + 500))}) AS v(id, film, ends) WHERE s.id = v.id`;
   }
+  const reassigned = moves.length;
 
   // 2. Fill empty slots.
   const auditoriums = await db.auditorium.findMany({
