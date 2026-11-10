@@ -57,5 +57,5 @@ Vercel: import the repo and set **Root Directory** to `site`, framework preset *
 ## Placeholders to replace
 
 - **Name:** "Seatfold" is a coined placeholder (searches in `names.json`). Domain not checked.
-- **Main action:** "Book a demo" opens `mailto:demo@seatfold.example`. Swap in a real address or a booking link.
+- **Main action:** "Book a demo" opens `mailto:hello@seatfold.uk` (Cloudflare Email Routing forwards it).
 - **Proof:** no customer logos, quotes or figures, because none exist yet. Add them once real operators sign up.
