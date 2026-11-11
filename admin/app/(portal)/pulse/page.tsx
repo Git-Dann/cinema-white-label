@@ -52,14 +52,16 @@ function Adjustments({ rows }: { rows: Row[] }) {
 
 /** Share of a show's final sales sold by each point before it starts, one line per time of day. */
 function BookingCurve({ curves }: { curves: PulseModelView['curves'] }) {
-  const W = 640;
-  const H = 240;
-  const pad = { l: 40, r: 16, t: 12, b: 30 };
+  const W = 1000;
+  const H = 280;
+  const pad = { l: 44, r: 16, t: 12, b: 30 };
   const hours = curves.hoursBefore;
   // Hours on a square-root scale so the last day before the show gets room.
   const x = (h: number) => pad.l + (1 - Math.sqrt(h) / Math.sqrt(hours[0])) * (W - pad.l - pad.r);
   const y = (v: number) => pad.t + (1 - v) * (H - pad.t - pad.b);
-  const tones = ['var(--accent)', 'var(--success)', 'var(--warning)', 'var(--text-2)', 'var(--danger)'];
+  // Distinct by colour and by dash, so the lines read apart even where they run close.
+  const tones = ['var(--accent)', 'var(--warning)', 'var(--danger)', 'var(--text-2)', 'var(--accent)'];
+  const dashes = ['', '', '', '6 5', '2 4'];
   const ticks = [168, 72, 24, 6, 1, 0];
   const label = (h: number) => (h === 0 ? 'Start' : h >= 24 ? `${h / 24}d` : `${h}h`);
   return (
@@ -79,13 +81,15 @@ function BookingCurve({ curves }: { curves: PulseModelView['curves'] }) {
           </text>
         ))}
         {curves.bySlot.map((c, i) => (
-          <polyline key={c.slot} fill="none" stroke={tones[i % tones.length]} strokeWidth={2.2} strokeLinejoin="round" points={c.values.map((v, j) => `${x(hours[j])},${y(v)}`).join(' ')} />
+          <polyline key={c.slot} fill="none" stroke={tones[i % tones.length]} strokeDasharray={dashes[i % dashes.length] || undefined} strokeWidth={2.2} strokeLinejoin="round" points={c.values.map((v, j) => `${x(hours[j])},${y(v)}`).join(' ')} />
         ))}
       </svg>
       <figcaption className="pulse-legend small">
         {curves.bySlot.map((c, i) => (
           <span key={c.slot}>
-            <i style={{ background: tones[i % tones.length] }} aria-hidden="true" />
+            <svg width="18" height="6" aria-hidden="true">
+              <line x1="0" x2="18" y1="3" y2="3" stroke={tones[i % tones.length]} strokeWidth="2.5" strokeDasharray={dashes[i % dashes.length] || undefined} />
+            </svg>
             {c.label}
           </span>
         ))}
@@ -158,7 +162,7 @@ export default function PulsePage() {
                 const rows = [...m.multipliers[g.key]].sort((a, b) => Math.abs(Math.log(b.multiplier)) - Math.abs(Math.log(a.multiplier))).slice(0, g.limit);
                 if (g.key === 'dayOfWeek' || g.key === 'filmWeekBand' || g.key === 'slot') rows.sort((a, b) => a.key.localeCompare(b.key, 'en', { numeric: true }));
                 return (
-                  <section key={g.key} className="card ins-card" aria-label={g.title}>
+                  <section key={g.key} className={`card ins-card${g.key === 'film' ? ' pulse-learned-wide' : ''}`} aria-label={g.title}>
                     <header className="ins-head">
                       <h3 className="h3">{g.title}</h3>
                     </header>

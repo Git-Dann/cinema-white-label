@@ -4895,3 +4895,13 @@ dialog.sheet.sheet-narrow {
   height: 3px;
   border-radius: 2px;
 }
+.pulse-learned-wide {
+  grid-column: 1 / -1;
+}
+.pulse-learned-wide .pulse-adjust {
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  column-gap: var(--s4);
+}
+.pulse-axis {
+  font-size: 13px;
+}
