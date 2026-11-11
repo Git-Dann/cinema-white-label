@@ -17,6 +17,9 @@ export const VIEW_LABELS: Record<ViewAs, string> = {
   floor: 'Floor staff',
 };
 
+/** Where each view starts. */
+export const HOME: Record<ViewAs, string> = { 'head-office': '/', venue: '/today', floor: '/my-week' };
+
 /** Views a real role may use: nobody previews a view above their own. */
 export function viewsFor(role: string): ViewAs[] {
   if (role === 'VENUE_MANAGER') return ['venue', 'floor'];

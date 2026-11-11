@@ -18,6 +18,8 @@ import { filmDto } from '../catalogue/film-dto';
 import { Clock } from '../common/clock';
 import { TenantsModule } from '../tenants/tenants.module';
 import { AdminCommerceController } from './admin-commerce.controller';
+import { AdminOpsController } from './admin-ops.controller';
+import { ADVICE_LEVELS, readDetails } from '../catalogue/film-details';
 import { AdminLayoutsController } from './admin-layouts.controller';
 import { ensureScreeningHorizon } from '../catalogue/schedule';
 import { httpTmdbClient, importTmdbDemoCatalogue, TMDB_NOTICE, tmdbDemoEnabled } from '../catalogue/tmdb-demo';
@@ -229,6 +231,9 @@ const filmBody = z.object({
   director: z.string().nullable().default(null),
   cast: z.array(z.string()).default([]),
 });
+const adviceBody = z.object({
+  items: z.array(z.object({ category: z.string().trim().min(1).max(40), level: z.enum(ADVICE_LEVELS), text: z.string().trim().max(160).default('') })).max(12),
+});
 const focalBody = z.object({ focalX: z.number().min(0).max(1), focalY: z.number().min(0).max(1), isPreferred: z.boolean().optional() });
 
 @ApiTags('Admin')
@@ -330,6 +335,21 @@ export class AdminContentController {
     return filmDto(f, this.clock.now());
   }
 
+  /**
+   * Parents Guide content advice, entered by the operator (for example from the film's BBFC
+   * page). Operator advice is kept when the film catalogue refreshes from a provider.
+   */
+  @Put('films/:id/content-advice')
+  @Roles('OPERATOR_ADMIN', 'CONTENT_EDITOR')
+  async updateAdvice(@CurrentTenant() t: Tenant, @CurrentAdmin() a: AdminClaims, @Param('id') id: string, @Body(new ZodPipe(adviceBody)) b: z.infer<typeof adviceBody>) {
+    const existing = await this.prisma.film.findFirst({ where: { id, tenantId: t.id } });
+    if (!existing) throw Errors.notFound('Film');
+    const details = { ...readDetails(existing.details), advice: b.items.map((i) => ({ ...i, text: i.text || `${i.level.toLowerCase()} ${i.category.toLowerCase()}` })), adviceSource: 'operator' as const };
+    const f = await this.prisma.film.update({ where: { id }, data: { details: details as unknown as Prisma.InputJsonValue }, include: { assets: true } });
+    await this.audit.record({ tenantId: t.id, actorId: a.sub, action: 'film.content_advice', entityType: 'Film', entityId: id, data: b });
+    return filmDto(f, this.clock.now());
+  }
+
   @Put('assets/:id')
   @Roles('OPERATOR_ADMIN', 'CONTENT_EDITOR')
   async updateAsset(@CurrentTenant() t: Tenant, @CurrentAdmin() a: AdminClaims, @Param('id') id: string, @Body(new ZodPipe(focalBody)) b: z.infer<typeof focalBody>) {
@@ -371,6 +391,6 @@ export class AdminContentController {
 
 @Module({
   imports: [TenantsModule],
-  controllers: [AdminAuthController, AdminBrandingController, AdminContentController, AdminCommerceController, AdminLayoutsController],
+  controllers: [AdminAuthController, AdminBrandingController, AdminContentController, AdminCommerceController, AdminLayoutsController, AdminOpsController],
 })
 export class AdminModule {}

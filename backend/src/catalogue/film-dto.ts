@@ -76,7 +76,14 @@ export function filmDto(film: Film & { assets: MediaAsset[]; trailers?: Trailer[
     crew: details.crew,
     about: details.about,
     /** Parents Guide: the certificate first, then BBFC content advice by category. */
-    contentAdvice: { certificate: film.certificate, meaning: certificateMeaning(film.certificate), items: details.advice },
+    contentAdvice: {
+      certificate: film.certificate,
+      meaning: certificateMeaning(film.certificate),
+      items: details.advice,
+      source: details.adviceSource ?? 'provider',
+      /** BBFC's search for the title: the full ratings info lives there. */
+      moreInfoUrl: `https://www.bbfc.co.uk/search?q=${encodeURIComponent(film.title)}`,
+    },
     trailers: (film.trailers ?? []).map((t) => ({ id: t.id, title: t.title, kind: t.kind, url: t.url, durationSeconds: t.durationSeconds })),
     attributions: [...new Set([poster?.attribution, backdrop?.attribution, logo?.attribution].filter((x): x is string => !!x))],
   };

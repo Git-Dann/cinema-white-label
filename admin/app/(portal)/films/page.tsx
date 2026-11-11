@@ -7,6 +7,7 @@ import { useSession, useTenantData } from '@/lib/session';
 import { ErrorNote, Loading, PageHeader, SuccessNote } from '@/components/ui';
 import { FocalEditor } from '@/components/FocalEditor';
 import { SafeImage } from '@/components/SafeImage';
+import { ContentAdviceEditor } from '@/components/ContentAdviceEditor';
 
 const CERTS = ['U', 'PG', '12A', '12', '15', '18', 'TBC'] as const;
 
@@ -241,6 +242,7 @@ export default function FilmsPage() {
               )}
             </div>
           </div>
+          <ContentAdviceEditor tenant={tenant} film={selected} canEdit={can.canEditContent} onSaved={(f) => films.setData((list) => (list ?? []).map((x) => (x.id === f.id ? { ...x, ...f } : x)))} />
         </section>
       )}
 

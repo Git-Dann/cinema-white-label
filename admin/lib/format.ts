@@ -31,6 +31,7 @@ const ROLE_LABELS: Record<string, string> = {
   OPERATOR_ADMIN: 'Operator admin',
   CONTENT_EDITOR: 'Content editor',
   VENUE_MANAGER: 'Venue manager',
+  REPORTING: 'Reporting',
 };
 export const roleLabel = (r: string) => ROLE_LABELS[r] ?? r;
 
@@ -98,5 +99,7 @@ export function permissions(role: string) {
     canEditConcessions: operator || role === 'VENUE_MANAGER',
     canEditLayouts: operator || role === 'VENUE_MANAGER',
     canPublishLayouts: operator,
+    /** Adding people and changing roles: operator admins only (server enforces the same). */
+    canManageTeam: operator,
   };
 }

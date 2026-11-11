@@ -194,62 +194,56 @@ export default function LayoutsPage() {
 
       {list.loading && !list.data && <Loading />}
       {shownVenues.map((v) => (
-        <section className="card" key={v.venue.id} aria-labelledby={`venue-${v.venue.id}`}>
-          <h2 id={`venue-${v.venue.id}`} className="h3">
-            {v.venue.name}
+        <section className="venue-block" key={v.venue.id} aria-labelledby={`venue-${v.venue.id}`}>
+          <h2 id={`venue-${v.venue.id}`} className="h3 section-title">
+            {v.venue.name} <span className="muted small">· {v.auditoriums.length} screen{v.auditoriums.length === 1 ? '' : 's'}</span>
           </h2>
           {v.auditoriums.length === 0 ? (
             <p className="muted">No screens yet.</p>
           ) : (
-            <div className="table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th scope="col">Screen</th>
-                    <th scope="col">Versions</th>
-                    <th scope="col">
-                      <span className="visually-hidden">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {v.auditoriums.map((a) => (
-                    <tr key={a.id}>
-                      <td className="screen-cell">
-                        <div className="strong">{a.name}</div>
+            <ul className="tile-grid">
+              {v.auditoriums.map((a) => {
+                const live = a.versions.find((ver) => ver.status === 'PUBLISHED');
+                return (
+                  <li key={a.id} className="card tile">
+                    <div className="tile-head">
+                      <div>
+                        <div className="tile-title">{a.name}</div>
                         {a.name !== `Screen ${a.screenNumber}` && <div className="muted small">Screen {a.screenNumber}</div>}
-                      </td>
-                      <td>
-                        {a.versions.length === 0 ? (
-                          <span className="muted small">No layout yet</span>
-                        ) : (
-                          <ul className="version-list">
-                            {a.versions.map((ver) => (
-                              <li key={ver.id}>
-                                <button className="version-btn" onClick={() => open(ver.id)} disabled={opening === ver.id} aria-label={`Open ${a.name} version ${ver.version} (${ver.status.toLowerCase()})`}>
-                                  <span className="strong">v{ver.version}</span>
-                                  <StatusBadge status={ver.status} />
-                                  <span className="muted small">
-                                    {ver.seatCount} seats · {ver.publishedAt ? `published ${formatDateTime(ver.publishedAt)}` : `created ${formatDateTime(ver.createdAt)}`}
-                                  </span>
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </td>
-                      <td className="actions">
-                        {a.versions.length === 0 && can.canEditLayouts && (
-                          <button className="btn btn-sm" onClick={() => startFirstDraft(a)} disabled={opening === a.id}>
-                            Start layout
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                      {live && (
+                        <div className="venue-screens">
+                          <span className="num">{live.seatCount}</span>
+                          <span className="muted small">seats</span>
+                        </div>
+                      )}
+                    </div>
+                    {a.versions.length === 0 ? (
+                      <span className="muted small">No seat map yet</span>
+                    ) : (
+                      <ul className="version-list">
+                        {a.versions.map((ver) => (
+                          <li key={ver.id}>
+                            <button className="version-btn" onClick={() => open(ver.id)} disabled={opening === ver.id} aria-label={`Open ${a.name} version ${ver.version} (${ver.status.toLowerCase()})`}>
+                              <span className="strong">v{ver.version}</span>
+                              <StatusBadge status={ver.status} />
+                              <span className="muted small">{ver.publishedAt ? formatDateTime(ver.publishedAt) : `draft, ${formatDateTime(ver.createdAt)}`}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {a.versions.length === 0 && can.canEditLayouts && (
+                      <div className="tile-actions">
+                        <button className="btn btn-sm" onClick={() => startFirstDraft(a)} disabled={opening === a.id}>
+                          Start seat map
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </section>
       ))}

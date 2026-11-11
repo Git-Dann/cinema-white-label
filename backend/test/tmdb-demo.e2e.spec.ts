@@ -109,7 +109,8 @@ describe('TMDB demo catalogue and rolling screenings (integration)', () => {
     expect(page.people[1].photo).toBeNull();
     expect(page.crew).toEqual([{ name: 'Director 101', job: 'Director' }, { name: 'Writer 101', job: 'Screenplay' }]);
     expect(page.about).toMatchObject({ productionCompanies: ['Studio One'], spokenLanguages: ['English'], keywords: ['london', 'heist'] });
-    expect(page.contentAdvice).toEqual({
+    expect(page.contentAdvice).toMatchObject({
+      source: 'provider',
       certificate: '12A',
       meaning: '12 and over, or with an adult',
       items: [
@@ -119,12 +120,17 @@ describe('TMDB demo catalogue and rolling screenings (integration)', () => {
       ],
     });
 
+    // Advice an operator enters is kept when the catalogue refreshes.
+    await prisma.film.update({ where: { id: one.id }, data: { details: { ...(one as any).details, ...(await prisma.film.findUniqueOrThrow({ where: { id: one.id } })).details as object, advice: [{ category: 'Threat', level: 'Mild', text: 'mild threat' }], adviceSource: 'operator' } } });
+
     // A later run updates in place and does not fetch biographies again.
     const client = fakeTmdb(now);
     const second = await importTmdbDemoCatalogue(prisma, tenantId, client, now);
     expect(second).toMatchObject({ created: 0, updated: 3, hidden: 0 });
     expect(client.calls.filter((c) => c.startsWith('/person/'))).toEqual([]);
     expect(await prisma.mediaAsset.count({ where: { filmId: one.id } })).toBe(3);
+    const kept = (await api(app).get(`/v1/t/kestrel/films/${one.id}`).expect(200)).body.contentAdvice;
+    expect(kept).toMatchObject({ source: 'operator', items: [{ category: 'Threat', level: 'Mild' }] });
   });
 
   it('moves future screenings onto showing films and keeps a week programmed', async () => {

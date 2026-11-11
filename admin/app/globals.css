@@ -291,7 +291,7 @@ p {
 .nav a {
   display: flex;
   align-items: center;
-  min-height: 34px;
+  min-height: 30px;
   padding: 0 10px;
   border-radius: 8px;
   color: var(--text-2);
@@ -3324,48 +3324,6 @@ dialog.sheet form {
 .nw-due {
   white-space: nowrap;
 }
-.mw {
-  display: grid;
-  gap: var(--s3);
-  max-width: 460px;
-}
-.mw-card h2 {
-  margin-top: 0;
-}
-.mw-shifts,
-.mw-brief {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 var(--s2);
-}
-.mw-shifts li {
-  padding: var(--s2) 0;
-  border-top: 1px solid color-mix(in srgb, currentColor 10%, transparent);
-}
-.mw-when {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--s2);
-}
-.mw-role {
-  opacity: 0.75;
-}
-.mw-note {
-  margin-top: var(--s1);
-  padding: var(--s1) var(--s2);
-  border-radius: 8px;
-  background: color-mix(in srgb, #c98500 16%, transparent);
-  font-size: 0.875rem;
-}
-.mw-brief li {
-  padding: var(--s1) 0 var(--s1) var(--s3);
-  position: relative;
-}
-.mw-brief li::before {
-  content: '•';
-  position: absolute;
-  left: var(--s1);
-}
 @media (max-width: 720px) {
   .nw-summary {
     grid-template-columns: 1fr 1fr;
@@ -3379,4 +3337,392 @@ dialog.sheet form {
   .nw-week {
     animation: none;
   }
+}
+
+/* ---------------- Grouped navigation ---------------- */
+.sidebar nav {
+  display: grid;
+  gap: 10px;
+}
+/* The pickers sit side by side in less height, so the whole menu fits a laptop screen. */
+.sidebar .field.compact select,
+.sidebar .tenant-static {
+  min-height: 32px;
+}
+.sidebar .field.compact {
+  gap: 2px;
+}
+.nav-group-label {
+  padding: 0 10px 2px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---------------- Tile grids (cards instead of long lists) ---------------- */
+.page-chips {
+  margin-bottom: var(--s3);
+}
+.tile-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: var(--s3);
+}
+.tile-grid.wide {
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+}
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  min-width: 0;
+}
+.tile-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+.tile-title {
+  font-weight: 600;
+  font-size: 1.02rem;
+  line-height: 1.3;
+}
+.tile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: var(--s1);
+}
+.tile-meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 0.875rem;
+}
+.tile-meta dt {
+  color: var(--muted);
+}
+.tile-meta dd {
+  margin: 0;
+  color: var(--text-2);
+  min-width: 0;
+}
+.tile.is-off {
+  opacity: 0.6;
+}
+
+/* Today: one column per screen */
+.board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--s3);
+  align-items: start;
+}
+.board-head {
+  margin: 0 0 var(--s2);
+  font-size: 1rem;
+  font-weight: 600;
+}
+.board-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s2);
+}
+.show-card {
+  display: flex;
+  gap: var(--s2);
+  padding: var(--s2);
+}
+.show-card.is-past {
+  opacity: 0.5;
+}
+.show-poster {
+  flex: none;
+  width: 44px;
+  aspect-ratio: 2 / 3;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.show-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.show-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.show-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  flex-wrap: wrap;
+}
+.show-time {
+  font-size: 1.05rem;
+}
+.show-film {
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.show-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s1);
+  margin-top: auto;
+}
+.meter {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  margin: 4px 0 2px;
+}
+.meter > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.meter > .meter-held {
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* My week */
+.section-title {
+  margin: 0 0 var(--s2);
+}
+.mw-busy .mw-note {
+  margin: 0;
+  padding: var(--s1) var(--s2);
+  border-radius: 8px;
+  background: color-mix(in srgb, #c98500 16%, transparent);
+}
+.mw-foot {
+  margin: var(--s2) 0 var(--s4);
+}
+.mw-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--s3);
+  align-items: start;
+}
+.mw-cols h2 {
+  margin-top: 0;
+}
+.mw-shows,
+.mw-brief {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--s1);
+}
+.mw-shows li {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: var(--s2);
+}
+.mw-shows li > strong {
+  grid-row: span 2;
+}
+.mw-show-film {
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mw-shows li > .small.num {
+  grid-row: 1;
+  grid-column: 3;
+}
+.mw-brief li {
+  padding-left: var(--s3);
+  position: relative;
+}
+.mw-brief li::before {
+  content: '•';
+  position: absolute;
+  left: var(--s1);
+}
+
+/* Team & roles */
+.role-grid {
+  margin-bottom: var(--s4);
+}
+.team-created,
+.team-form {
+  margin-bottom: var(--s4);
+}
+.team-password {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+.team-password code {
+  font-size: 1.1rem;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+.team-person {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-width: 0;
+}
+.team-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.team-who {
+  min-width: 0;
+}
+.team-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Vouchers */
+.voucher-value {
+  font-size: 1.5rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.voucher-code {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border: 1px dashed var(--border-strong, var(--muted));
+  border-radius: 6px;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+}
+
+/* Offers: a small preview of the card customers see */
+.offer-preview {
+  display: grid;
+  gap: 6px;
+  padding: var(--s3);
+  border-radius: 12px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 34%, var(--surface-2)), var(--surface-2));
+}
+.offer-preview-title {
+  font-weight: 650;
+  font-size: 1.1rem;
+  line-height: 1.2;
+}
+.offer-preview-body {
+  font-size: 0.875rem;
+  color: var(--text-2);
+}
+.offer-preview-cta {
+  justify-self: start;
+  margin-top: 4px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Cinemas */
+.venue-screens {
+  display: grid;
+  justify-items: end;
+  line-height: 1.1;
+}
+.venue-screens .num {
+  font-size: 1.6rem;
+  font-weight: 650;
+}
+.tag-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tag-list li {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 0.8rem;
+  color: var(--text-2);
+}
+.venue-block {
+  margin-bottom: var(--s4);
+}
+.plan-price .num {
+  font-size: 1.4rem;
+  font-weight: 650;
+}
+
+/* Parents Guide editor */
+.advice-editor {
+  margin-top: var(--s4);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: var(--s2);
+}
+.advice-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s1);
+}
+.advice-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) 130px minmax(200px, 2fr) auto;
+  gap: var(--s1);
+  align-items: center;
+}
+@media (max-width: 720px) {
+  .advice-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.sidebar-user {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s1);
+}
+.sidebar-user-text {
+  min-width: 0;
+}
+.sidebar .nav a {
+  min-height: 29px;
 }

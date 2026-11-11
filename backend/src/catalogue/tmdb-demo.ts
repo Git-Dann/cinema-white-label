@@ -125,10 +125,17 @@ export async function importTmdbDemoCatalogue(db: Db, tenantId: string, client: 
       cast: (f.cast ?? []).slice(0, 5),
       originalLanguage: f.originalLanguage ?? 'en',
       hidden: false,
-      details: buildFilmDetails(m, people) as unknown as Prisma.InputJsonValue,
+      details: undefined as unknown as Prisma.InputJsonValue,
       provenance: { source: 'tmdb-demo', tmdbId: m.id, importedAt: now.toISOString() } as Prisma.InputJsonValue,
     };
-    const link = await db.filmExternalId.findUnique({ where: { tenantId_provider_externalId: { tenantId, provider: 'tmdb', externalId: String(m.id) } } });
+    const link = await db.filmExternalId.findUnique({
+      where: { tenantId_provider_externalId: { tenantId, provider: 'tmdb', externalId: String(m.id) } },
+      include: { film: { select: { details: true } } },
+    });
+    // Advice an operator typed in (Parents Guide) survives the refresh.
+    const built = buildFilmDetails(m, people);
+    const previous = link ? readDetails(link.film.details) : null;
+    data.details = (previous?.adviceSource === 'operator' ? { ...built, advice: previous.advice, adviceSource: 'operator' } : built) as unknown as Prisma.InputJsonValue;
     let filmId: string;
     if (link) {
       await db.film.update({ where: { id: link.filmId }, data });

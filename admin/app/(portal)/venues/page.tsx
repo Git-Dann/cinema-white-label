@@ -1,6 +1,8 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCinemaScope } from '@/lib/cinema-scope';
 import { api, errorMessage, tenantPath, Venue } from '@/lib/api';
 import { useSession, useTenantData } from '@/lib/session';
 import { ErrorNote, Loading, PageHeader, SuccessNote } from '@/components/ui';
@@ -40,6 +42,8 @@ const slugify = (s: string) =>
     .replace(/^-+|-+$/g, '');
 
 export default function VenuesPage() {
+  const router = useRouter();
+  const scope = useCinemaScope();
   const { tenant, can } = useSession();
   const venues = useTenantData<Venue[]>(tenantPath(tenant, '/venues'));
   const [editing, setEditing] = useState<Venue | 'new' | null>(null);
@@ -207,52 +211,49 @@ export default function VenuesPage() {
         </section>
       )}
 
-      <section className="card" aria-label="Cinemas list">
+      <section aria-label="Cinemas">
         {venues.loading && !venues.data && <Loading />}
         {venues.data && venues.data.length === 0 && <p className="muted">No cinemas yet.</p>}
         {venues.data && venues.data.length > 0 && (
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th scope="col">Name</th>
-                  <th scope="col">Address</th>
-                  <th scope="col">Screens</th>
-                  <th scope="col">Facilities</th>
-                  <th scope="col">
-                    <span className="visually-hidden">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {venues.data.map((v) => (
-                  <tr key={v.id}>
-                    <td>
-                      <div className="strong">{v.name}</div>
-                      <div className="muted small">{v.slug}</div>
-                    </td>
-                    <td>
+          <ul className="tile-grid">
+            {venues.data.map((v) => (
+              <li key={v.id} className="card tile">
+                <div className="tile-head">
+                  <div>
+                    <div className="tile-title">{v.name}</div>
+                    <div className="muted small">
                       {v.address.line1}, {v.address.city} {v.address.postcode}
-                    </td>
-                    <td className="num">{v.screenCount ?? '—'}</td>
-                    <td className="small">{v.facilities.join(', ') || <span className="muted">—</span>}</td>
-                    <td className="actions">
-                      {can.canEditVenues && (
-                        <button className="btn btn-sm" onClick={() => startEdit(v)} aria-label={`Edit ${v.name}`}>
-                          Edit
-                        </button>
-                      )}
-                      {can.canDeleteVenues && (
-                        <button className="btn btn-sm btn-danger" onClick={() => remove(v)} aria-label={`Delete ${v.name}`}>
-                          Delete
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </div>
+                  <div className="venue-screens">
+                    <span className="num">{v.screenCount ?? '–'}</span>
+                    <span className="muted small">screens</span>
+                  </div>
+                </div>
+                {v.facilities.length > 0 ? (
+                  <ul className="tag-list" aria-label="Facilities">
+                    {v.facilities.map((f) => <li key={f}>{f}</li>)}
+                  </ul>
+                ) : (
+                  <span className="muted small">No facilities listed</span>
+                )}
+                <div className="tile-actions">
+                  <button className="btn btn-sm" onClick={() => { scope.setVenueId(v.id); router.push('/today'); }}>Today</button>
+                  <button className="btn btn-sm" onClick={() => { scope.setVenueId(v.id); router.push('/layouts'); }}>Screens</button>
+                  {can.canEditVenues && (
+                    <button className="btn btn-sm" onClick={() => startEdit(v)} aria-label={`Edit ${v.name}`}>
+                      Edit
+                    </button>
+                  )}
+                  {can.canDeleteVenues && (
+                    <button className="btn btn-sm btn-danger" onClick={() => remove(v)} aria-label={`Delete ${v.name}`}>
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
     </>
