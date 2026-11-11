@@ -63,8 +63,33 @@ const ACTION_LABELS: Record<string, string> = {
   'layout.draft.update': 'Layout draft saved',
   'layout.draft.delete': 'Layout draft deleted',
   'layout.publish': 'Layout published',
+  'auditorium.update': 'Screen updated',
+  'auditorium.delete': 'Screen deleted',
+  'film.content_advice': 'Parents guide updated',
+  'film.import_tmdb': 'Films imported from TMDB',
+  'loyalty.update': 'Loyalty updated',
+  'membershipPlan.create': 'Membership created',
+  'membershipPlan.update': 'Membership updated',
+  'membershipPlan.delete': 'Membership deleted',
+  'pricing.fees.update': 'Booking fees updated',
+  'promotion.create': 'Offer created',
+  'promotion.update': 'Offer updated',
+  'promotion.delete': 'Offer deleted',
+  'team.add': 'Person added',
+  'team.remove': 'Person removed',
+  'team.role': 'Role changed',
+  'api_key.create': 'API key created',
+  'api_key.revoke': 'API key revoked',
+  'webhook.create': 'Webhook added',
+  'webhook.update': 'Webhook updated',
+  'webhook.delete': 'Webhook removed',
 };
-export const actionLabel = (a: string) => ACTION_LABELS[a] ?? a;
+/** Known actions read as plain words; anything new still reads as a sentence, never a raw code. */
+export const actionLabel = (a: string) => {
+  if (ACTION_LABELS[a]) return ACTION_LABELS[a];
+  const words = a.replace(/[._]/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
 
 /** Short human summary of an audit entry's payload. */
 export function auditSummary(action: string, data: unknown): string {
