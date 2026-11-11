@@ -4557,8 +4557,10 @@ dialog.sheet.sheet-narrow {
 }
 .show-pulse {
   display: flex;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: 2px;
   width: 100%;
   margin-top: 6px;
   padding: 6px 8px;
@@ -4579,6 +4581,7 @@ dialog.sheet.sheet-narrow {
 .today-pulse {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  align-items: start;
   gap: var(--s3);
   margin-bottom: var(--s3);
 }
@@ -4865,7 +4868,7 @@ dialog.sheet.sheet-narrow {
 .pulse-curve {
   margin: 0;
 }
-.pulse-curve svg {
+.pulse-curve > svg {
   width: 100%;
   height: auto;
   display: block;
@@ -4889,6 +4892,9 @@ dialog.sheet.sheet-narrow {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+.pulse-legend svg {
+  flex: none;
 }
 .pulse-legend i {
   width: 14px;

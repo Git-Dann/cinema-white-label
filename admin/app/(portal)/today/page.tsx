@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { ErrorNote, Loading, PageHeader } from '@/components/ui';
 import { SafeImage } from '@/components/SafeImage';
 import { mediaUrl, PulseFood, PulseForecast, PulseForecasts, PulseStaffing, ShiftRow, tenantPath, VenueToday } from '@/lib/api';
-import { ForecastSheet, paceText, paceTone, PulseBasisLine } from '@/components/pulse';
+import { ForecastSheet, paceTone, PulseBasisLine } from '@/components/pulse';
 import { useCinemaScope } from '@/lib/cinema-scope';
 import { useSession, useTenantData } from '@/lib/session';
 
@@ -229,7 +229,7 @@ export default function TodayPage() {
                                   <span>
                                     Forecast <strong className="num">{f.expected}</strong>
                                   </span>
-                                  <span className="muted">{paceText(f.paceIndex) ?? 'Sales not open yet'}</span>
+                                  <span className="muted">{tone === 'fast' ? 'Selling fast' : tone === 'slow' ? 'Selling slowly' : tone === 'even' ? 'On pace' : 'Too early to tell'}</span>
                                 </button>
                               );
                             })()}
