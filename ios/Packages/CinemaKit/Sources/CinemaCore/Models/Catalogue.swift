@@ -65,7 +65,40 @@ public struct Film: Codable, Sendable, Hashable, Identifiable {
         public var name: String
         public var character: String?
         public var biography: String?
+        public var fullBiography: String?
+        /// YYYY-MM-DD when known.
+        public var birthday: String?
+        public var deathday: String?
+        public var placeOfBirth: String?
         public var photo: ImageRef?
+
+        public var firstName: String { name.split(separator: " ").first.map(String.init) ?? name }
+
+        /// Whole years from birth to `date`, or to the day they died. Nil without a valid birthday.
+        public func age(on date: Date = Date(), calendar: Calendar = Calendar(identifier: .gregorian)) -> Int? {
+            guard let born = Self.day(birthday, calendar) else { return nil }
+            let end = Self.day(deathday, calendar) ?? date
+            return calendar.dateComponents([.year], from: born, to: end).year
+        }
+
+        public func birthDate(calendar: Calendar = Calendar(identifier: .gregorian)) -> Date? { Self.day(birthday, calendar) }
+        public func deathDate(calendar: Calendar = Calendar(identifier: .gregorian)) -> Date? { Self.day(deathday, calendar) }
+
+        static func day(_ s: String?, _ calendar: Calendar) -> Date? {
+            guard let s, s.count == 10 else { return nil }
+            let parts = s.split(separator: "-").compactMap { Int($0) }
+            guard parts.count == 3 else { return nil }
+            return calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2]))
+        }
+    }
+
+    /// Films in `catalogue` this person appears in, this film first.
+    public func filmsFeaturing(_ person: Person, in catalogue: [Film]) -> [Film] {
+        var seen = Set<String>()
+        return ([self] + catalogue).filter { f in
+            guard seen.insert(f.id).inserted else { return false }
+            return f.people?.contains { $0.id == person.id } ?? false
+        }
     }
 
     public struct CrewMember: Codable, Sendable, Hashable {

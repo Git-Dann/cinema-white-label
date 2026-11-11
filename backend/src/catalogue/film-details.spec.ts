@@ -1,4 +1,4 @@
-import { adviceCategory, adviceLevel, buildFilmDetails, certificateMeaning, contentAdvice, readDetails, shortBio } from './film-details';
+import { adviceCategory, adviceLevel, buildFilmDetails, certificateMeaning, contentAdvice, personInfo, readDetails, shortBio } from './film-details';
 import { pickLogo } from './tmdb-demo';
 
 describe('film details', () => {
@@ -32,9 +32,9 @@ describe('film details', () => {
         },
         original_title: 'Same', title: 'Same', budget: 0,
       },
-      new Map([[1, 'Bio A.']]),
+      new Map([[1, { biography: 'Bio A.', fullBiography: 'Bio A. More.', birthday: '1970-01-02', deathday: null, placeOfBirth: 'Leeds' }]]),
     );
-    expect(d.cast.map((c) => [c.name, c.character, c.biography])).toEqual([['A', 'Lead', 'Bio A.'], ['B', null, null]]);
+    expect(d.cast.map((c) => [c.name, c.character, c.biography, c.birthday])).toEqual([['A', 'Lead', 'Bio A.', '1970-01-02'], ['B', null, null, undefined]]);
     expect(d.crew).toEqual([{ name: 'D', job: 'Director' }, { name: 'P1', job: 'Producer' }, { name: 'P2', job: 'Producer' }]);
     expect(d.about).toMatchObject({ originalTitle: null, budget: null });
     expect(readDetails({})).toEqual({ cast: [], crew: [], about: null, advice: [] });
@@ -46,5 +46,12 @@ describe('film details', () => {
     expect(certificateMeaning('TBC')).toBeNull();
     expect(pickLogo([{ file_path: '/x.png', iso_639_1: null, vote_average: 9 }, { file_path: '/e.png', iso_639_1: 'en', vote_average: 1 }])!.file_path).toBe('/e.png');
     expect(pickLogo([{ file_path: '/d.png', iso_639_1: 'de' }])).toBeNull();
+  });
+
+  it('keeps a person\'s full biography, dates and birthplace, and drops malformed dates', () => {
+    const p = personInfo({ biography: 'First. Second. Third.', birthday: '1969-11-10', deathday: '', place_of_birth: 'Everett, Massachusetts' });
+    expect(p).toEqual({ biography: 'First. Second.', fullBiography: 'First. Second. Third.', birthday: '1969-11-10', deathday: null, placeOfBirth: 'Everett, Massachusetts' });
+    expect(personInfo({ birthday: '1969' }).birthday).toBeNull();
+    expect(personInfo({}).fullBiography).toBeNull();
   });
 });

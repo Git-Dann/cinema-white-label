@@ -69,7 +69,10 @@ export function filmDto(film: Film & { assets: MediaAsset[]; trailers?: Trailer[
     /** Title artwork (transparent PNG) shown in place of the title when present. */
     logo: imageRef(logo),
     /** Cast in billing order, with a photo and a short biography where known. */
-    people: details.cast.map((c) => ({ id: String(c.id), name: c.name, character: c.character, biography: c.biography, photo: personPhoto(c.profilePath) })),
+    people: details.cast.map((c) => ({
+      id: String(c.id), name: c.name, character: c.character, biography: c.biography, fullBiography: c.fullBiography ?? null,
+      birthday: c.birthday ?? null, deathday: c.deathday ?? null, placeOfBirth: c.placeOfBirth ?? null, photo: personPhoto(c.profilePath),
+    })),
     crew: details.crew,
     about: details.about,
     /** Parents Guide: the certificate first, then BBFC content advice by category. */

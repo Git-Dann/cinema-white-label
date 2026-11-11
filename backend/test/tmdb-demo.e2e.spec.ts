@@ -39,7 +39,7 @@ function fakeTmdb(today: Date): TmdbClient & { calls: string[] } {
     async get(path) {
       calls.push(path);
       if (lists[path]) return lists[path];
-      if (path.startsWith('/person/')) return { biography: `Born somewhere. Known for films. Also does theatre. ${path}` };
+      if (path.startsWith('/person/')) return { biography: `Born somewhere. Known for films. Also does theatre. ${path}`, birthday: '1980-05-04', place_of_birth: 'Leeds, England' };
       const id = Number(path.split('/').pop());
       return details(id);
     },
@@ -103,7 +103,8 @@ describe('TMDB demo catalogue and rolling screenings (integration)', () => {
     // The film page: logo, cast with photos and short bios, crew, About and the Parents Guide.
     const page = (await api(app).get(`/v1/t/kestrel/films/${one.id}`).expect(200)).body;
     expect(page.logo.url).toMatch(/^\/v1\/media\//);
-    expect(page.people[0]).toMatchObject({ name: 'Actor A', character: 'Hero', biography: 'Born somewhere. Known for films.' });
+    expect(page.people[0]).toMatchObject({ name: 'Actor A', character: 'Hero', biography: 'Born somewhere. Known for films.', birthday: '1980-05-04', placeOfBirth: 'Leeds, England' });
+    expect(page.people[0].fullBiography).toContain('Also does theatre.');
     expect(page.people[0].photo.url).toBe('https://image.tmdb.org/t/p/w185/a.jpg');
     expect(page.people[1].photo).toBeNull();
     expect(page.crew).toEqual([{ name: 'Director 101', job: 'Director' }, { name: 'Writer 101', job: 'Screenplay' }]);

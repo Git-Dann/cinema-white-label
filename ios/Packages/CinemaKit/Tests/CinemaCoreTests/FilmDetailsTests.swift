@@ -36,4 +36,30 @@ struct FilmDetailsTests {
         #expect(film.contentAdvice == nil)
         #expect(film.crewByJob.isEmpty)
     }
+
+    @Test func agesFromBirthdayAndStopsAtDeath() throws {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+        let on = cal.date(from: DateComponents(year: 2026, month: 11, day: 11))!
+        let p = try APIClient.decoder.decode(Film.Person.self, from: Data(#"{"id":"1","name":"Ellen Pompeo","birthday":"1969-11-10"}"#.utf8))
+        #expect(p.age(on: on, calendar: cal) == 57)
+        #expect(p.firstName == "Ellen")
+        let d = try APIClient.decoder.decode(Film.Person.self, from: Data(#"{"id":"2","name":"X","birthday":"1950-06-01","deathday":"2020-05-31"}"#.utf8))
+        #expect(d.age(on: on, calendar: cal) == 69)
+        let n = try APIClient.decoder.decode(Film.Person.self, from: Data(#"{"id":"3","name":"Y","birthday":"1950"}"#.utf8))
+        #expect(n.age(on: on, calendar: cal) == nil)
+    }
+
+    @Test func findsOtherFilmsWithTheSamePerson() throws {
+        func film(_ id: String, people: String) throws -> Film {
+            try APIClient.decoder.decode(Film.self, from: Data("""
+            {"id":"\(id)","slug":"s","title":"T","tagline":null,"synopsis":"s","releaseDate":"2026-11-01","runtimeMinutes":90,"certificate":"PG","genres":[],"director":null,"cast":[],"status":"nowShowing","formats":[],"poster":null,"backdrop":null,"trailers":[],"attributions":[],"people":\(people)}
+            """.utf8))
+        }
+        let a = try film("a", people: #"[{"id":"7","name":"P"}]"#)
+        let b = try film("b", people: #"[{"id":"7","name":"P"},{"id":"8","name":"Q"}]"#)
+        let c = try film("c", people: #"[{"id":"8","name":"Q"}]"#)
+        let person = a.people![0]
+        #expect(a.filmsFeaturing(person, in: [c, b, a]).map(\.id) == ["a", "b"])
+    }
 }

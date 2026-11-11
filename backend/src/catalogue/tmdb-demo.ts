@@ -1,7 +1,7 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import sharp from 'sharp';
 import { TmdbEnrichmentProvider } from './providers/adapters';
-import { BIO_LIMIT, buildFilmDetails, readDetails, shortBio } from './film-details';
+import { BIO_LIMIT, buildFilmDetails, PersonInfo, personInfo, readDetails } from './film-details';
 
 /*
  * Demo catalogue from TMDB (The Movie Database).
@@ -91,18 +91,20 @@ export async function importTmdbDemoCatalogue(db: Db, tenantId: string, client: 
     picks.map((p) => client.get(`/movie/${p.id}`, { language: 'en-GB', append_to_response: 'release_dates,credits,keywords,images', include_image_language: 'en,null' })),
   );
 
-  // Short biographies for the leading cast. A person's biography is fetched once and
-  // reused on later runs, so the daily refresh stays inside the API's time limit.
-  const bios = new Map<number, string | null>();
-  for (const f of await db.film.findMany({ where: { tenantId, externalIds: { some: { provider: 'tmdb' } } }, select: { details: true } })) {
-    for (const c of readDetails(f.details).cast) if (c.biography) bios.set(c.id, c.biography);
+  // Leading cast's biography, birthday and birthplace. Each person is fetched once and
+  // reused on later runs and by every operator, so the daily refresh stays quick.
+  const people = new Map<number, PersonInfo>();
+  for (const f of await db.film.findMany({ where: { externalIds: { some: { provider: 'tmdb' } } }, select: { details: true } })) {
+    for (const c of readDetails(f.details).cast) {
+      if (c.birthday !== undefined) people.set(c.id, { biography: c.biography, fullBiography: c.fullBiography ?? null, birthday: c.birthday, deathday: c.deathday ?? null, placeOfBirth: c.placeOfBirth ?? null });
+    }
   }
-  const wanted = [...new Set(details.flatMap((m) => (m.credits?.cast ?? []).slice(0, BIO_LIMIT).map((c: any) => c.id as number)))].filter((id) => !bios.has(id));
-  await inBatches(wanted, 8, async (id) => {
+  const wanted = [...new Set(details.flatMap((m) => (m.credits?.cast ?? []).slice(0, BIO_LIMIT).map((c: any) => c.id as number)))].filter((id) => !people.has(id));
+  await inBatches(wanted, 20, async (id) => {
     try {
-      bios.set(id, shortBio((await client.get(`/person/${id}`, { language: 'en-US' })).biography));
+      people.set(id, personInfo(await client.get(`/person/${id}`, { language: 'en-US' })));
     } catch {
-      bios.set(id, null);
+      /* left out; tried again on the next run */
     }
   });
 
@@ -123,7 +125,7 @@ export async function importTmdbDemoCatalogue(db: Db, tenantId: string, client: 
       cast: (f.cast ?? []).slice(0, 5),
       originalLanguage: f.originalLanguage ?? 'en',
       hidden: false,
-      details: buildFilmDetails(m, bios) as unknown as Prisma.InputJsonValue,
+      details: buildFilmDetails(m, people) as unknown as Prisma.InputJsonValue,
       provenance: { source: 'tmdb-demo', tmdbId: m.id, importedAt: now.toISOString() } as Prisma.InputJsonValue,
     };
     const link = await db.filmExternalId.findUnique({ where: { tenantId_provider_externalId: { tenantId, provider: 'tmdb', externalId: String(m.id) } } });

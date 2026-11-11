@@ -29,7 +29,7 @@ struct FilmDetailView: View {
                     facts
                     ShowtimesSection(film: film).id("showtimes")
                     trailers
-                    if let people = film.people, !people.isEmpty { CastCarousel(people: people) }
+                    if let people = film.people, !people.isEmpty { CastCarousel(film: film) }
                     if let advice = film.contentAdvice { ParentsGuideCarousel(advice: advice) }
                     about
                 }
