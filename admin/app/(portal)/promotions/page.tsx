@@ -204,6 +204,7 @@ export default function PromotionsPage() {
             title={form.title}
             body={form.body}
             cta={form.action === 'none' ? null : form.ctaLabel}
+            action={form.action}
             code={form.action === 'voucher' ? form.voucherCode || null : null}
             imageUrl={form.imageUrl ?? (form.action === 'film' ? backdropOf(form.filmId) : null)}
             filmTitle={form.action === 'film' && form.filmId ? filmTitle(form.filmId) : null}
@@ -336,6 +337,7 @@ export default function PromotionsPage() {
                     title={p.title}
                     body={p.body}
                     cta={p.action === 'none' ? null : p.ctaLabel}
+                    action={p.action}
                     code={p.action === 'voucher' ? p.voucherCode : null}
                     imageUrl={p.image?.url}
                     filmTitle={p.action === 'film' ? filmTitle(p.filmId) : null}

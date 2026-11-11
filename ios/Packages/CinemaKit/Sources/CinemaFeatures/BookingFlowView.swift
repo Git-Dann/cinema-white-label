@@ -424,6 +424,7 @@ struct FoodScreen: View {
                 Task { await flow.addToBasket(item) }
             }
             .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
         .safeAreaInset(edge: .bottom) {
             Button(flow.basket.isEmpty ? "Skip" : "Continue · \(flow.quote.map { flow.formatters.money($0.totalMinor) } ?? "")") { flow.continueToReview() }
@@ -518,7 +519,7 @@ struct ProductOptionsSheet: View {
             }
             .navigationTitle(product.name)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button(role: .cancel) { dismiss() } } }
             .safeAreaInset(edge: .bottom) {
                 let problems = ModifierValidation.problems(product: product, modifiers: choices)
                 Button("Add · \(formatters.money(ModifierValidation.unitPrice(product: product, modifiers: choices) * quantity))") {

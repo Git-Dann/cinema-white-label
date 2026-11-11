@@ -49,7 +49,7 @@ public struct RootView: View {
         .sheet(isPresented: $showingProfile) {
             NavigationStack {
                 AccountView()
-                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showingProfile = false } } }
+                    .toolbar { ToolbarItem(placement: .topBarTrailing) { Button(role: .close) { showingProfile = false } } }
             }
             .environment(app)
             .environment(\.mediaBaseURL, app.mediaBaseURL)

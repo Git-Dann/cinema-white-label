@@ -192,69 +192,85 @@ struct PromotionCard: View {
     private var artwork: ImageRef? { promotion.image ?? film?.backdrop ?? film?.poster }
 
     static let width: CGFloat = 320
-    static let artHeight: CGFloat = 164
+    static let height: CGFloat = 212
+    static let photoWidth: CGFloat = 132
 
     var body: some View {
         let lines = promotion.bannerLines(filmTitle: film?.title)
-        VStack(alignment: .leading, spacing: 0) {
-            // The photo carries the mood; one solid block carries the words. No scrims or glows.
-            ZStack(alignment: .bottomLeading) {
+        // Shelf-edge offer: the brand colour fills the card, the saving is the biggest thing on it,
+        // and a starburst sticker says what to do. Colours are semantic tokens with checked contrast.
+        HStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                if !lines.lead.isEmpty {
+                    Text(lines.lead)
+                        .font(.subheadline.weight(.bold))
+                        .lineLimit(2)
+                }
+                Text(lines.headline)
+                    .font(.system(size: lines.headline.count > 9 ? 30 : 42, weight: .black))
+                    .lineLimit(2).minimumScaleFactor(0.55)
+                    .accessibilityAddTraits(.isHeader)
+                Text(promotion.body)
+                    .font(.caption.weight(.medium))
+                    .opacity(0.85)
+                    .lineLimit(3)
+                Spacer(minLength: 0)
+                callToAction
+            }
+            .foregroundStyle(palette.actionPrimaryText)
+            .padding(Spacing.m)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+            ZStack(alignment: .topLeading) {
                 if let artwork {
                     ArtworkImage(artwork, fallbackTitle: film?.title)
-                        .frame(width: Self.width, height: Self.artHeight)
+                        .frame(width: Self.photoWidth, height: Self.height)
                         .clipped()
                         .accessibilityHidden(true)
                 } else {
-                    palette.actionPrimary.mix(with: palette.surfaceElevated, by: 0.82)
+                    palette.actionPrimaryText.opacity(0.12)
                 }
-                VStack(alignment: .leading, spacing: 0) {
-                    if !lines.lead.isEmpty {
-                        Text(lines.lead)
-                            .font(.subheadline.weight(.semibold))
-                            .lineLimit(1)
-                    }
-                    Text(lines.headline)
-                        .font(.system(size: lines.headline.count > 12 ? 24 : 32, weight: .heavy))
-                        .lineLimit(1).minimumScaleFactor(0.6)
-                }
-                .foregroundStyle(palette.actionPrimaryText)
-                .padding(.horizontal, 14).padding(.top, 10).padding(.bottom, 11)
-                .background(palette.actionPrimary, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .padding(Spacing.s)
-                .accessibilityElement(children: .combine)
-                .accessibilityAddTraits(.isHeader)
+                sticker
+                    .offset(x: -26, y: 14)
             }
-            .frame(width: Self.width, height: Self.artHeight)
-            .clipped()
-
-            HStack(alignment: .center, spacing: Spacing.s) {
-                Text(promotion.body)
-                    .font(.footnote)
-                    .foregroundStyle(palette.textSecondary)
-                    .lineLimit(2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                if case .voucher(let code) = promotion.action {
-                    Button { showVoucher(VoucherCode(code: code, title: promotion.title)) } label: {
-                        Text(code)
-                            .font(.subheadline.monospaced().weight(.bold))
-                            .foregroundStyle(palette.textPrimary)
-                            .padding(.horizontal, 10).padding(.vertical, 6)
-                            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(palette.textMuted, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Code \(code.map(String.init).joined(separator: " "))")
-                    .accessibilityHint("Shows the code to copy")
-                } else if promotion.hasButton {
-                    action(filled: true)
-                }
-            }
-            .padding(.horizontal, Spacing.m)
-            .frame(width: Self.width, height: 64)
-            .background(palette.surfaceElevated)
+            .frame(width: Self.photoWidth, height: Self.height)
         }
+        .frame(width: Self.width, height: Self.height)
+        .background(palette.actionPrimary)
         .clipShape(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous))
         .accessibilityElement(children: .contain)
+    }
+
+    /// Starburst roundel, stamped slightly askew over the photo's edge.
+    private var sticker: some View {
+        let words = promotion.stickerLines
+        return VStack(spacing: 0) {
+            ForEach(Array(words.enumerated()), id: \.offset) { i, w in
+                Text(w)
+                    .font(.system(size: i == words.count - 1 && words.count > 1 ? 13 : 11, weight: .black, design: words.count > 1 && i == 1 && promotion.isVoucher ? .monospaced : .default))
+                    .lineLimit(1).minimumScaleFactor(0.6)
+            }
+        }
+        .foregroundStyle(palette.actionPrimary)
+        .padding(14)
+        .frame(width: 92, height: 92)
+        .background(Starburst(points: 18, innerRatio: 0.86).fill(palette.actionPrimaryText))
+        .rotationEffect(.degrees(-12))
+        .accessibilityHidden(true)
+    }
+
+    /// Inverted button, or for vouchers the whole code pill opens the code sheet.
+    @ViewBuilder private var callToAction: some View {
+        if case .voucher(let code) = promotion.action {
+            Button { showVoucher(VoucherCode(code: code, title: promotion.title)) } label: {
+                Label(promotion.ctaLabel ?? "Show code", systemImage: "ticket.fill")
+            }
+            .buttonStyle(OfferButtonStyle())
+            .accessibilityHint("Shows the code \(code)")
+        } else if promotion.hasButton {
+            action(filled: true)
+        }
     }
 
     @ViewBuilder
@@ -291,11 +307,33 @@ struct OfferButtonStyle: ButtonStyle {
             .lineLimit(1)
             .padding(.horizontal, Spacing.m)
             .frame(minHeight: 40)
-            .foregroundStyle(palette.actionPrimaryText)
-            .background(palette.actionPrimary, in: Capsule())
+            // Inverted: it sits on the brand-coloured offer card.
+            .foregroundStyle(palette.actionPrimary)
+            .background(palette.actionPrimaryText, in: Capsule())
             .opacity(configuration.isPressed ? 0.8 : 1)
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .contentShape(Capsule())
+    }
+}
+
+/// A shelf-edge starburst: `points` spikes between the outer and inner radius.
+struct Starburst: Shape {
+    var points: Int
+    var innerRatio: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        let c = CGPoint(x: rect.midX, y: rect.midY)
+        let outer = min(rect.width, rect.height) / 2
+        let inner = outer * innerRatio
+        return Path { p in
+            for i in 0..<(points * 2) {
+                let r = i.isMultiple(of: 2) ? outer : inner
+                let a = (CGFloat(i) / CGFloat(points * 2)) * 2 * .pi - .pi / 2
+                let pt = CGPoint(x: c.x + cos(a) * r, y: c.y + sin(a) * r)
+                if i == 0 { p.move(to: pt) } else { p.addLine(to: pt) }
+            }
+            p.closeSubpath()
+        }
     }
 }
 
@@ -307,11 +345,8 @@ struct VoucherCodeSheet: View {
     @State private var copied = false
 
     var body: some View {
+        NavigationStack {
         VStack(spacing: Spacing.m) {
-            Text(voucher.title)
-                .font(.headline)
-                .foregroundStyle(palette.textSecondary)
-                .multilineTextAlignment(.center)
             Text(voucher.code)
                 .font(.system(.largeTitle, design: .monospaced).weight(.bold))
                 .foregroundStyle(palette.textPrimary)
@@ -330,8 +365,13 @@ struct VoucherCodeSheet: View {
             .sensoryFeedback(.success, trigger: copied)
         }
         .padding(Spacing.xl)
-        .frame(maxWidth: .infinity)
-        .presentationDetents([.height(320)])
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .navigationTitle(voucher.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { ToolbarItem(placement: .topBarTrailing) { Button(role: .close) { dismiss() } } }
+        }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
         .presentationBackground(palette.backgroundElevated)
     }
 }

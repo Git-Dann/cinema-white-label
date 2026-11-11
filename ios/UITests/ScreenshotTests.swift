@@ -146,7 +146,8 @@ final class ScreenshotTests: XCTestCase {
         app.swipeUp()
         sleep(1)
         shot("account-membership")
-        app.buttons["Done"].tap()
+        // The account sheet uses the system close button (Button(role: .close)).
+        element(app.buttons, "label == 'Close' OR identifier == 'Close'").tap()
         sleep(1)
         showTabBar(current: "Food")
 

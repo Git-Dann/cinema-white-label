@@ -60,13 +60,6 @@ struct ProductDetailSheet: View {
         }
         .ignoresSafeArea(edges: .top)
         .background(palette.background)
-        .overlay(alignment: .topTrailing) {
-            Button { dismiss() } label: { Image(systemName: "xmark").font(.headline) }
-                .buttonStyle(.glass)
-                .buttonBorderShape(.circle)
-                .padding(Spacing.m)
-                .accessibilityLabel("Close")
-        }
         .safeAreaInset(edge: .bottom) {
             Group {
                 if !product.isAvailable {
@@ -179,7 +172,7 @@ struct FoodOrderSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: confirmed == nil ? .cancellationAction : .confirmationAction) {
-                    Button(confirmed == nil ? "Close" : "Done") { dismiss() }
+                    if confirmed == nil { Button(role: .close) { dismiss() } } else { Button(role: .confirm) { dismiss() } }
                 }
             }
         }
