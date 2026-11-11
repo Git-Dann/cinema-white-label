@@ -93,7 +93,7 @@ struct FoodView: View {
                 } onFindFilm: {
                     AppNavigator.shared.requested = .films
                 }
-                .toolbar { ToolbarItem(placement: .topBarTrailing) { Button(role: .close) { viewing = nil } } }
+                .toolbar { ToolbarItem(placement: .topBarTrailing) { Button(role: .close) { viewing = nil }.tint(.primary) } }
                 .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
             }
             .presentationDetents([.large])

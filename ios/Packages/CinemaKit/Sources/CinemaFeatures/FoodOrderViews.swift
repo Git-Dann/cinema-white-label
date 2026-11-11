@@ -172,7 +172,7 @@ struct FoodOrderSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: confirmed == nil ? .cancellationAction : .confirmationAction) {
-                    if confirmed == nil { Button(role: .close) { dismiss() } } else { Button(role: .confirm) { dismiss() } }
+                    if confirmed == nil { Button(role: .close) { dismiss() }.tint(.primary) } else { Button(role: .confirm) { dismiss() } }
                 }
             }
         }

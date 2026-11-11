@@ -519,7 +519,7 @@ struct ProductOptionsSheet: View {
             }
             .navigationTitle(product.name)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button(role: .cancel) { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button(role: .cancel) { dismiss() }.tint(.primary) } }
             .safeAreaInset(edge: .bottom) {
                 let problems = ModifierValidation.problems(product: product, modifiers: choices)
                 Button("Add · \(formatters.money(ModifierValidation.unitPrice(product: product, modifiers: choices) * quantity))") {
