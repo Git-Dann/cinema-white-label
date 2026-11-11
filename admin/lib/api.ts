@@ -544,3 +544,43 @@ export interface TeamMember {
   role: Role;
   createdAt: string;
 }
+
+// ---- Connections (API keys, webhooks, shifts) ----
+
+export interface ApiKeyRow {
+  id: string;
+  name: string;
+  prefix: string;
+  scopes: string[];
+  createdAt: string;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+}
+
+export interface WebhookRow {
+  id: string;
+  url: string;
+  description: string | null;
+  events: string[];
+  active: boolean;
+  createdAt: string;
+  deliveries: { id: string; event: string; eventId: string; status: 'delivered' | 'failed'; responseCode: number | null; error: string | null; attempts: number; durationMs: number | null; createdAt: string }[];
+}
+
+export interface IntegrationCatalogue {
+  scopes: { id: string; label: string }[];
+  events: { id: string; label: string }[];
+}
+
+export interface ShiftRow {
+  id: string;
+  venueId: string;
+  source: string;
+  externalId: string;
+  staffName: string;
+  staffEmail: string | null;
+  role: string;
+  startsAt: string;
+  endsAt: string;
+  note: string | null;
+}

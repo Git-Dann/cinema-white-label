@@ -1,3 +1,4 @@
+import { IntegrationsModule } from '../integrations/integrations.module';
 import { Body, Controller, Delete, Get, Headers, HttpCode, MessageEvent, Module, Param, Post, Query, Sse, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiHeader, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Tenant } from '@prisma/client';
@@ -163,7 +164,7 @@ export class BookingController {
 }
 
 @Module({
-  imports: [LoyaltyModule],
+  imports: [LoyaltyModule, IntegrationsModule],
   controllers: [ScreeningsController, BookingController],
   providers: [
     ScreeningsService,

@@ -3726,3 +3726,307 @@ dialog.sheet form {
 .sidebar .nav a {
   min-height: 29px;
 }
+
+/* ---------------- Sidebar: icons, folding groups, account card ---------------- */
+.side-nav {
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+}
+.nav-group-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 8px 10px 4px;
+}
+.nav-group-label:disabled {
+  cursor: default;
+}
+.nav-group-label:hover:not(:disabled) {
+  color: var(--text-2);
+}
+.nav-chevron {
+  width: 14px;
+  height: 14px;
+  transform: rotate(-90deg);
+  transition: transform 0.15s var(--ease);
+}
+.nav-chevron.open {
+  transform: none;
+}
+.sidebar .nav a {
+  gap: 10px;
+  min-height: 32px;
+}
+.nav-icon {
+  flex: none;
+  color: var(--muted);
+}
+.nav a:hover .nav-icon {
+  color: var(--text-2);
+}
+.nav a.active {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.nav a.active .nav-icon {
+  color: var(--accent);
+}
+.context-row {
+  display: grid;
+  gap: 4px;
+  padding: 0 10px;
+}
+.context-row label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.context-row select {
+  min-height: 34px;
+}
+
+.account {
+  position: relative;
+  margin-top: auto;
+  padding-top: var(--s2);
+}
+.account-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+.account-card:hover,
+.account-card[aria-expanded='true'] {
+  background: var(--surface-2);
+}
+.sidebar-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink, #04201c);
+  font-weight: 650;
+  font-size: 13px;
+}
+.account-who {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+}
+.account-who .user-name,
+.account-who .user-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-who .user-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+.account-chevron {
+  flex: none;
+  color: var(--muted);
+}
+.account-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% - var(--s2) + 8px);
+  z-index: 20;
+  display: grid;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 18px 50px -12px rgb(0 0 0 / 0.6);
+}
+.account-section {
+  display: grid;
+  gap: 4px;
+  padding: 6px 4px 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.account-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.account-views {
+  display: grid;
+  gap: 2px;
+}
+.account-view,
+.account-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.account-view:hover,
+.account-item:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.account-view.on {
+  color: var(--text);
+}
+.account-view.on .icon {
+  color: var(--accent);
+}
+.account-tick {
+  margin-left: auto;
+  color: var(--accent);
+}
+.sidebar-build {
+  padding: 10px 12px 0;
+  border-top: 1px solid var(--border);
+  margin-top: var(--s2);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+/* Connections */
+.conn-doors {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--s3);
+  margin-bottom: var(--s4);
+}
+.conn-door {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, var(--surface)), var(--surface));
+}
+.conn-door:hover {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+}
+.conn-blurb {
+  margin: -4px 0 var(--s2);
+  max-width: 72ch;
+}
+.conn-bar {
+  align-items: center;
+  gap: var(--s2);
+  margin-bottom: var(--s3);
+}
+.conn-bar p {
+  margin: 0;
+}
+.conn-url {
+  min-width: 0;
+}
+.conn-log {
+  display: grid;
+  gap: 4px;
+}
+.conn-log-row {
+  display: grid;
+  grid-template-columns: 10px auto auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+.conn-log-row > :nth-child(4) {
+  text-align: right;
+}
+.conn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success, #2fbf71);
+}
+.conn-dot.failed {
+  background: var(--danger, #e5484d);
+}
+
+/* Today: who is on shift */
+.onshift {
+  margin-bottom: var(--s4);
+}
+.onshift h2 {
+  margin: 0;
+}
+.onshift-list {
+  list-style: none;
+  margin: var(--s2) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--s2);
+}
+.onshift-list li {
+  display: grid;
+  gap: 2px;
+  padding: var(--s2);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.break {
+  overflow-wrap: anywhere;
+}
+
+/* The menu scrolls on its own; the account card and build line stay pinned at the foot. */
+.sidebar {
+  overflow: hidden !important;
+}
+.side-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin-right: -4px;
+  padding-right: 4px;
+  scrollbar-width: thin;
+}
+.account {
+  margin-top: 0;
+  flex: none;
+}
+.sidebar-build {
+  flex: none;
+}

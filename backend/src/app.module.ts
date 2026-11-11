@@ -7,12 +7,13 @@ import { BookingModule } from './bookings/booking.module';
 import { CatalogueModule } from './catalogue/catalogue.module';
 import { CommonModule } from './common/common.module';
 import { HealthController } from './health.controller';
+import { IntegrationsModule } from './integrations/integrations.module';
 import { MediaModule } from './media/media.module';
 import { TenantsModule } from './tenants/tenants.module';
 import { VenuesModule } from './venues/venues.module';
 
 @Module({
-  imports: [ScheduleModule.forRoot(), CommonModule, TenantsModule, CatalogueModule, MediaModule, VenuesModule, BookingModule, AnalyticsModule, AdminModule, PromotionsModule],
+  imports: [ScheduleModule.forRoot(), CommonModule, TenantsModule, CatalogueModule, MediaModule, VenuesModule, BookingModule, AnalyticsModule, AdminModule, PromotionsModule, IntegrationsModule],
   controllers: [HealthController],
 })
 export class AppModule {}

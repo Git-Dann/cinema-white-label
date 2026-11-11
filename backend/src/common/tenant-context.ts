@@ -17,7 +17,7 @@ import { AdminClaims, verifyToken } from './tokens';
  * and must always filter by it.
  */
 
-interface TenantRequest {
+export interface TenantRequest {
   params: Record<string, string>;
   headers: Record<string, string | undefined>;
   tenant?: Tenant;
