@@ -490,7 +490,7 @@ main > :is(section, .section):not(.hero, [data-moment]) > :is(.wrap, .container)
   main > :is(section, .section):not(.hero, [data-moment]), footer.closing { min-height: calc(var(--hm, var(--h, 1)) * 100lvh); }
 }
 /* the short card sections are only as tall as their content, so no band of empty ground follows them */
-main > section:is(#who, #platform, #seats, #questions) { min-height: 0; }
+main > section:is(#who, #remote, #platform, #seats, #questions) { min-height: 0; }
 
 /* no pause buttons on the page's moving pictures, at the owner's request (reduced motion still stops them) */
 .loop-pause { display: none !important; }
@@ -629,17 +629,20 @@ footer.closing { min-height: 0 !important; }
 .cta-panel__copy h2 { max-width: 14ch; }
 .cta-panel__copy .t-lead { color: rgb(255 255 255 / .82); max-width: 40ch; }
 .cta-panel__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4) var(--s-6); margin-top: var(--s-2); }
-.cta-panel__points { display: flex !important; flex-wrap: wrap; gap: 8px 10px; margin-top: var(--s-3); list-style: none; padding: 0; }
+.cta-panel__points { display: flex !important; flex-wrap: nowrap; gap: 8px 10px; margin-top: var(--s-3); list-style: none; padding: 0; }
 .cta-panel__points > li { width: auto; flex: 0 0 auto; }
 .cta-panel__points li { padding: 6px 12px 6px 28px; position: relative; border-radius: 99px; background: rgb(255 255 255 / .06); border: 1px solid rgb(255 255 255 / .1); font-size: var(--t-small); color: rgb(255 255 255 / .86); }
 .cta-panel__points li::before { content: ""; position: absolute; left: 11px; top: 50%; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%; background: var(--accent); }
 .cta-panel__visual { align-self: end; margin-top: var(--s-7); }
-.cta-panel__visual img { display: block; width: 100%; height: auto; -webkit-mask: linear-gradient(90deg, transparent, #000 14%), linear-gradient(transparent, #000 10%); -webkit-mask-composite: source-in; mask: linear-gradient(90deg, transparent, #000 14%) intersect, linear-gradient(transparent, #000 10%); }
+.cta-panel__visual img { display: block; width: 100%; height: auto;
+  /* the shot's own ground melts into the panel: a long eased fade at its top and left, no edge */
+  -webkit-mask: linear-gradient(90deg, transparent, rgb(0 0 0 / .5) 10%, #000 22%), linear-gradient(transparent 0%, rgb(0 0 0 / .15) 12%, rgb(0 0 0 / .5) 26%, rgb(0 0 0 / .85) 40%, #000 52%); -webkit-mask-composite: source-in;
+  mask: linear-gradient(90deg, transparent, rgb(0 0 0 / .5) 10%, #000 22%) intersect, linear-gradient(transparent 0%, rgb(0 0 0 / .15) 12%, rgb(0 0 0 / .5) 26%, rgb(0 0 0 / .85) 40%, #000 52%); }
 @media (max-width: 1023px) {
   .cta-panel { grid-template-columns: minmax(0, 1fr); }
   .cta-panel__copy { padding: var(--s-7) var(--s-6) 0; }
   .cta-panel__visual { margin-top: 0; }
-  .cta-panel__visual img { -webkit-mask: linear-gradient(transparent, #000 12%); mask: linear-gradient(transparent, #000 12%); }
+  .cta-panel__visual img { -webkit-mask: linear-gradient(transparent, rgb(0 0 0 / .5) 20%, #000 40%); mask: linear-gradient(transparent, rgb(0 0 0 / .5) 20%, #000 40%); }
 }
 .closing__cta .close__word { margin-top: var(--s-8); }
 .footer__soon { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 99px; font-size: 11px; line-height: 16px; vertical-align: 1px; color: var(--accent); border: 1px solid rgb(147 241 247 / .35); }
@@ -703,3 +706,6 @@ footer.closing > .wrap { position: relative; z-index: 1; }
 /* the hero's news pill stays on one line: on a phone it keeps only its label */
 .hero--centred .pill { white-space: nowrap; max-width: 100%; }
 @media (max-width: 640px) { .hero--centred .pill > .muted { display: none; } }
+
+/* buttons stay put on hover: the colour and the arrow answer the pointer, the button never lifts or scales */
+html:not([data-motion="off"]) .btn:hover, html:not([data-motion="off"]) .btn--xl:hover { transform: none; }
