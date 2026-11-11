@@ -87,10 +87,14 @@ struct FoodView: View {
         .safeAreaInset(edge: .bottom) { basketBar }
         .sheet(isPresented: $showingVenuePicker) { VenuePickerSheet() }
         .sheet(item: $viewing) { product in
-            ProductDetailSheet(product: product, canOrder: target != nil) { item in
-                withAnimation(.snappy) { model.basket.add(item) }
-            } onFindFilm: {
-                AppNavigator.shared.requested = .films
+            NavigationStack {
+                ProductDetailSheet(product: product, canOrder: target != nil) { item in
+                    withAnimation(.snappy) { model.basket.add(item) }
+                } onFindFilm: {
+                    AppNavigator.shared.requested = .films
+                }
+                .toolbar { ToolbarItem(placement: .topBarTrailing) { Button(role: .close) { viewing = nil } } }
+                .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
             }
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)

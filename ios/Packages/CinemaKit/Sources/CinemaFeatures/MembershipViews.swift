@@ -395,7 +395,7 @@ struct MembershipPurchaseSheet: View {
             .background(palette.background)
             .navigationTitle("Join \(plan.name)")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button(role: .cancel) { dismiss() } } }
             .safeAreaInset(edge: .bottom) {
                 Button(busy ? "Paying…" : "Pay \(app.formatters.money(plan.priceMinor))") { Task { await buy() } }
                     .buttonStyle(.cinemaPrimary)

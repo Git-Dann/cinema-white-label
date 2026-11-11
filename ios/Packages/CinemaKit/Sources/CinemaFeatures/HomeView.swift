@@ -192,10 +192,27 @@ struct PromotionCard: View {
     private var artwork: ImageRef? { promotion.image ?? film?.backdrop ?? film?.poster }
 
     static let width: CGFloat = 320
-    static let artHeight: CGFloat = 164
+    static let artHeight: CGFloat = 150
+    static let stubHeight: CGFloat = 84
+    /// Radius of the notches cut where the ticket tears.
+    static let notch: CGFloat = 10
+
+    private var kindLabel: String {
+        switch promotion.action {
+        case .voucher: "VOUCHER"
+        case .film: "FILM OFFER"
+        default: "OFFER"
+        }
+    }
+
+    private var expiry: String? {
+        guard let to = promotion.validTo else { return nil }
+        return "Until \(app.formatters.shortDate(to, timeZone: app.selectedVenue?.timeZone ?? "Europe/London"))"
+    }
 
     var body: some View {
         let lines = promotion.bannerLines(filmTitle: film?.title)
+        let shape = TicketShape(cornerRadius: palette.cornerRadius.large, notchY: Self.artHeight, notchRadius: Self.notch)
         VStack(alignment: .leading, spacing: 0) {
             // The photo carries the mood; one solid block carries the words. No scrims or glows.
             ZStack(alignment: .bottomLeading) {
@@ -227,34 +244,67 @@ struct PromotionCard: View {
             .frame(width: Self.width, height: Self.artHeight)
             .clipped()
 
-            HStack(alignment: .center, spacing: Spacing.s) {
+            stub
+        }
+        .background(palette.surfaceElevated)
+        // Notches are cut out of the card itself, so the page shows through where the ticket tears.
+        .clipShape(shape)
+        .overlay(alignment: .top) {
+            Line()
+                .stroke(palette.border, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, dash: [2, 5]))
+                .frame(height: 1)
+                .padding(.horizontal, Self.notch + 6)
+                .offset(y: Self.artHeight - 0.5)
+                .accessibilityHidden(true)
+        }
+        .contentShape(shape)
+        .accessibilityElement(children: .contain)
+    }
+
+    /// The tear-off stub: what the offer is, until when, and the code or the action.
+    @ViewBuilder private var stub: some View {
+        let content = HStack(alignment: .center, spacing: Spacing.s) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text([kindLabel, expiry?.uppercased()].compactMap { $0 }.joined(separator: " · "))
+                    .font(.caption2.weight(.heavy)).tracking(1)
+                    .foregroundStyle(palette.textMuted)
+                    .lineLimit(1)
                 Text(promotion.body)
                     .font(.footnote)
                     .foregroundStyle(palette.textSecondary)
                     .lineLimit(2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                if case .voucher(let code) = promotion.action {
-                    Button { showVoucher(VoucherCode(code: code, title: promotion.title)) } label: {
-                        Text(code)
-                            .font(.subheadline.monospaced().weight(.bold))
-                            .foregroundStyle(palette.textPrimary)
-                            .padding(.horizontal, 10).padding(.vertical, 6)
-                            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(palette.textMuted, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Code \(code.map(String.init).joined(separator: " "))")
-                    .accessibilityHint("Shows the code to copy")
-                } else if promotion.hasButton {
-                    action(filled: true)
-                }
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.horizontal, Spacing.m)
-            .frame(width: Self.width, height: 64)
-            .background(palette.surfaceElevated)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if case .voucher(let code) = promotion.action {
+                VStack(spacing: 2) {
+                    Text(code)
+                        .font(.subheadline.monospaced().weight(.bold))
+                        .foregroundStyle(palette.textPrimary)
+                        .lineLimit(1).minimumScaleFactor(0.7)
+                    Text("Tap for code")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(palette.textMuted)
+                }
+                .padding(.horizontal, 10).padding(.vertical, 7)
+                .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(palette.textMuted, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
+                .accessibilityHidden(true)
+            } else if promotion.hasButton {
+                action(filled: true)
+            }
         }
-        .clipShape(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous))
-        .contentShape(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous))
-        .accessibilityElement(children: .contain)
+        .padding(.horizontal, Spacing.m)
+        .frame(width: Self.width, height: Self.stubHeight)
+
+        if case .voucher(let code) = promotion.action {
+            // The whole stub opens the code: a bigger target than the code alone.
+            Button { showVoucher(VoucherCode(code: code, title: promotion.title)) } label: { content.contentShape(Rectangle()) }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Voucher code \(code.map(String.init).joined(separator: " "))")
+                .accessibilityHint("Shows the code to copy")
+        } else {
+            content
+        }
     }
 
     @ViewBuilder
@@ -299,6 +349,27 @@ struct OfferButtonStyle: ButtonStyle {
     }
 }
 
+/// A rounded ticket with a semicircle notch cut into each side where it tears.
+struct TicketShape: Shape {
+    var cornerRadius: CGFloat
+    var notchY: CGFloat
+    var notchRadius: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        var card = Path(roundedRect: rect, cornerRadius: cornerRadius, style: .continuous)
+        let notches = Path { p in
+            p.addEllipse(in: CGRect(x: rect.minX - notchRadius, y: notchY - notchRadius, width: notchRadius * 2, height: notchRadius * 2))
+            p.addEllipse(in: CGRect(x: rect.maxX - notchRadius, y: notchY - notchRadius, width: notchRadius * 2, height: notchRadius * 2))
+        }
+        card = card.subtracting(notches)
+        return card
+    }
+}
+
+private struct Line: Shape {
+    func path(in rect: CGRect) -> Path { Path { p in p.move(to: CGPoint(x: 0, y: rect.midY)); p.addLine(to: CGPoint(x: rect.maxX, y: rect.midY)) } }
+}
+
 /// Shows a voucher code large enough to read out, with a copy button.
 struct VoucherCodeSheet: View {
     let voucher: VoucherCode
@@ -307,11 +378,8 @@ struct VoucherCodeSheet: View {
     @State private var copied = false
 
     var body: some View {
+        NavigationStack {
         VStack(spacing: Spacing.m) {
-            Text(voucher.title)
-                .font(.headline)
-                .foregroundStyle(palette.textSecondary)
-                .multilineTextAlignment(.center)
             Text(voucher.code)
                 .font(.system(.largeTitle, design: .monospaced).weight(.bold))
                 .foregroundStyle(palette.textPrimary)
@@ -330,8 +398,13 @@ struct VoucherCodeSheet: View {
             .sensoryFeedback(.success, trigger: copied)
         }
         .padding(Spacing.xl)
-        .frame(maxWidth: .infinity)
-        .presentationDetents([.height(320)])
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .navigationTitle(voucher.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { ToolbarItem(placement: .topBarTrailing) { Button(role: .close) { dismiss() } } }
+        }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
         .presentationBackground(palette.backgroundElevated)
     }
 }

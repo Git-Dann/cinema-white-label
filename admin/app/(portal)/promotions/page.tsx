@@ -207,6 +207,7 @@ export default function PromotionsPage() {
             code={form.action === 'voucher' ? form.voucherCode || null : null}
             imageUrl={form.imageUrl ?? (form.action === 'film' ? backdropOf(form.filmId) : null)}
             filmTitle={form.action === 'film' && form.filmId ? filmTitle(form.filmId) : null}
+            validTo={endOfDay(form.validTo)}
           />
         </div>
         <div className="row gap-1 offer-photo-row">
@@ -339,6 +340,7 @@ export default function PromotionsPage() {
                     code={p.action === 'voucher' ? p.voucherCode : null}
                     imageUrl={p.image?.url}
                     filmTitle={p.action === 'film' ? filmTitle(p.filmId) : null}
+                    validTo={p.validTo}
                   />
                   <div className="offer-meta">
                   <div className="tile-head">
