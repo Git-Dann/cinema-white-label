@@ -6,6 +6,7 @@ import { useSession, useTenantData } from '@/lib/session';
 import { formatDate, formatMoney, inputToMinor } from '@/lib/format';
 import { ApiErrorNote, ErrorNote, Loading, PageHeader, ReadOnlyNote, SuccessNote } from '@/components/ui';
 import { ScopeNote, useCinemaScope } from '@/lib/cinema-scope';
+import { Sheet, TileHit } from '@/components/Sheet';
 
 type ApiErr = { message: string; details: string[] } | null;
 
@@ -181,117 +182,140 @@ export default function VouchersPage() {
       <ErrorNote message={msg.error ?? vouchers.error} />
       <SuccessNote message={msg.ok} />
 
-      {creating && can.canEditVouchers && (
-        <section className="card" aria-labelledby="vc-title">
-          <h2 id="vc-title" className="h3">
-            New voucher
-          </h2>
-          <form onSubmit={create} noValidate>
-            <div className="form-grid cols-3">
-              <div className="field">
-                <label htmlFor="vc-code">Code</label>
-                <input id="vc-code" maxLength={20} value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} aria-describedby="vc-code-help" />
-                <p id="vc-code-help" className="help">
-                  3 to 20 letters, numbers or hyphens.
-                </p>
+      <Sheet
+        open={creating && can.canEditVouchers}
+        title="New voucher"
+        subtitle="The code and discount are fixed once the voucher is created."
+        onClose={() => setCreating(false)}
+        onSubmit={create}
+        footer={
+          <>
+            <button type="submit" className="btn btn-primary" disabled={busy}>
+              {busy ? 'Creating…' : 'Create voucher'}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => setCreating(false)}>
+              Cancel
+            </button>
+          </>
+        }
+      >
+        <div className="form-grid">
+          <div className="field">
+            <label htmlFor="vc-code">Code</label>
+            <input id="vc-code" maxLength={20} value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} aria-describedby="vc-code-help" />
+            <p id="vc-code-help" className="help">
+              3 to 20 letters, numbers or hyphens.
+            </p>
+          </div>
+          <div className="field">
+            <label htmlFor="vc-desc">Description</label>
+            <input id="vc-desc" maxLength={100} value={form.description} onChange={set('description')} placeholder="10% off your first booking" />
+          </div>
+          <div className="field">
+            <label htmlFor="vc-kind">Discount type</label>
+            <select id="vc-kind" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as Voucher['kind'], value: '' })}>
+              <option value="percentOff">Percentage off</option>
+              <option value="amountOff">Amount off</option>
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="vc-value">{form.kind === 'percentOff' ? 'Percentage' : 'Amount'}</label>
+            {form.kind === 'percentOff' ? (
+              <input id="vc-value" type="number" min={1} max={100} step={1} value={form.value} onChange={set('value')} placeholder="10" />
+            ) : (
+              <div className="money-input">
+                <span aria-hidden="true">£</span>
+                <input id="vc-value" inputMode="decimal" value={form.value} onChange={set('value')} placeholder="2.00" />
               </div>
-              <div className="field span-2">
-                <label htmlFor="vc-desc">Description</label>
-                <input id="vc-desc" maxLength={100} value={form.description} onChange={set('description')} placeholder="10% off your first booking" />
-              </div>
-              <div className="field">
-                <label htmlFor="vc-kind">Discount type</label>
-                <select id="vc-kind" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as Voucher['kind'], value: '' })}>
-                  <option value="percentOff">Percentage off</option>
-                  <option value="amountOff">Amount off</option>
-                </select>
-              </div>
-              <div className="field">
-                <label htmlFor="vc-value">{form.kind === 'percentOff' ? 'Percentage' : 'Amount'}</label>
-                {form.kind === 'percentOff' ? (
-                  <input id="vc-value" type="number" min={1} max={100} step={1} value={form.value} onChange={set('value')} placeholder="10" />
-                ) : (
-                  <div className="money-input">
-                    <span aria-hidden="true">£</span>
-                    <input id="vc-value" inputMode="decimal" value={form.value} onChange={set('value')} placeholder="2.00" />
-                  </div>
-                )}
-              </div>
-              <div className="field">
-                <label htmlFor="vc-applies">Applies to</label>
-                <select id="vc-applies" value={form.appliesTo} onChange={set('appliesTo')}>
-                  {(Object.keys(APPLIES) as Voucher['appliesTo'][]).map((k) => (
-                    <option key={k} value={k}>
-                      {APPLIES[k]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="field">
-                <label htmlFor="vc-min">Minimum spend (optional)</label>
-                <div className="money-input">
-                  <span aria-hidden="true">£</span>
-                  <input id="vc-min" inputMode="decimal" value={form.minSpend} onChange={set('minSpend')} placeholder="0.00" />
-                </div>
-              </div>
-              <div className="field">
-                <label htmlFor="vc-from">Valid from (optional)</label>
-                <input id="vc-from" type="date" value={form.validFrom} onChange={set('validFrom')} />
-              </div>
-              <div className="field">
-                <label htmlFor="vc-to">Valid until (optional)</label>
-                <input id="vc-to" type="date" value={form.validTo} onChange={set('validTo')} />
-              </div>
-              <div className="field">
-                <label htmlFor="vc-max">Maximum redemptions (optional)</label>
-                <input id="vc-max" type="number" min={1} step={1} value={form.maxRedemptions} onChange={set('maxRedemptions')} placeholder="Unlimited" />
-              </div>
-              <div className="field">
-                <label htmlFor="vc-venue">Valid at</label>
-                <select id="vc-venue" value={form.venueId} onChange={(e) => setForm({ ...form, venueId: e.target.value })}>
-                  <option value="">All cinemas</option>
-                  {scope.venues.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="field span-2">
-                <span className="label">Status</span>
-                <label className="switch">
-                  <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
-                  Active immediately
-                </label>
-              </div>
+            )}
+          </div>
+          <div className="field">
+            <label htmlFor="vc-applies">Applies to</label>
+            <select id="vc-applies" value={form.appliesTo} onChange={set('appliesTo')}>
+              {(Object.keys(APPLIES) as Voucher['appliesTo'][]).map((k) => (
+                <option key={k} value={k}>
+                  {APPLIES[k]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="vc-min">Minimum spend (optional)</label>
+            <div className="money-input">
+              <span aria-hidden="true">£</span>
+              <input id="vc-min" inputMode="decimal" value={form.minSpend} onChange={set('minSpend')} placeholder="0.00" />
             </div>
-            <ApiErrorNote error={formError} />
-            <div className="row gap-1">
+          </div>
+          <div className="field">
+            <label htmlFor="vc-from">Valid from (optional)</label>
+            <input id="vc-from" type="date" value={form.validFrom} onChange={set('validFrom')} />
+          </div>
+          <div className="field">
+            <label htmlFor="vc-to">Valid until (optional)</label>
+            <input id="vc-to" type="date" value={form.validTo} onChange={set('validTo')} />
+          </div>
+          <div className="field">
+            <label htmlFor="vc-max">Maximum redemptions (optional)</label>
+            <input id="vc-max" type="number" min={1} step={1} value={form.maxRedemptions} onChange={set('maxRedemptions')} placeholder="Unlimited" />
+          </div>
+          <div className="field">
+            <label htmlFor="vc-venue">Valid at</label>
+            <select id="vc-venue" value={form.venueId} onChange={(e) => setForm({ ...form, venueId: e.target.value })}>
+              <option value="">All cinemas</option>
+              {scope.venues.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field span-2">
+            <label className="switch">
+              <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
+              Active as soon as it’s created
+            </label>
+          </div>
+        </div>
+        <ApiErrorNote error={formError} />
+      </Sheet>
+
+      <Sheet
+        open={!!editing && can.canEditVouchers}
+        narrow
+        title={editing ? `Edit ${editing.code}` : 'Edit voucher'}
+        subtitle={editing ? `${voucherValue(editing)} · ${APPLIES[editing.appliesTo]}. The code and discount can’t change.` : undefined}
+        onClose={() => setEditing(null)}
+        onSubmit={saveEdit}
+        footer={
+          editing && (
+            <>
               <button type="submit" className="btn btn-primary" disabled={busy}>
-                {busy ? 'Creating…' : 'Create voucher'}
+                {busy ? 'Saving…' : 'Save changes'}
               </button>
-              <button type="button" className="btn btn-ghost" onClick={() => setCreating(false)}>
+              <button type="button" className="btn btn-ghost" onClick={() => setEditing(null)}>
                 Cancel
               </button>
+              <button
+                type="button"
+                className={`btn sheet-foot-end${editing.active ? ' btn-danger' : ''}`}
+                disabled={busy}
+                onClick={async () => {
+                  if (await update(editing, { active: !editing.active }, `${editing.code} ${editing.active ? 'deactivated' : 'activated'}.`)) setEditing(null);
+                }}
+              >
+                {editing.active ? 'Deactivate' : 'Activate'}
+              </button>
+            </>
+          )
+        }
+      >
+        {editing && (
+          <>
+            <div className="field">
+              <label htmlFor="ve-desc">Description</label>
+              <input id="ve-desc" maxLength={100} value={edit.description} onChange={(e) => setEdit({ ...edit, description: e.target.value })} />
             </div>
-          </form>
-        </section>
-      )}
-
-      {editing && can.canEditVouchers && (
-        <section className="card" aria-labelledby="ve-title">
-          <h2 id="ve-title" className="h3">
-            Edit {editing.code}
-          </h2>
-          <p className="muted small mb-2">
-            {voucherValue(editing)} · {APPLIES[editing.appliesTo]}. The code and discount cannot change.
-          </p>
-          <form onSubmit={saveEdit} noValidate>
-            <div className="form-grid cols-3">
-              <div className="field">
-                <label htmlFor="ve-desc">Description</label>
-                <input id="ve-desc" maxLength={100} value={edit.description} onChange={(e) => setEdit({ ...edit, description: e.target.value })} />
-              </div>
+            <div className="form-grid">
               <div className="field">
                 <label htmlFor="ve-to">Valid until</label>
                 <input id="ve-to" type="date" value={edit.validTo} onChange={(e) => setEdit({ ...edit, validTo: e.target.value })} aria-describedby="ve-to-help" />
@@ -306,17 +330,9 @@ export default function VouchersPage() {
               </div>
             </div>
             <ApiErrorNote error={formError} />
-            <div className="row gap-1">
-              <button type="submit" className="btn btn-primary" disabled={busy}>
-                {busy ? 'Saving…' : 'Save changes'}
-              </button>
-              <button type="button" className="btn btn-ghost" onClick={() => setEditing(null)}>
-                Cancel
-              </button>
-            </div>
-          </form>
-        </section>
-      )}
+          </>
+        )}
+      </Sheet>
 
       <section aria-label="Vouchers">
         {vouchers.loading && !vouchers.data && <Loading />}
@@ -326,7 +342,8 @@ export default function VouchersPage() {
             {shown.map((v) => {
               const used = v.maxRedemptions ? Math.min(100, Math.round((v.redemptions / v.maxRedemptions) * 100)) : null;
               return (
-                <li key={v.id} className={`card tile voucher-tile${v.active ? '' : ' is-off'}`}>
+                <li key={v.id} className={`card tile voucher-tile${v.active ? '' : ' is-off'}${can.canEditVouchers ? ' tile-click' : ''}`}>
+                  {can.canEditVouchers && <TileHit label={`Edit ${v.code}`} onClick={() => startEdit(v)} />}
                   <div className="tile-head">
                     <div>
                       <div className="voucher-value">{voucherValue(v)}</div>
@@ -350,20 +367,6 @@ export default function VouchersPage() {
                   {used !== null && (
                     <div className="meter" role="img" aria-label={`${used}% of uses taken`}>
                       <span style={{ width: `${used}%` }} />
-                    </div>
-                  )}
-                  {can.canEditVouchers && (
-                    <div className="tile-actions">
-                      <button className="btn btn-sm" onClick={() => startEdit(v)} aria-label={`Edit ${v.code}`}>
-                        Edit
-                      </button>
-                      <button
-                        className={`btn btn-sm${v.active ? ' btn-danger' : ''}`}
-                        onClick={() => update(v, { active: !v.active }, `${v.code} ${v.active ? 'deactivated' : 'activated'}.`)}
-                        aria-label={`${v.active ? 'Deactivate' : 'Activate'} ${v.code}`}
-                      >
-                        {v.active ? 'Deactivate' : 'Activate'}
-                      </button>
                     </div>
                   )}
                 </li>

@@ -63,7 +63,7 @@ const paletteBody = z.object({
 const previewBody = z.object({ draft: draftSchema.partial().default({}), palette: paletteBody.optional() });
 const publishBody = z.object({ note: z.string().max(200).optional(), scheduledFor: z.string().datetime().optional() });
 const uploadBody = z.object({
-  kind: z.enum(['LOGO', 'POSTER', 'BACKDROP', 'BANNER', 'PRODUCT']),
+  kind: z.enum(['LOGO', 'POSTER', 'BACKDROP', 'BANNER', 'PRODUCT', 'VENUE']),
   filmId: z.string().optional(),
   dataBase64: z.string().max(14_000_000),
   attribution: z.string().max(200).optional(),
@@ -200,7 +200,7 @@ export class AdminBrandingController {
         tenantId: t.id, filmId: b.filmId ?? null, kind: b.kind, provider: 'operator', sourceRef: `upload:${name}`, storageKey: `upload/${t.id}/${name}`,
         width: finalMeta.width ?? meta.width, height: finalMeta.height ?? meta.height, mimeType: isLogo ? 'image/png' : 'image/jpeg', attribution: b.attribution ?? null, licenceRef: b.licenceRef ?? null,
         dominantColor: `#${[d.r, d.g, d.b].map((x) => x.toString(16).padStart(2, '0')).join('')}`.toUpperCase(),
-        approvedContexts: isLogo ? ['branding'] : b.kind === 'PRODUCT' ? ['menu'] : ['list', 'detail'],
+        approvedContexts: isLogo ? ['branding'] : b.kind === 'PRODUCT' ? ['menu'] : b.kind === 'VENUE' ? ['venue'] : ['list', 'detail'],
       },
     });
     await this.audit.record({ tenantId: t.id, actorId: a.sub, action: 'media.upload', entityType: 'MediaAsset', entityId: asset.id, data: { kind: b.kind, filmId: b.filmId } });
@@ -218,6 +218,8 @@ const venueBody = z.object({
   longitude: z.number().min(-180).max(180),
   phone: z.string().nullable().default(null),
   facilities: z.array(z.string()).default([]),
+  /** A photo uploaded with kind VENUE, or null for none. */
+  imageAssetId: z.string().nullable().default(null),
 });
 const filmBody = z.object({
   slug: z.string().regex(/^[a-z0-9-]+$/),
@@ -246,27 +248,40 @@ export class AdminContentController {
   @Get('venues')
   async venues(@CurrentTenant() t: Tenant) {
     const rows = await this.prisma.venue.findMany({ where: { tenantId: t.id }, include: { auditoriums: { select: { id: true } } }, orderBy: { name: 'asc' } });
-    return rows.map((v) => venueDto(v));
+    const ids = rows.map((v) => v.imageAssetId).filter((x): x is string => !!x);
+    const assets = ids.length ? await this.prisma.mediaAsset.findMany({ where: { id: { in: ids }, tenantId: t.id } }) : [];
+    return rows.map((v) => venueDto(v, { image: assets.find((a) => a.id === v.imageAssetId) }));
+  }
+
+  /** The photo must be this operator's and uploaded for a cinema. */
+  private async assertVenueImage(t: Tenant, imageAssetId: string | null | undefined) {
+    if (!imageAssetId) return null;
+    const asset = await this.prisma.mediaAsset.findFirst({ where: { id: imageAssetId, tenantId: t.id } });
+    if (!asset || asset.kind !== 'VENUE') throw Errors.validation('Choose a photo uploaded for this cinema');
+    return asset;
   }
 
   @Post('venues')
   @Roles('OPERATOR_ADMIN', 'VENUE_MANAGER')
   async createVenue(@CurrentTenant() t: Tenant, @CurrentAdmin() a: AdminClaims, @Body(new ZodPipe(venueBody)) b: z.infer<typeof venueBody>) {
+    const image = await this.assertVenueImage(t, b.imageAssetId);
     const v = await this.prisma.venue.create({ data: { ...b, tenantId: t.id, timeZone: t.timeZone } }).catch((e) => {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') throw Errors.validation('A cinema with this slug already exists');
       throw e;
     });
     await this.audit.record({ tenantId: t.id, actorId: a.sub, action: 'venue.create', entityType: 'Venue', entityId: v.id, data: b });
-    return venueDto(v);
+    return venueDto(v, { image });
   }
 
   @Put('venues/:id')
   @Roles('OPERATOR_ADMIN', 'VENUE_MANAGER')
   async updateVenue(@CurrentTenant() t: Tenant, @CurrentAdmin() a: AdminClaims, @Param('id') id: string, @Body(new ZodPipe(venueBody.partial())) b: Partial<z.infer<typeof venueBody>>) {
+    if (b.imageAssetId !== undefined) await this.assertVenueImage(t, b.imageAssetId);
     const res = await this.prisma.venue.updateMany({ where: { id, tenantId: t.id }, data: b });
     if (!res.count) throw Errors.notFound('Cinema');
     await this.audit.record({ tenantId: t.id, actorId: a.sub, action: 'venue.update', entityType: 'Venue', entityId: id, data: b });
-    return venueDto(await this.prisma.venue.findUniqueOrThrow({ where: { id } }));
+    const v = await this.prisma.venue.findUniqueOrThrow({ where: { id } });
+    return venueDto(v, { image: v.imageAssetId ? await this.prisma.mediaAsset.findUnique({ where: { id: v.imageAssetId } }) : null });
   }
 
   @Delete('venues/:id')

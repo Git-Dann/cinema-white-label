@@ -4,6 +4,7 @@ import { FormEvent, useState } from 'react';
 import { ApiErrorNote, ErrorNote, Loading, PageHeader, ReadOnlyNote, SuccessNote } from '@/components/ui';
 import { api, errorDetails, errorMessage, Role, TeamMember, tenantPath } from '@/lib/api';
 import { formatDate, roleLabel } from '@/lib/format';
+import { Sheet, TileHit } from '@/components/Sheet';
 import { useSession, useTenantData } from '@/lib/session';
 
 /*
@@ -32,6 +33,8 @@ export default function TeamPage() {
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<{ name: string; email: string; password: string } | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [person, setPerson] = useState<TeamMember | null>(null);
+  const [role, setRole] = useState<Role>('VENUE_MANAGER');
   const members = team.data ?? [];
 
   async function add(e: FormEvent) {
@@ -57,6 +60,7 @@ export default function TeamPage() {
     try {
       await api(tenantPath(tenant, `/team/${m.id}`), { method: 'PUT', body: { role } });
       setSaved(`${m.name} is now ${roleLabel(role).toLowerCase()}.`);
+      setPerson(null);
       team.reload();
     } catch (err) {
       setError(errorMessage(err));
@@ -70,6 +74,7 @@ export default function TeamPage() {
     try {
       await api(tenantPath(tenant, `/team/${m.id}`), { method: 'DELETE' });
       setSaved(`${m.name} no longer has access.`);
+      setPerson(null);
       team.reload();
     } catch (err) {
       setError(errorMessage(err));
@@ -114,32 +119,83 @@ export default function TeamPage() {
         </div>
       )}
 
-      {adding && (
-        <form className="card team-form" onSubmit={add} aria-labelledby="team-add">
-          <h2 id="team-add" className="h3">Add a person</h2>
-          <ApiErrorNote error={formError} />
-          <div className="form-grid cols-3">
+      <Sheet
+        open={adding && can.canManageTeam}
+        narrow
+        title="Add a person"
+        subtitle="They get a temporary password, shown once, to sign in with."
+        onClose={() => setAdding(false)}
+        onSubmit={add}
+        footer={
+          <>
+            <button type="submit" className="btn btn-primary" disabled={busy}>
+              {busy ? 'Adding…' : 'Add and create password'}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => setAdding(false)}>
+              Cancel
+            </button>
+          </>
+        }
+      >
+        <div className="field">
+          <label htmlFor="t-name">Name</label>
+          <input id="t-name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        </div>
+        <div className="field">
+          <label htmlFor="t-email">Email</label>
+          <input id="t-email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+        </div>
+        <div className="field">
+          <label htmlFor="t-role">Role</label>
+          <select id="t-role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>
+            {ROLES.map((r) => <option key={r.role} value={r.role}>{roleLabel(r.role)}</option>)}
+          </select>
+          <p className="help">{ROLES.find((r) => r.role === form.role)?.sees}</p>
+        </div>
+        <ApiErrorNote error={formError} />
+      </Sheet>
+
+      <Sheet
+        open={!!person && can.canManageTeam}
+        narrow
+        title={person?.name ?? 'Person'}
+        subtitle={person?.email}
+        onClose={() => setPerson(null)}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (person && role !== person.role) changeRole(person, role);
+          else setPerson(null);
+        }}
+        footer={
+          person && (
+            <>
+              <button type="submit" className="btn btn-primary">
+                Save
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={() => setPerson(null)}>
+                Cancel
+              </button>
+              <button type="button" className="btn btn-danger sheet-foot-end" onClick={() => remove(person)}>
+                Remove access
+              </button>
+            </>
+          )
+        }
+      >
+        {person && (
+          <>
             <div className="field">
-              <label htmlFor="t-name">Name</label>
-              <input id="t-name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            </div>
-            <div className="field">
-              <label htmlFor="t-email">Email</label>
-              <input id="t-email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            </div>
-            <div className="field">
-              <label htmlFor="t-role">Role</label>
-              <select id="t-role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>
+              <label htmlFor="p-role">Role</label>
+              <select id="p-role" value={role} onChange={(e) => setRole(e.target.value as Role)}>
                 {ROLES.map((r) => <option key={r.role} value={r.role}>{roleLabel(r.role)}</option>)}
               </select>
+              <p className="help">Sees: {ROLES.find((r) => r.role === role)?.sees}</p>
             </div>
-          </div>
-          <div className="row gap-1">
-            <button className="btn btn-primary" disabled={busy}>{busy ? 'Adding…' : 'Add and create password'}</button>
-            <button type="button" className="btn btn-ghost" onClick={() => setAdding(false)}>Cancel</button>
-          </div>
-        </form>
-      )}
+            <p className="muted small">Added {formatDate(person.createdAt)}.</p>
+            <ErrorNote message={error} />
+          </>
+        )}
+      </Sheet>
 
       <ErrorNote message={error ?? team.error} />
       <SuccessNote message={saved} />
@@ -150,8 +206,20 @@ export default function TeamPage() {
         <ul className="tile-grid" aria-label="People">
           {members.map((m) => {
             const you = m.email === me.email;
+            const editable = can.canManageTeam && !you;
             return (
-              <li key={m.id} className="card tile">
+              <li key={m.id} className={`card tile${editable ? ' tile-click' : ''}`}>
+                {editable && (
+                  <TileHit
+                    label={`Change role or access for ${m.name}`}
+                    onClick={() => {
+                      setPerson(m);
+                      setRole(m.role);
+                      setError(null);
+                      setSaved(null);
+                    }}
+                  />
+                )}
                 <div className="team-person">
                   <span className="team-avatar" aria-hidden="true">{initials(m.name)}</span>
                   <div className="team-who">
@@ -159,18 +227,10 @@ export default function TeamPage() {
                     <div className="muted small team-email">{m.email}</div>
                   </div>
                 </div>
-                <div className="muted small">Added {formatDate(m.createdAt)}</div>
-                {can.canManageTeam && !you ? (
-                  <div className="tile-actions">
-                    <label className="visually-hidden" htmlFor={`role-${m.id}`}>Role for {m.name}</label>
-                    <select id={`role-${m.id}`} value={m.role} onChange={(e) => changeRole(m, e.target.value as Role)}>
-                      {ROLES.map((r) => <option key={r.role} value={r.role}>{roleLabel(r.role)}</option>)}
-                    </select>
-                    <button className="btn btn-sm btn-danger" onClick={() => remove(m)}>Remove</button>
-                  </div>
-                ) : (
-                  <div className="tile-actions"><span className="badge">{roleLabel(m.role)}</span></div>
-                )}
+                <div className="row between">
+                  <span className="badge">{roleLabel(m.role)}</span>
+                  <span className="muted small">Added {formatDate(m.createdAt)}</span>
+                </div>
               </li>
             );
           })}
