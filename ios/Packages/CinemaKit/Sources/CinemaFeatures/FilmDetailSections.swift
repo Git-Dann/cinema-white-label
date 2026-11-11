@@ -30,16 +30,17 @@ struct PersonPhoto: View {
 
 /// "Cast >" with a swipeable row of round photos, name and character underneath.
 struct CastCarousel: View {
-    let people: [Film.Person]
+    let film: Film
     @Environment(\.palette) private var palette
+    private var people: [Film.Person] { film.people ?? [] }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.header) {
-            SectionHeader("Cast") { PeopleListView(people: people) }
+            SectionHeader("Cast") { PeopleListView(film: film) }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: Spacing.item) {
                     ForEach(people) { p in
-                        NavigationLink { PeopleListView(people: people, focus: p.id) } label: {
+                        NavigationLink { PersonView(person: p, film: film) } label: {
                             VStack(spacing: Spacing.xs) {
                                 PersonPhoto(person: p, size: 92)
                                 VStack(spacing: 2) {
@@ -65,15 +66,15 @@ struct CastCarousel: View {
 
 /// The whole cast: photo, name, character and a short biography.
 struct PeopleListView: View {
-    let people: [Film.Person]
-    var focus: String?
+    let film: Film
     @Environment(\.palette) private var palette
+    private var people: [Film.Person] { film.people ?? [] }
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: Spacing.xl) {
-                    ForEach(people) { p in
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: Spacing.xl) {
+                ForEach(people) { p in
+                    NavigationLink { PersonView(person: p, film: film) } label: {
                         HStack(alignment: .top, spacing: Spacing.m) {
                             PersonPhoto(person: p, size: 72)
                             VStack(alignment: .leading, spacing: 2) {
@@ -83,20 +84,118 @@ struct PeopleListView: View {
                                     Text(bio).font(.footnote).foregroundStyle(palette.textMuted).lineLimit(3).padding(.top, 4)
                                 }
                             }
+                            .multilineTextAlignment(.leading)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .id(p.id)
-                        .accessibilityElement(children: .combine)
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityElement(children: .combine)
                 }
-                .padding(.vertical, Spacing.m)
-                .pagePadding()
             }
-            .onAppear { if let focus { proxy.scrollTo(focus, anchor: .top) } }
+            .padding(.vertical, Spacing.m)
+            .pagePadding()
         }
         .background(palette.background.ignoresSafeArea())
         .navigationTitle("Cast")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// A person: big photo over the film's blurred artwork, name, age, birthplace and biography,
+/// then the films they're in at this cinema (bookable), never a full filmography.
+struct PersonView: View {
+    let person: Film.Person
+    let film: Film
+    @Environment(AppModel.self) private var app
+    @Environment(\.palette) private var palette
+    @State private var expanded = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Spacing.section) {
+                header
+                if let bio = person.fullBiography ?? person.biography { biography(bio) }
+                films
+            }
+            .padding(.bottom, Spacing.section)
+        }
+        .background(palette.background.ignoresSafeArea())
+        .navigationTitle(person.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: Spacing.m) {
+            PersonPhoto(person: person, size: 128)
+                .shadow(color: palette.background.opacity(0.5), radius: 16, y: 8)
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(person.name).font(.largeTitle.weight(.bold)).foregroundStyle(palette.textPrimary)
+                    .accessibilityAddTraits(.isHeader)
+                if let line = lifeLine { Text(line).font(.subheadline).foregroundStyle(palette.textSecondary) }
+                if let place = person.placeOfBirth { Text(place).font(.subheadline).foregroundStyle(palette.textMuted) }
+                if let c = person.character { Text("Plays \(c) in \(film.title)").font(.subheadline.weight(.semibold)).foregroundStyle(palette.textSecondary).padding(.top, 2) }
+            }
+        }
+        .padding(.top, Spacing.xxl)
+        .pagePadding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(alignment: .top) {
+            ArtworkImage(film.backdrop)
+                .blur(radius: 18, opaque: true)
+                .overlay(LinearGradient(colors: [palette.background.opacity(0.35), palette.background], startPoint: .top, endPoint: .bottom))
+                .frame(height: 360)
+                .clipped()
+                .padding(.top, -200)
+                .accessibilityHidden(true)
+        }
+    }
+
+    /// "Born 10 November 1969 · Age 57", or "1950 to 2020 · Aged 69".
+    private var lifeLine: String? {
+        guard let born = person.birthDate(), let age = person.age() else { return nil }
+        if let died = person.deathDate() {
+            let y = Calendar(identifier: .gregorian).component(.year, from: born)
+            let dy = Calendar(identifier: .gregorian).component(.year, from: died)
+            return "\(y) to \(dy) · Aged \(age)"
+        }
+        return "Born \(app.formatters.longDate(born, timeZone: TimeZone.current.identifier)) · Age \(age)"
+    }
+
+    private func biography(_ bio: String) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text(bio).font(.body).foregroundStyle(palette.textPrimary).lineLimit(expanded ? nil : 4)
+            if bio.count > 220 {
+                Button { withAnimation(.snappy) { expanded.toggle() } } label: {
+                    HStack(spacing: 4) {
+                        Text(expanded ? "Show less" : "Show more")
+                        Image(systemName: "chevron.down").rotationEffect(.degrees(expanded ? 180 : 0))
+                    }
+                }
+                .font(.headline)
+                .foregroundStyle(palette.textMuted)
+            }
+        }
+        .pagePadding()
+    }
+
+    private var films: some View {
+        let list = film.filmsFeaturing(person, in: app.nowShowing + app.comingSoon)
+        return VStack(alignment: .leading, spacing: Spacing.header) {
+            SectionHeader("With \(person.firstName) at \(app.config.tenant.name)",
+                          subtitle: list.count == 1 ? "Showing now or coming soon" : "\(list.count) films showing now or coming soon")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: Spacing.item) {
+                    ForEach(list) { f in
+                        NavigationLink(value: f) { PosterCard(film: f, size: .medium, caption: f.status == .comingSoon ? "Coming soon" : "Book now") }
+                            .buttonStyle(.plain)
+                    }
+                }
+                .pagePadding()
+            }
+            .scrollClipDisabled()
+        }
     }
 }
 

@@ -11,7 +11,34 @@ export interface CastMember {
   character: string | null;
   /** TMDB image path, e.g. "/abc.jpg". Turned into an image URL by the DTO. */
   profilePath: string | null;
+  /** Short biography for the cast list (two sentences). */
   biography: string | null;
+  /** Fuller biography for the person page. */
+  fullBiography?: string | null;
+  /** YYYY-MM-DD, or null when TMDB doesn't know. Undefined on rows imported before it was stored. */
+  birthday?: string | null;
+  deathday?: string | null;
+  placeOfBirth?: string | null;
+}
+
+/** What the importer keeps about a person between runs (one TMDB call per person, ever). */
+export interface PersonInfo {
+  biography: string | null;
+  fullBiography: string | null;
+  birthday: string | null;
+  deathday: string | null;
+  placeOfBirth: string | null;
+}
+
+export function personInfo(p: any): PersonInfo {
+  const full = (p?.biography ?? '').replace(/\s+\n/g, '\n').trim();
+  return {
+    biography: shortBio(full),
+    fullBiography: full ? (full.length > 2000 ? full.slice(0, 2000).replace(/\s+\S*$/, '') + '…' : full) : null,
+    birthday: /^\d{4}-\d{2}-\d{2}$/.test(p?.birthday ?? '') ? p.birthday : null,
+    deathday: /^\d{4}-\d{2}-\d{2}$/.test(p?.deathday ?? '') ? p.deathday : null,
+    placeOfBirth: p?.place_of_birth || null,
+  };
 }
 
 export interface CrewMember {
@@ -73,7 +100,7 @@ export function shortBio(text: string | null | undefined): string | null {
   return out;
 }
 
-export function buildFilmDetails(m: any, bios: Map<number, string | null>): FilmDetails {
+export function buildFilmDetails(m: any, people: Map<number, PersonInfo>): FilmDetails {
   const cast: CastMember[] = (m.credits?.cast ?? [])
     .slice()
     .sort((a: any, b: any) => (a.order ?? 999) - (b.order ?? 999))
@@ -83,7 +110,7 @@ export function buildFilmDetails(m: any, bios: Map<number, string | null>): Film
       name: c.name,
       character: c.character || null,
       profilePath: c.profile_path ?? null,
-      biography: bios.get(c.id) ?? null,
+      ...(people.get(c.id) ?? { biography: null }),
     }));
 
   const crew: CrewMember[] = [];
