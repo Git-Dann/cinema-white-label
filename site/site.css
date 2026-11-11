@@ -699,3 +699,7 @@ footer.closing > .wrap { position: relative; z-index: 1; }
   -webkit-mask: radial-gradient(closest-side, #000 35%, rgb(0 0 0 / .5) 65%, transparent 100%);
   mask: radial-gradient(closest-side, #000 35%, rgb(0 0 0 / .5) 65%, transparent 100%); }
 .hero-phones__row { z-index: 2; }
+
+/* the hero's news pill stays on one line: on a phone it keeps only its label */
+.hero--centred .pill { white-space: nowrap; max-width: 100%; }
+@media (max-width: 640px) { .hero--centred .pill > .muted { display: none; } }
