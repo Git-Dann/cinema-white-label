@@ -84,6 +84,8 @@ function main(env = process.env) {
       console.log(`deploy-db: gave ${await ensureFixtureProductImages(prisma)} demo products their artwork.`);
       const { ensureFixtureVenueImages } = require('../dist/fixtures/venue-images');
       console.log(`deploy-db: gave ${await ensureFixtureVenueImages(prisma)} demo cinemas their photo.`);
+      const { ensureFixturePromotionImages } = require('../dist/fixtures/promotion-images');
+      console.log(`deploy-db: gave ${await ensureFixturePromotionImages(prisma)} demo offers a banner photo.`);
       await prisma.$disconnect();
       return;
     }

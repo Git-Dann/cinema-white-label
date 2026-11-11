@@ -620,6 +620,8 @@ model Promotion {
   filmId      String?
   voucherCode String?
   linkUrl     String?
+  /// Banner photo (MediaAsset of kind BANNER). Film promotions without one use the film's backdrop.
+  imageAssetId String?
   /// Null shows the promotion at every cinema.
   venueId     String?
   validFrom   DateTime?

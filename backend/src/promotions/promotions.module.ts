@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, Injectable, Module, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { Prisma, Promotion, Tenant } from '@prisma/client';
+import { MediaAsset, Prisma, Promotion, Tenant } from '@prisma/client';
+import { ImageRef, imageRef, pickAsset } from '../catalogue/film-dto';
 import { z } from 'zod';
 import { AuditService } from '../common/common.module';
 import { Clock } from '../common/clock';
@@ -21,6 +22,8 @@ const promotionFields = z.object({
   voucherCode: z.string().trim().toUpperCase().nullable().default(null),
   // https only: the app opens these in Safari and must never be pointed at plain http.
   linkUrl: z.string().url().startsWith('https://', 'Links must start with https://').max(500).nullable().default(null),
+  /** A photo uploaded with kind BANNER, or null. */
+  imageAssetId: z.string().nullable().default(null),
   venueId: z.string().nullable().default(null),
   validFrom: z.string().datetime().nullable().default(null),
   validTo: z.string().datetime().nullable().default(null),
@@ -48,6 +51,8 @@ export interface PromotionDto {
   ctaLabel: string | null;
   action: PromotionAction;
   validTo: string | null;
+  /** The banner photo; for a film offer without one, the film's backdrop. Null shows a type-only banner. */
+  image: ImageRef | null;
 }
 
 @Injectable()
@@ -85,19 +90,36 @@ export class PromotionsService {
         .map((v) => v.code),
     );
     const filmSet = new Set(films.map((f) => f.id));
-    return rows
-      .filter((r) => (r.action === 'voucher' ? redeemable.has(r.voucherCode ?? '') : r.action === 'film' ? filmSet.has(r.filmId ?? '') : true))
-      .map(toDto);
+    const shown = rows.filter((r) => (r.action === 'voucher' ? redeemable.has(r.voucherCode ?? '') : r.action === 'film' ? filmSet.has(r.filmId ?? '') : true));
+    const images = await this.images(tenantId, shown);
+    return shown.map((r) => toDto(r, images.get(r.id) ?? null));
+  }
+
+  /** Banner photo per promotion: its own upload, else (film offers) the film's backdrop. */
+  async images(tenantId: string, rows: Promotion[]): Promise<Map<string, MediaAsset | null>> {
+    const own = rows.map((r) => r.imageAssetId).filter((x): x is string => !!x);
+    const filmIds = rows.filter((r) => !r.imageAssetId && r.action === 'film' && r.filmId).map((r) => r.filmId!);
+    const [assets, backdrops] = await Promise.all([
+      own.length ? this.prisma.mediaAsset.findMany({ where: { tenantId, id: { in: own } } }) : [],
+      filmIds.length ? this.prisma.mediaAsset.findMany({ where: { tenantId, filmId: { in: filmIds }, kind: 'BACKDROP' } }) : [],
+    ]);
+    const now = this.clock.now();
+    return new Map(
+      rows.map((r) => [
+        r.id,
+        r.imageAssetId ? assets.find((a) => a.id === r.imageAssetId) ?? null : r.action === 'film' ? pickAsset(backdrops.filter((b) => b.filmId === r.filmId), 'BACKDROP', now) ?? null : null,
+      ]),
+    );
   }
 }
 
-export function toDto(r: Promotion): PromotionDto {
+export function toDto(r: Promotion, image: MediaAsset | null = null): PromotionDto {
   const action: PromotionAction =
     r.action === 'film' && r.filmId ? { kind: 'film', filmId: r.filmId }
     : r.action === 'voucher' && r.voucherCode ? { kind: 'voucher', code: r.voucherCode }
     : r.action === 'link' && r.linkUrl ? { kind: 'link', url: r.linkUrl }
     : { kind: 'none' };
-  return { id: r.id, title: r.title, body: r.body, ctaLabel: action.kind === 'none' ? null : r.ctaLabel, action, validTo: r.validTo?.toISOString() ?? null };
+  return { id: r.id, title: r.title, body: r.body, ctaLabel: action.kind === 'none' ? null : r.ctaLabel, action, validTo: r.validTo?.toISOString() ?? null, image: imageRef(image) };
 }
 
 @ApiTags('Promotions')
@@ -127,8 +149,9 @@ export class AdminPromotionsController {
       this.promotions.live(t.id),
     ]);
     const liveIds = new Set(live.map((p) => p.id));
+    const images = await this.promotions.images(t.id, rows);
     // `showing` tells operators whether customers can currently see it (operator-wide ones only).
-    return rows.map((r) => ({ ...r, showing: r.venueId ? null : liveIds.has(r.id) }));
+    return rows.map((r) => ({ ...r, showing: r.venueId ? null : liveIds.has(r.id), image: imageRef(images.get(r.id)) }));
   }
 
   /** References must belong to this operator; voucher codes must exist. */
@@ -136,6 +159,10 @@ export class AdminPromotionsController {
     if (p.action === 'film' && !(await this.prisma.film.findFirst({ where: { id: p.filmId!, tenantId: t.id } }))) throw Errors.notFound('Film');
     if (p.action === 'voucher' && !(await this.prisma.voucher.findFirst({ where: { code: p.voucherCode!, tenantId: t.id } }))) throw Errors.validation(`No voucher with code ${p.voucherCode}`);
     if (p.venueId && !(await this.prisma.venue.findFirst({ where: { id: p.venueId, tenantId: t.id } }))) throw Errors.notFound('Cinema');
+    if (p.imageAssetId) {
+      const asset = await this.prisma.mediaAsset.findFirst({ where: { id: p.imageAssetId, tenantId: t.id } });
+      if (!asset || asset.kind !== 'BANNER') throw Errors.validation('Choose a photo uploaded for this offer');
+    }
   }
 
   /** Clears target fields the chosen action does not use, so stale links never resurface. */
@@ -145,6 +172,7 @@ export class AdminPromotionsController {
       filmId: p.action === 'film' ? p.filmId : null,
       voucherCode: p.action === 'voucher' ? p.voucherCode : null,
       linkUrl: p.action === 'link' ? p.linkUrl : null,
+      imageAssetId: p.imageAssetId,
       venueId: p.venueId,
       validFrom: p.validFrom ? new Date(p.validFrom) : null,
       validTo: p.validTo ? new Date(p.validTo) : null,

@@ -20,7 +20,8 @@ describe('promotions (integration)', () => {
 
   it('serves the seeded promotions with typed actions', async () => {
     const list = (await api(app).get(`${T}/promotions`).expect(200)).body;
-    expect(list.map((p: any) => p.action.kind)).toEqual(['voucher', 'film']);
+    // The seed adds a third, information-only offer ("Pre-order your snacks").
+    expect(list.map((p: any) => p.action.kind)).toEqual(['voucher', 'film', 'none']);
     expect(list[0]).toMatchObject({ title: 'New here? 10% off', ctaLabel: 'Show code', action: { kind: 'voucher', code: 'WELCOME10' } });
     expect(list[1].action.filmId).toBeTruthy();
   });
