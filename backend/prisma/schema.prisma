@@ -56,6 +56,9 @@ model Tenant {
   seatCategories     SeatCategory[]
   vouchers           Voucher[]
   promotions         Promotion[]
+  apiKeys            ApiKey[]
+  webhooks           Webhook[]
+  shifts             Shift[]
   loyaltyProgram     LoyaltyProgram?
 }
 
@@ -185,6 +188,7 @@ model Venue {
   auditoriums Auditorium[]
   screenings  Screening[]
   favourites  FavouriteVenue[]
+  shifts      Shift[]
 
   @@unique([tenantId, slug])
 }
@@ -874,4 +878,87 @@ model NotificationRegistration {
   createdAt  DateTime @default(now())
 
   @@unique([tenantId, apnsToken])
+}
+
+// ---------------------------------------------------------------------------
+// Integrations: partner API keys, outgoing webhooks, shifts from rota systems.
+// See docs/integrations.md.
+// ---------------------------------------------------------------------------
+
+/// A key a partner system uses to call /v1/partner. Only a SHA-256 hash is stored;
+/// the key itself is shown once. Scopes limit what it can read or write.
+model ApiKey {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  /// First characters of the key, shown so people can tell keys apart (e.g. "sf_live_a1b2").
+  prefix      String
+  keyHash     String    @unique
+  scopes      String[]
+  createdById String?
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+
+  @@index([tenantId])
+}
+
+/// An HTTPS endpoint that receives signed events (booking confirmed, refunded…).
+model Webhook {
+  id          String            @id @default(cuid())
+  tenantId    String
+  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  url         String
+  description String?
+  events      String[]
+  /// Shared secret for the HMAC signature. Shown once when the webhook is created.
+  secret      String
+  active      Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  deliveries  WebhookDelivery[]
+
+  @@index([tenantId])
+}
+
+model WebhookDelivery {
+  id           String   @id @default(cuid())
+  webhookId    String
+  webhook      Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  event        String
+  /// The event id sent to the receiver, so it can ignore repeats.
+  eventId      String
+  payload      Json
+  /// delivered or failed
+  status       String
+  responseCode Int?
+  error        String?
+  attempts     Int      @default(1)
+  durationMs   Int?
+  createdAt    DateTime @default(now())
+
+  @@index([webhookId, createdAt])
+}
+
+/// A shift pushed in by a rota system (Planday, Deputy, RotaCloud…) or any partner
+/// with the shifts:write scope. Upserted by (source, externalId).
+model Shift {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId    String
+  venue      Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  source     String
+  externalId String
+  staffName  String
+  staffEmail String?
+  role       String
+  startsAt   DateTime
+  endsAt     DateTime
+  note       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([tenantId, source, externalId])
+  @@index([tenantId, venueId, startsAt])
 }
