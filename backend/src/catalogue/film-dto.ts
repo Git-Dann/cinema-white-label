@@ -1,5 +1,6 @@
 import { Film, MediaAsset, Trailer } from '@prisma/client';
 import { publicMediaUrl } from '../media/storage';
+import { certificateMeaning, readDetails } from './film-details';
 
 export const RENDITION_WIDTHS = [160, 342, 500, 780, 1280, 1600] as const;
 
@@ -47,6 +48,8 @@ export function filmStatus(film: Pick<Film, 'releaseDate'>, now: Date): FilmStat
 export function filmDto(film: Film & { assets: MediaAsset[]; trailers?: Trailer[] }, now: Date, formats: string[] = []) {
   const poster = pickAsset(film.assets, 'POSTER', now);
   const backdrop = pickAsset(film.assets, 'BACKDROP', now);
+  const logo = pickAsset(film.assets, 'LOGO', now);
+  const details = readDetails(film.details);
   return {
     id: film.id,
     slug: film.slug,
@@ -63,8 +66,32 @@ export function filmDto(film: Film & { assets: MediaAsset[]; trailers?: Trailer[
     formats,
     poster: imageRef(poster),
     backdrop: imageRef(backdrop),
+    /** Title artwork (transparent PNG) shown in place of the title when present. */
+    logo: imageRef(logo),
+    /** Cast in billing order, with a photo and a short biography where known. */
+    people: details.cast.map((c) => ({ id: String(c.id), name: c.name, character: c.character, biography: c.biography, photo: personPhoto(c.profilePath) })),
+    crew: details.crew,
+    about: details.about,
+    /** Parents Guide: the certificate first, then BBFC content advice by category. */
+    contentAdvice: { certificate: film.certificate, meaning: certificateMeaning(film.certificate), items: details.advice },
     trailers: (film.trailers ?? []).map((t) => ({ id: t.id, title: t.title, kind: t.kind, url: t.url, durationSeconds: t.durationSeconds })),
-    attributions: [...new Set([poster?.attribution, backdrop?.attribution].filter((x): x is string => !!x))],
+    attributions: [...new Set([poster?.attribution, backdrop?.attribution, logo?.attribution].filter((x): x is string => !!x))],
   };
 }
 export type FilmDto = ReturnType<typeof filmDto>;
+
+/** A cast photo from TMDB's image CDN, shaped like any other image so the apps load it the same way. */
+function personPhoto(path: string | null): ImageRef | null {
+  if (!path) return null;
+  return {
+    id: `tmdb-person${path}`,
+    url: `https://image.tmdb.org/t/p/w185${path}`,
+    width: 185,
+    height: 278,
+    aspectRatio: 0.665,
+    focalPoint: { x: 0.5, y: 0.3 },
+    dominantColor: null,
+    attribution: 'Image: TMDB',
+    renditions: [],
+  };
+}

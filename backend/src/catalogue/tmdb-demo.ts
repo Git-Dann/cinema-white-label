@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import sharp from 'sharp';
 import { TmdbEnrichmentProvider } from './providers/adapters';
+import { BIO_LIMIT, buildFilmDetails, readDetails, shortBio } from './film-details';
 
 /*
  * Demo catalogue from TMDB (The Movie Database).
@@ -19,6 +20,7 @@ export const TMDB_IMAGES = 'https://image.tmdb.org/t/p';
 /** Sizes fetched for storage keys; our media endpoint makes smaller renditions. */
 const POSTER_SIZE = { key: 'w780', width: 780, height: 1170 };
 const BACKDROP_SIZE = { key: 'w1280', width: 1280, height: 720 };
+const LOGO_WIDTH = 500;
 
 export function tmdbDemoEnabled(env = process.env) {
   return env.DEMO_CATALOGUE === 'tmdb' && !!env.TMDB_API_KEY;
@@ -85,7 +87,25 @@ export async function importTmdbDemoCatalogue(db: Db, tenantId: string, client: 
   let updated = 0;
   const kept: string[] = [];
   // Fetch every film's details at once; one at a time was most of the import's time.
-  const details = await Promise.all(picks.map((p) => client.get(`/movie/${p.id}`, { language: 'en-GB', append_to_response: 'release_dates,credits' })));
+  const details = await Promise.all(
+    picks.map((p) => client.get(`/movie/${p.id}`, { language: 'en-GB', append_to_response: 'release_dates,credits,keywords,images', include_image_language: 'en,null' })),
+  );
+
+  // Short biographies for the leading cast. A person's biography is fetched once and
+  // reused on later runs, so the daily refresh stays inside the API's time limit.
+  const bios = new Map<number, string | null>();
+  for (const f of await db.film.findMany({ where: { tenantId, externalIds: { some: { provider: 'tmdb' } } }, select: { details: true } })) {
+    for (const c of readDetails(f.details).cast) if (c.biography) bios.set(c.id, c.biography);
+  }
+  const wanted = [...new Set(details.flatMap((m) => (m.credits?.cast ?? []).slice(0, BIO_LIMIT).map((c: any) => c.id as number)))].filter((id) => !bios.has(id));
+  await inBatches(wanted, 8, async (id) => {
+    try {
+      bios.set(id, shortBio((await client.get(`/person/${id}`, { language: 'en-US' })).biography));
+    } catch {
+      bios.set(id, null);
+    }
+  });
+
   for (const [pi, summary] of picks.entries()) {
     const m = details[pi];
     const f = TmdbEnrichmentProvider.map(m).fields;
@@ -103,6 +123,7 @@ export async function importTmdbDemoCatalogue(db: Db, tenantId: string, client: 
       cast: (f.cast ?? []).slice(0, 5),
       originalLanguage: f.originalLanguage ?? 'en',
       hidden: false,
+      details: buildFilmDetails(m, bios) as unknown as Prisma.InputJsonValue,
       provenance: { source: 'tmdb-demo', tmdbId: m.id, importedAt: now.toISOString() } as Prisma.InputJsonValue,
     };
     const link = await db.filmExternalId.findUnique({ where: { tenantId_provider_externalId: { tenantId, provider: 'tmdb', externalId: String(m.id) } } });
@@ -141,6 +162,28 @@ export async function importTmdbDemoCatalogue(db: Db, tenantId: string, client: 
         }),
       ]);
     }
+
+    // Title logo (transparent PNG), English first, then language-neutral; the best-voted wins.
+    const logo = pickLogo(m.images?.logos ?? []);
+    const current = await db.mediaAsset.findFirst({ where: { filmId, kind: 'LOGO', provider: 'tmdb' } });
+    const logoKey = logo ? `tmdb/w${LOGO_WIDTH}${logo.file_path}` : null;
+    if (current?.storageKey !== logoKey) {
+      await db.$transaction([
+        db.mediaAsset.deleteMany({ where: { filmId, kind: 'LOGO' } }),
+        ...(logo && logoKey
+          ? [
+              db.mediaAsset.create({
+                data: {
+                  tenantId, filmId, kind: 'LOGO', provider: 'tmdb', sourceRef: `${TMDB_IMAGES}/original${logo.file_path}`, storageKey: logoKey,
+                  licenceRef: 'TMDB API terms (non-commercial demo)', attribution: 'Image: TMDB', usageRestrictions: 'Demo only. Not cleared for commercial use.',
+                  width: LOGO_WIDTH, height: Math.max(1, Math.round(LOGO_WIDTH / (logo.aspect_ratio || 3))), mimeType: 'image/png',
+                  dominantColor: null, focalX: 0.5, focalY: 0.5, isPreferred: true, approvedContexts: ['detail', 'hero'],
+                },
+              }),
+            ]
+          : []),
+      ]);
+    }
   }
 
   // Only real films are listed while the demo catalogue is on. Films stay in the
@@ -149,4 +192,14 @@ export async function importTmdbDemoCatalogue(db: Db, tenantId: string, client: 
     ? (await db.film.updateMany({ where: { tenantId, hidden: false, id: { notIn: kept } }, data: { hidden: true } })).count
     : 0;
   return { created, updated, hidden, films: kept.length };
+}
+
+/** English logos first, then ones with no language; within each, TMDB's highest rated. */
+export function pickLogo(logos: { file_path: string; iso_639_1: string | null; vote_average?: number; aspect_ratio?: number }[]) {
+  const usable = logos.filter((l) => l.file_path && (l.iso_639_1 === 'en' || l.iso_639_1 === null) && !l.file_path.endsWith('.svg'));
+  return usable.sort((a, b) => Number(b.iso_639_1 === 'en') - Number(a.iso_639_1 === 'en') || (b.vote_average ?? 0) - (a.vote_average ?? 0))[0] ?? null;
+}
+
+async function inBatches<T>(items: T[], size: number, fn: (item: T) => Promise<void>) {
+  for (let i = 0; i < items.length; i += size) await Promise.all(items.slice(i, i + size).map(fn));
 }

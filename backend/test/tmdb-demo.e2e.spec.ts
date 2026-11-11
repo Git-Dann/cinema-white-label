@@ -22,8 +22,15 @@ function fakeTmdb(today: Date): TmdbClient & { calls: string[] } {
     const base = [...lists['/movie/now_playing'].results, ...lists['/movie/upcoming'].results].find((m: any) => m.id === id);
     return {
       ...base, tagline: 'A tagline.', runtime: 118, original_language: 'en', genres: [{ id: 1, name: 'Drama' }], imdb_id: `tt${id}`,
-      release_dates: { results: [{ iso_3166_1: 'GB', release_dates: [{ type: 3, release_date: `${base.release_date}T00:00:00.000Z`, certification: id === 102 ? '15' : id === 103 ? '' : '12A' }] }] },
-      credits: { crew: [{ job: 'Director', name: `Director ${id}` }], cast: [{ name: 'Actor A' }, { name: 'Actor B' }] },
+      release_dates: { results: [{ iso_3166_1: 'GB', release_dates: [{ type: 3, release_date: `${base.release_date}T00:00:00.000Z`, certification: id === 102 ? '15' : id === 103 ? '' : '12A', descriptors: id === 101 ? ['Moderate violence', 'Strong language', 'Mild threat'] : [] }] }] },
+      credits: {
+        crew: [{ job: 'Director', name: `Director ${id}` }, { job: 'Screenplay', name: `Writer ${id}` }],
+        cast: [{ id: 501, name: 'Actor A', character: 'Hero', profile_path: '/a.jpg', order: 0 }, { id: 502, name: 'Actor B', character: 'Rival', profile_path: null, order: 1 }],
+      },
+      keywords: { keywords: [{ name: 'london' }, { name: 'heist' }] },
+      production_companies: [{ name: 'Studio One' }],
+      spoken_languages: [{ english_name: 'English' }],
+      images: { logos: id === 101 ? [{ file_path: '/logo-fr.png', iso_639_1: 'fr', vote_average: 9 }, { file_path: '/logo-en.png', iso_639_1: 'en', vote_average: 5, aspect_ratio: 2.5 }] : [] },
     };
   };
   const calls: string[] = [];
@@ -32,6 +39,7 @@ function fakeTmdb(today: Date): TmdbClient & { calls: string[] } {
     async get(path) {
       calls.push(path);
       if (lists[path]) return lists[path];
+      if (path.startsWith('/person/')) return { biography: `Born somewhere. Known for films. Also does theatre. ${path}` };
       const id = Number(path.split('/').pop());
       return details(id);
     },
@@ -81,18 +89,41 @@ describe('TMDB demo catalogue and rolling screenings (integration)', () => {
     expect(await prisma.film.findFirstOrThrow({ where: { tenantId, title: 'Coming Real Film' } })).toMatchObject({ certificate: 'TBC' });
     expect(one.assets.map((a) => [a.kind, a.storageKey, a.attribution]).sort()).toEqual([
       ['BACKDROP', 'tmdb/w1280/b101.jpg', 'Image: TMDB'],
+      ['LOGO', 'tmdb/w500/logo-en.png', 'Image: TMDB'],
       ['POSTER', 'tmdb/w780/p101.jpg', 'Image: TMDB'],
     ]);
-    expect(one.assets[0].dominantColor).toMatch(/^#[0-9A-F]{6}$/);
+    expect(one.assets.find((a) => a.kind === 'POSTER')!.dominantColor).toMatch(/^#[0-9A-F]{6}$/);
+    expect(one.assets.find((a) => a.kind === 'LOGO')).toMatchObject({ mimeType: 'image/png', width: 500, height: 200 });
 
     // The customer catalogue lists only the real films; a hidden film still opens (existing tickets).
     const listed = (await api(app).get('/v1/t/kestrel/films').expect(200)).body.map((f: any) => f.title).sort();
     expect(listed).toEqual(['Coming Real Film', 'Real Film One', 'Real Film Two']);
     await api(app).get(`/v1/t/kestrel/films/${fictional.id}`).expect(200);
 
-    const second = await importTmdbDemoCatalogue(prisma, tenantId, fakeTmdb(now), now);
+    // The film page: logo, cast with photos and short bios, crew, About and the Parents Guide.
+    const page = (await api(app).get(`/v1/t/kestrel/films/${one.id}`).expect(200)).body;
+    expect(page.logo.url).toMatch(/^\/v1\/media\//);
+    expect(page.people[0]).toMatchObject({ name: 'Actor A', character: 'Hero', biography: 'Born somewhere. Known for films.' });
+    expect(page.people[0].photo.url).toBe('https://image.tmdb.org/t/p/w185/a.jpg');
+    expect(page.people[1].photo).toBeNull();
+    expect(page.crew).toEqual([{ name: 'Director 101', job: 'Director' }, { name: 'Writer 101', job: 'Screenplay' }]);
+    expect(page.about).toMatchObject({ productionCompanies: ['Studio One'], spokenLanguages: ['English'], keywords: ['london', 'heist'] });
+    expect(page.contentAdvice).toEqual({
+      certificate: '12A',
+      meaning: '12 and over, or with an adult',
+      items: [
+        { category: 'Language', level: 'Strong', text: 'strong language' },
+        { category: 'Violence', level: 'Moderate', text: 'moderate violence' },
+        { category: 'Frightening & intense', level: 'Mild', text: 'mild threat' },
+      ],
+    });
+
+    // A later run updates in place and does not fetch biographies again.
+    const client = fakeTmdb(now);
+    const second = await importTmdbDemoCatalogue(prisma, tenantId, client, now);
     expect(second).toMatchObject({ created: 0, updated: 3, hidden: 0 });
-    expect(await prisma.mediaAsset.count({ where: { filmId: one.id } })).toBe(2);
+    expect(client.calls.filter((c) => c.startsWith('/person/'))).toEqual([]);
+    expect(await prisma.mediaAsset.count({ where: { filmId: one.id } })).toBe(3);
   });
 
   it('moves future screenings onto showing films and keeps a week programmed', async () => {
