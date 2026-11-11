@@ -11,8 +11,7 @@
    The centre phone is the largest; the side ones step back. Sized from the window (container units). */
 .hero--centred .hero__own { color: var(--accent); }
 .hero--centred .pill { background: color-mix(in oklab, var(--ink) 8%, transparent); border-color: color-mix(in oklab, var(--ink) 18%, transparent); color: var(--ink); }
-.hero-phones { container-type: size; --ground-bg: #0b3d44;
-  background: radial-gradient(70% 90% at 50% 0%, #1b6b6f 0%, #0f4c53 34%, #0a3238 64%, #071f24 100%); }
+.hero-phones { container-type: size; --ground-bg: #0b3d44; }
 .hero-phones__row { position: absolute; inset: 0; z-index: 1; display: flex; justify-content: center; align-items: flex-start; gap: clamp(16px, 4cqw, 56px); padding-top: clamp(20px, 7cqh, 40px); }
 /* the body and the screen are rounded in proportion to the phone, so the corners always nest
    (the screen is zoomed with the phone, a fixed radius on the body would fall behind it) */
@@ -646,6 +645,57 @@ footer.closing { min-height: 0 !important; }
 .footer__soon { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 99px; font-size: 11px; line-height: 16px; vertical-align: 1px; color: var(--accent); border: 1px solid rgb(147 241 247 / .35); }
 .footer .footer__col ul { display: grid; gap: var(--s-2); }
 .footer__legal a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
-/* the hero's deep ground fades into the page at its foot instead of ending on a hard line */
-.hero.bg-deep { position: relative; }
-.hero.bg-deep::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 180px; z-index: 0; pointer-events: none; background: linear-gradient(transparent, var(--bg, #000)); }
+
+
+/* ---------- header: a floating bar, inset from the top and sides, glass over the page ---------- */
+.nav { top: 12px; background: transparent; border-bottom: 0; }
+.nav > .nav__bar {
+  height: calc(var(--nav) - 12px); padding: 0 8px 0 20px; border-radius: 999px;
+  background: rgb(10 12 14 / .72); -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid rgb(255 255 255 / .1); box-shadow: 0 12px 40px -18px rgb(0 0 0 / .8), inset 0 1px 0 rgb(255 255 255 / .04);
+}
+.nav .nav__actions .btn { height: 40px; }
+@media (max-width: 1023px) { .nav { top: 8px; } .nav > .nav__bar { padding: 0 6px 0 16px; height: calc(var(--nav) - 8px); } }
+
+/* ---------- footer: the name set huge at the page's foot, rising out of a teal glow ---------- */
+footer.closing { position: relative; overflow: hidden; padding-bottom: 0 !important; }
+footer.closing { background: radial-gradient(70% 520px at 50% 100%, #1b6b6f 0%, rgb(15 76 83 / .75) 30%, rgb(10 50 56 / .35) 58%, transparent 80%), var(--bg, #000) !important; }
+footer.closing > .wrap { position: relative; z-index: 1; }
+.footer__word.close__word {
+  margin: var(--s-8) 0 -0.12em; text-align: center; line-height: .82; white-space: nowrap;
+  font-size: min(calc((100vw - 2 * var(--gut)) / 3.5), 380px);
+  background: linear-gradient(180deg, rgb(255 255 255 / .95) 0%, rgb(222 252 255 / .8) 45%, rgb(147 241 247 / .35) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.footer__top { margin-left: var(--s-4); color: var(--muted); text-decoration: none !important; }
+.footer__top:hover { color: var(--ink); }
+/* the open phone menu is fixed to the screen; a backdrop-filter on the bar would make the bar its
+   containing block and clip it, so the open bar drops the filter and goes solid */
+.nav.is-open > .nav__bar { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bg); }
+.nav.is-open { top: 0; background: var(--bg); }
+.nav.is-open > .nav__bar { border-radius: 0; border-color: transparent; box-shadow: none; }
+
+/* ---------- hero: one full-bleed glow, no box ----------
+   The whole hero is lit: black at the top, deepening through teal to a bright glow behind the phones,
+   then easing back to the page's black at its foot, so the next section follows on with no seam.
+   Many close stops keep every step of the blend soft; the kit's grain stays on top to stop banding.
+   The phones' own window has no ground of its own any more. */
+.hero.bg-deep {
+  position: relative;
+  background-image:
+    radial-gradient(44% 30% at 50% 68%, rgb(150 240 246 / .22) 0%, rgb(100 210 218 / .14) 30%, rgb(50 160 168 / .07) 60%, rgb(20 110 118 / .02) 85%, transparent 100%),
+    radial-gradient(85% 33% at 50% 66%, rgb(26 128 136 / .5) 0%, rgb(20 104 112 / .38) 22%, rgb(13 78 86 / .24) 45%, rgb(8 52 58 / .11) 68%, rgb(4 26 30 / .03) 88%, transparent 100%),
+    linear-gradient(180deg, #000 0%, #000 12%, #010507 24%, #03141a 36%, #052228 48%, #07313a 58%, #08373f 66%, #062c33 75%, #041b20 84%, #020b0d 92%, #000 100%),
+    var(--g-noise-scr) !important;
+  background-blend-mode: normal, normal, normal, screen !important;
+}
+.hero.bg-deep::before { display: none !important; }
+/* the window draws nothing of its own: no fill, no edge. It only fades the phones out at its foot. */
+.hero-phones.hero__window { background: none !important; box-shadow: none !important;
+  -webkit-mask: linear-gradient(#000 45%, rgb(0 0 0 / .6) 72%, rgb(0 0 0 / .2) 88%, transparent 100%) !important;
+  mask: linear-gradient(#000 45%, rgb(0 0 0 / .6) 72%, rgb(0 0 0 / .2) 88%, transparent 100%) !important; }
+/* the spotlight only lifts the dot grid on the glow; no dark surface, and it reaches nothing at every edge */
+.hero-phones.mo-cs > .mo-cs__light { background: none !important;
+  -webkit-mask: radial-gradient(closest-side, #000 35%, rgb(0 0 0 / .5) 65%, transparent 100%);
+  mask: radial-gradient(closest-side, #000 35%, rgb(0 0 0 / .5) 65%, transparent 100%); }
+.hero-phones__row { z-index: 2; }
