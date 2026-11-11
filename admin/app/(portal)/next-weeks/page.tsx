@@ -1,14 +1,19 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { PageHeader } from '@/components/ui';
+import { ErrorNote, Loading, PageHeader } from '@/components/ui';
 import { num } from '@/components/insights';
+import { TileHit } from '@/components/Sheet';
+import { ConfidenceChip, ForecastBar, ForecastSheet, PaceChip, paceText, PulseBasisLine } from '@/components/pulse';
+import { PulseForecast, PulseForecasts, tenantPath } from '@/lib/api';
 import { useCinemaScope } from '@/lib/cinema-scope';
+import { useSession, useTenantData } from '@/lib/session';
 import { dayLabel, forecast, hoursNeeded, KIND_COLOUR, ROTA_HOURS, SLATE, START, STOCK, weekdayLabel } from '@/lib/slate';
 
 /*
- * Next 6 weeks: the venue manager's slice of the Year ahead forecast. One
- * cinema, action-led: hours to add, big nights, orders to place. Sample data.
+ * Next 6 weeks: the venue manager's view of what's coming. The programmed weeks are
+ * forecast show by show by Pulse (docs/pulse.md); the weeks beyond the programme stay a
+ * labelled sample plan for hours, big nights and orders.
  */
 
 const HORIZON = 6;
@@ -32,9 +37,108 @@ function bigNight(kind: string) {
   return 'Expect sell-outs 6 to 9pm: open the second till and add an usher for the big screen.';
 }
 
+const dayName = (ymd: string) => new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${ymd}T12:00:00Z`));
+
+/** Show-by-show Pulse forecasts for the programmed days at one cinema. */
+function ProgrammeForecast({ venueId }: { venueId: string }) {
+  const { tenant } = useSession();
+  const res = useTenantData<PulseForecasts>(tenantPath(tenant, `/pulse/forecasts?venueId=${venueId}`), [venueId]);
+  const [day, setDay] = useState<string | null>(null);
+  const [open, setOpen] = useState<PulseForecast | null>(null);
+  const days = res.data?.daily.slice().sort((a, b) => a.date.localeCompare(b.date)) ?? [];
+  const current = day && days.some((d) => d.date === day) ? day : days[0]?.date ?? null;
+  const shows = (res.data?.forecasts ?? []).filter((f) => f.localDate === current);
+  const total = days.reduce((a, d) => ({ expected: a.expected + d.expected, capacity: a.capacity + d.capacity, shows: a.shows + d.shows }), { expected: 0, capacity: 0, shows: 0 });
+  const fast = (res.data?.forecasts ?? []).filter((f) => (f.paceIndex ?? 0) >= 1.3).length;
+  const slow = (res.data?.forecasts ?? []).filter((f) => f.paceIndex != null && f.paceIndex <= 0.7).length;
+  const today = days.find((d) => d.date === current);
+
+  return (
+    <section className="pulse-section" aria-labelledby="nw-pulse">
+      <header className="pulse-section-head">
+        <h2 id="nw-pulse" className="h3">Show by show, as programmed</h2>
+        <PulseBasisLine basis={res.data?.basis} />
+      </header>
+      <ErrorNote message={res.error} />
+      {res.loading && !res.data ? (
+        <Loading />
+      ) : days.length === 0 ? (
+        <p className="muted">No shows are programmed here yet. Forecasts appear as soon as screenings are scheduled.</p>
+      ) : (
+        <>
+          <div className="stat-grid nw-pulse-stats">
+            <div className="stat-card">
+              <div className="stat-label">Expected admissions</div>
+              <div className="stat-value num">{num(total.expected)}</div>
+              <div className="muted small">
+                {total.shows} shows over {days.length} {days.length === 1 ? 'day' : 'days'} · {Math.round((total.expected / Math.max(1, total.capacity)) * 100)}% full
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-label">Selling fast</div>
+              <div className="stat-value num">{fast}</div>
+              <div className="muted small">Shows well ahead of a usual show at this point</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-label">Selling slowly</div>
+              <div className="stat-value num">{slow}</div>
+              <div className="muted small">Worth a nudge: an offer or an off-peak price</div>
+            </div>
+          </div>
+          <div className="chips page-chips" role="group" aria-label="Day">
+            {days.map((d) => (
+              <button key={d.date} className={`chip${d.date === current ? ' selected' : ''}`} aria-pressed={d.date === current} onClick={() => setDay(d.date)}>
+                {dayName(d.date)} <span className="muted num">· {num(d.expected)}</span>
+              </button>
+            ))}
+          </div>
+          {today && (
+            <p className="muted small nw-day-line">
+              {dayName(today.date)}: about <strong className="num">{num(today.expected)}</strong> of {num(today.capacity)} seats across {today.shows} shows, {num(today.soldNow)} sold so far.
+            </p>
+          )}
+          <ul className="tile-grid nw-shows">
+            {shows.map((f) => (
+              <li key={f.screeningId} className="card tile tile-click nw-show">
+                <TileHit label={`Why Pulse expects ${f.expected} for ${f.film.title} at ${f.localTime}`} onClick={() => setOpen(f)} />
+                <div className="tile-head">
+                  <div>
+                    <div className="tile-title">
+                      <span className="num">{f.localTime}</span> · {f.film.title}
+                    </div>
+                    <div className="muted small">
+                      {f.screen.name} · {f.film.certificate}
+                    </div>
+                  </div>
+                  <PaceChip pace={f.paceIndex} />
+                </div>
+                <ForecastBar f={f} />
+                <div className="nw-show-foot small">
+                  <span>
+                    <strong className="num">{f.expected}</strong> expected <span className="muted num">({f.low} to {f.high})</span>
+                  </span>
+                  <span className="muted num">
+                    {f.soldNow} sold · {f.capacity} seats
+                  </span>
+                </div>
+                <div className="nw-show-foot small">
+                  <ConfidenceChip level={f.confidence} />
+                  <span className="muted">{paceText(f.paceIndex) ?? 'Sales not usually open yet'}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      <ForecastSheet f={open} basis={res.data?.basis} onClose={() => setOpen(null)} />
+    </section>
+  );
+}
+
 export default function NextWeeksPage() {
   const { venue, venues } = useCinemaScope();
   const site = venue?.name ?? venues[0]?.name ?? 'your cinema';
+  const siteId = venue?.id ?? venues[0]?.id ?? null;
   const weeks = useMemo(plan, []);
   const extra = weeks.reduce((a, w) => a + Math.max(0, w.gap), 0);
   const orders = STOCK.filter((s) => s.due <= HORIZON * 7).sort((a, b) => a.due - b.due);
@@ -54,13 +158,15 @@ export default function NextWeeksPage() {
 
   return (
     <>
-      <PageHeader
-        title="Next 6 weeks"
-        description={`${site} · staff, big nights and orders, week by week`}
-        actions={<span className="badge badge-sample">Sample forecast</span>}
-      />
+      <PageHeader title="Next 6 weeks" description={`${site} · every programmed show forecast by Pulse, then the weeks beyond`} />
+      {siteId && <ProgrammeForecast venueId={siteId} />}
+
+      <header className="pulse-section-head nw-later-head">
+        <h2 className="h3">Weeks beyond the programme</h2>
+        <span className="badge badge-sample">Sample plan</span>
+      </header>
       <p className="muted small ya-note">
-        <span className="ai-spark">✦</span> Your cinema's share of the release-slate forecast. Pick a cinema in the sidebar to switch sites.
+        Hours, big nights and orders from the release-slate sample, until shows are programmed and Pulse can forecast them. Pick a cinema in the sidebar to switch sites.
       </p>
 
       <section className="nw-summary card" aria-label="Summary">

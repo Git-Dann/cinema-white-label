@@ -4386,3 +4386,259 @@ dialog.sheet.sheet-narrow {
 .offer-tile .offer-card {
   border-radius: 0;
 }
+
+/* ---------- Seatfold Pulse (components/pulse.tsx) ---------- */
+.pulse-basis {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+.pulse-mark {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  flex: none;
+}
+.pulse-confidence {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.pulse-confidence > span {
+  display: inline-flex;
+  gap: 2px;
+  align-items: flex-end;
+}
+.pulse-confidence i {
+  width: 3px;
+  border-radius: 1px;
+  background: var(--surface-3);
+}
+.pulse-confidence i:nth-child(1) {
+  height: 6px;
+}
+.pulse-confidence i:nth-child(2) {
+  height: 9px;
+}
+.pulse-confidence i:nth-child(3) {
+  height: 12px;
+}
+.pulse-confidence i.on {
+  background: var(--accent);
+}
+.pulse-bar {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, currentColor 9%, transparent);
+  margin: 6px 0 4px;
+}
+.pulse-bar > span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 4px;
+}
+.pulse-bar-expected {
+  background: color-mix(in srgb, var(--accent) 38%, transparent);
+}
+.pulse-bar-sold {
+  background: var(--accent);
+}
+.pulse-bar-range {
+  top: -3px !important;
+  bottom: -3px !important;
+  border-radius: 2px !important;
+  border-left: 2px solid var(--text-2);
+  border-right: 2px solid var(--text-2);
+  background: none;
+  opacity: 0.55;
+}
+.pulse-drivers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.pulse-drivers li {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+.pulse-drivers li > div {
+  display: grid;
+  gap: 2px;
+}
+.pulse-effect {
+  justify-self: start;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  background: var(--surface-3);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.pulse-effect.up {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.pulse-effect.down {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+.pulse-why {
+  display: grid;
+  gap: var(--s2);
+}
+.pulse-why-head {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s2);
+}
+.pulse-why-start {
+  margin: var(--s1) 0 0;
+  color: var(--text-2);
+}
+.pulse-why-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s1);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--border);
+}
+/* A section headed by Pulse: title, basis line, then content. */
+.pulse-section {
+  margin-bottom: var(--s4);
+}
+.pulse-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s1) var(--s3);
+  margin-bottom: var(--s2);
+}
+.pulse-section-head .h3 {
+  margin: 0;
+}
+.nw-pulse-stats {
+  margin-bottom: var(--s3);
+}
+.nw-day-line {
+  margin: calc(-1 * var(--s1)) 0 var(--s2);
+}
+.nw-show {
+  gap: 6px;
+}
+.nw-show-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s1);
+}
+.nw-later-head {
+  margin-top: var(--s4);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--border);
+}
+.show-pulse {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--surface-3);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.show-pulse.fast {
+  background: var(--success-bg);
+}
+.show-pulse.slow {
+  background: var(--warning-bg);
+}
+.today-pulse {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: var(--s3);
+  margin-bottom: var(--s3);
+}
+.today-pulse .ins-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+.today-pulse-summary {
+  margin: 0;
+}
+.staff-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 6px;
+}
+.staff-grid li {
+  display: grid;
+  gap: 1px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.staff-grid li.short {
+  background: var(--warning-bg);
+}
+.staff-time {
+  font-weight: 650;
+}
+.prep-totals {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+}
+.prep-totals li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 13px;
+}
+.prep-totals strong {
+  font-size: 15px;
+}
+.prep-shows summary {
+  cursor: pointer;
+  color: var(--text-2);
+}
+.prep-shows ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}

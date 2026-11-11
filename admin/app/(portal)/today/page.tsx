@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { ErrorNote, Loading, PageHeader } from '@/components/ui';
 import { SafeImage } from '@/components/SafeImage';
-import { mediaUrl, ShiftRow, tenantPath, VenueToday } from '@/lib/api';
+import { mediaUrl, PulseFood, PulseForecast, PulseForecasts, PulseStaffing, ShiftRow, tenantPath, VenueToday } from '@/lib/api';
+import { ForecastSheet, paceText, paceTone, PulseBasisLine } from '@/components/pulse';
 import { useCinemaScope } from '@/lib/cinema-scope';
 import { useSession, useTenantData } from '@/lib/session';
 
@@ -35,6 +36,15 @@ export default function TodayPage() {
   const d = today.data;
   const rota = useTenantData<ShiftRow[]>(site ? tenantPath(tenant, `/shifts?venueId=${site.id}&from=${date}T00:00:00Z&to=${date}T23:59:59Z`) : null);
   const onShift = rota.data ?? [];
+  // Pulse: forecasts for this day (a window either side of midnight UTC, filtered to the local date),
+  // staffing against the rota, and food to prepare.
+  const dayStart = new Date(`${date}T00:00:00Z`).getTime();
+  const fcPath = site ? tenantPath(tenant, `/pulse/forecasts?venueId=${site.id}&from=${new Date(dayStart - 3 * 3600_000).toISOString()}&to=${new Date(dayStart + 27 * 3600_000).toISOString()}`) : null;
+  const pulse = useTenantData<PulseForecasts>(fcPath);
+  const staffing = useTenantData<PulseStaffing>(site ? tenantPath(tenant, `/pulse/staffing?venueId=${site.id}&date=${date}`) : null);
+  const food = useTenantData<PulseFood>(site ? tenantPath(tenant, `/pulse/food?venueId=${site.id}&date=${date}`) : null);
+  const forecastFor = useMemo(() => new Map((pulse.data?.forecasts ?? []).filter((f) => f.localDate === date).map((f) => [f.screeningId, f])), [pulse.data, date]);
+  const [why, setWhy] = useState<PulseForecast | null>(null);
   const time = (iso: string) => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: tz }).format(new Date(iso));
 
   const next = useMemo(() => d?.shows.find((s) => !s.started) ?? null, [d]);
@@ -106,6 +116,75 @@ export default function TodayPage() {
             )}
           </section>
 
+          <div className="today-pulse">
+            <section className="card ins-card" aria-labelledby="staff-h">
+              <header className="ins-head">
+                <h2 id="staff-h" className="h3">Staffing</h2>
+                <span className="muted small">{staffing.data ? `${staffing.data.expectedAdmissions} expected through the doors` : ''}</span>
+              </header>
+              {staffing.data ? (
+                <>
+                  <p className="small today-pulse-summary">
+                    {staffing.data.rota.connected ? staffing.data.summary : 'Connect your rota in Connections to compare who is on with what the day needs. Until then this shows what the day needs.'}
+                  </p>
+                  <ol className="staff-grid" aria-label="Half-hour windows">
+                    {staffing.data.windows.filter((w) => w.arrivals > 0 || w.short).map((w) => (
+                      <li key={w.from} className={w.short ? 'short' : undefined} title={w.short ?? undefined}>
+                        <span className="num staff-time">{w.from}</span>
+                        <span className="small">
+                          Tills <strong className="num">{w.tillsNeeded}</strong>
+                          {staffing.data!.rota.connected && <span className="muted num">/{w.tillsRostered}</span>}
+                        </span>
+                        <span className="small">
+                          Ushers <strong className="num">{w.ushersNeeded}</strong>
+                          {staffing.data!.rota.connected && <span className="muted num">/{w.ushersRostered}</span>}
+                        </span>
+                        <span className="muted small num">{w.arrivals} arriving</span>
+                      </li>
+                    ))}
+                  </ol>
+                  <p className="muted small">Needed{staffing.data.rota.connected ? ' / on shift' : ''}. Most people arrive in the half hour before their film.</p>
+                  <PulseBasisLine basis={staffing.data.basis} />
+                </>
+              ) : (
+                <ErrorNote message={staffing.error} />
+              )}
+            </section>
+
+            <section className="card ins-card" aria-labelledby="food-h">
+              <header className="ins-head">
+                <h2 id="food-h" className="h3">Food to prepare</h2>
+                <span className="muted small">{food.data ? `${food.data.shows.reduce((a, x) => a + x.expectedOrders, 0)} orders expected` : ''}</span>
+              </header>
+              {food.data ? (
+                <>
+                  <ul className="prep-totals">
+                    {food.data.totals.slice(0, 8).map((t) => (
+                      <li key={t.productId}>
+                        <span>{t.name}</span>
+                        <strong className="num">{t.quantity}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                  <details className="prep-shows">
+                    <summary className="small">By show</summary>
+                    <ul>
+                      {food.data.shows.map((x) => (
+                        <li key={x.screeningId} className="small">
+                          <strong className="num">{x.localTime}</strong> {x.film.title} <span className="muted">· {x.expectedOrders} orders</span>
+                          <div className="muted">{x.items.slice(0, 4).map((i) => `${i.name} ${i.quantity}`).join(' · ')}</div>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                  <PulseBasisLine basis={food.data.basis} />
+                </>
+              ) : (
+                <ErrorNote message={food.error} />
+              )}
+            </section>
+          </div>
+
           {d.shows.length === 0 ? (
             <p className="muted">No shows at {site?.name} on this day.</p>
           ) : (
@@ -142,6 +221,18 @@ export default function TodayPage() {
                               <span><strong className="num">{s.sold}</strong>/{s.capacity}{s.held ? ` · ${s.held} booking` : ''}</span>
                               {s.foodOrders > 0 && <span className="badge badge-scope">{s.foodOrders} food</span>}
                             </div>
+                            {forecastFor.get(s.id) && !s.started && (() => {
+                              const f = forecastFor.get(s.id)!;
+                              const tone = paceTone(f.paceIndex);
+                              return (
+                                <button type="button" className={`show-pulse small${tone ? ` ${tone}` : ''}`} onClick={() => setWhy(f)} aria-label={`Why Pulse expects ${f.expected}`}>
+                                  <span>
+                                    Forecast <strong className="num">{f.expected}</strong>
+                                  </span>
+                                  <span className="muted">{paceText(f.paceIndex) ?? 'Sales not open yet'}</span>
+                                </button>
+                              );
+                            })()}
                           </div>
                         </li>
                       );
@@ -153,6 +244,7 @@ export default function TodayPage() {
           )}
         </>
       ) : null}
+      <ForecastSheet f={why} basis={pulse.data?.basis} onClose={() => setWhy(null)} />
     </>
   );
 }

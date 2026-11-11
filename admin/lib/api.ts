@@ -589,3 +589,155 @@ export interface ShiftRow {
   endsAt: string;
   note: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Seatfold Pulse (docs/pulse.md): forecasts and what to do about them.
+
+export interface PulseBasis {
+  liveShows?: number;
+  demoShows?: number;
+  weeks?: number;
+  /** e.g. "Based on 26 weeks of demo history (8008 shows)." */
+  note: string;
+  /** Food: where the product mix came from. */
+  mix?: 'live' | 'demo' | 'none';
+  mixOrders?: number;
+  liveOrders?: number;
+  demoOrders?: number;
+  liveCustomers?: number;
+  demoCustomers?: number;
+}
+
+export interface PulseShowRef {
+  screeningId: string;
+  startsAt: string;
+  localTime: string;
+  localDate: string;
+  venue: { id: string; name: string };
+  screen: { id: string; name: string };
+  film: { id: string; title: string; certificate: string };
+  slot: string;
+  bankHoliday: boolean;
+  schoolHoliday: string | null;
+}
+
+export interface PulseDriver {
+  label: string;
+  effect: number;
+  explanation: string;
+}
+
+export interface PulseForecast extends PulseShowRef {
+  expected: number;
+  low: number;
+  high: number;
+  capacity: number;
+  occupancy: number;
+  soldNow: number;
+  demand: number;
+  /** Sold now against a usual show at this point; null before sales normally start. */
+  paceIndex: number | null;
+  soldThrough: number;
+  confidence: 'low' | 'medium' | 'high';
+  baseline: { slot: string; label: string; occupancy: number };
+  drivers: PulseDriver[];
+}
+
+export interface PulseForecasts {
+  basis: PulseBasis;
+  from: string;
+  to: string;
+  daily: { date: string; venueId: string; expected: number; capacity: number; soldNow: number; shows: number }[];
+  forecasts: PulseForecast[];
+}
+
+export interface PulsePriceSuggestion extends PulseShowRef {
+  action: 'raise' | 'off-peak';
+  percent: number;
+  reasons: string[];
+  forecast: { expected: number; capacity: number; occupancy: number; paceIndex: number | null };
+}
+
+export interface PulsePricing {
+  basis: PulseBasis;
+  caps: { maxRaisePercent: number; maxDiscountPercent: number };
+  suggestions: PulsePriceSuggestion[];
+}
+
+export interface PulseScreenSwap {
+  venue: { id: string; name: string };
+  localDate: string;
+  localTime: string;
+  from: { screeningId: string; screenName: string; filmTitle: string; capacity: number; demand: number };
+  to: { screeningId: string; screenName: string; filmTitle: string; capacity: number; expected: number };
+  extraAdmissions: number;
+  reason: string;
+}
+
+export interface PulseScreens {
+  basis: PulseBasis;
+  swaps: PulseScreenSwap[];
+}
+
+export interface PulseStaffWindow {
+  from: string;
+  to: string;
+  arrivals: number;
+  tillsNeeded: number;
+  tillsRostered: number;
+  ushersNeeded: number;
+  ushersRostered: number;
+  short: string | null;
+}
+
+export interface PulseStaffing {
+  basis: PulseBasis;
+  venue: { id: string; name: string };
+  date: string;
+  rota: { shifts: number; connected: boolean };
+  expectedAdmissions: number;
+  windows: PulseStaffWindow[];
+  gaps: PulseStaffWindow[];
+  summary: string;
+}
+
+export interface PulseFoodShow extends PulseShowRef {
+  expected: number;
+  attachRate: number;
+  expectedOrders: number;
+  items: { productId: string; name: string; quantity: number }[];
+}
+
+export interface PulseFood {
+  basis: PulseBasis;
+  venue: { id: string; name: string };
+  date: string;
+  attachRates: Record<string, number>;
+  shows: PulseFoodShow[];
+  totals: { productId: string; name: string; quantity: number }[];
+}
+
+export interface PulseBaskets {
+  basis: PulseBasis;
+  rules: { items: string[]; support: number; confidence: number; lift: number; orders: number; suggestion: string }[];
+}
+
+export interface PulseLoyalty {
+  basis: PulseBasis;
+  customers: number;
+  segments: { name: string; customers: number; share: number; description: string; action: string }[];
+  atRisk: { customers: number; share: number; note: string };
+}
+
+export interface PulseAnomalies {
+  basis: PulseBasis;
+  days: number;
+  anomalies: { venueId: string; venueName: string; date: string; actual: number; forecast: number; ratio: number; z: number; sentence: string }[];
+}
+
+export interface PulseModelView {
+  basis: PulseBasis;
+  priors: { slotBase: Record<string, number>; targetWeeklyOccupancy: number; shrinkageK: number };
+  multipliers: Record<'venue' | 'slot' | 'dayOfWeek' | 'filmWeekBand' | 'film', { key: string; label: string; multiplier: number; shows: number }[]>;
+  curves: { hoursBefore: number[]; bySlot: { slot: string; label: string; values: number[]; shows: number }[] };
+}
