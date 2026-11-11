@@ -59,6 +59,7 @@ model Tenant {
   apiKeys            ApiKey[]
   webhooks           Webhook[]
   shifts             Shift[]
+  showOutcomes       ShowOutcome[]
   loyaltyProgram     LoyaltyProgram?
 }
 
@@ -609,27 +610,27 @@ model Voucher {
 /// film, a voucher code or an https page. Voucher promotions are hidden while
 /// the voucher cannot be redeemed, so customers never see a dead code.
 model Promotion {
-  id          String    @id @default(cuid())
-  tenantId    String
-  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  title       String
-  body        String
-  ctaLabel    String
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title        String
+  body         String
+  ctaLabel     String
   /// "film" | "voucher" | "link" | "none"
-  action      String
-  filmId      String?
-  voucherCode String?
-  linkUrl     String?
+  action       String
+  filmId       String?
+  voucherCode  String?
+  linkUrl      String?
   /// Banner photo (MediaAsset of kind BANNER). Film promotions without one use the film's backdrop.
   imageAssetId String?
   /// Null shows the promotion at every cinema.
-  venueId     String?
-  validFrom   DateTime?
-  validTo     DateTime?
-  active      Boolean   @default(true)
-  sortOrder   Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  venueId      String?
+  validFrom    DateTime?
+  validTo      DateTime?
+  active       Boolean   @default(true)
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([tenantId, active])
 }
@@ -783,9 +784,9 @@ model MembershipPurchase {
 }
 
 model ConcessionProduct {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   tenantId       String
-  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   /// Null = available at every venue.
   venueId        String?
   sku            String
@@ -797,23 +798,23 @@ model ConcessionProduct {
   dietary        String[]
   calories       Int?
   /// "inStock" | "low" | "out"
-  stockStatus    String   @default("inStock")
-  available      Boolean  @default(true)
+  stockStatus    String    @default("inStock")
+  available      Boolean   @default(true)
   /// [{ id, name, min, max, options: [{ id, name, priceMinor }] }]
-  modifierGroups Json     @default("[]")
+  modifierGroups Json      @default("[]")
   /// Bundle components shown to the customer, e.g. ["Large popcorn", "2 × regular drink"].
   bundleItems    String[]
   imageAssetId   String?
-  sortOrder      Int      @default(0)
+  sortOrder      Int       @default(0)
   /// Shown in the app's Specials row.
-  featured       Boolean  @default(false)
+  featured       Boolean   @default(false)
   /// Short label on the card, e.g. "Limited edition" or "Winter special".
   badge          String?
   /// Price before the deal, for bundles and offers ("was £17.45"). Must be above priceMinor.
   compareAtMinor Int?
   /// Film tie-in, e.g. a collectable bucket. Null = not linked to a film.
   filmId         String?
-  limitedEdition Boolean  @default(false)
+  limitedEdition Boolean   @default(false)
   /// Sale window. Outside it the product is hidden from the menu and cannot be ordered.
   availableFrom  DateTime?
   availableUntil DateTime?
@@ -966,4 +967,53 @@ model Shift {
 
   @@unique([tenantId, source, externalId])
   @@index([tenantId, venueId, startsAt])
+}
+
+/// Pulse: what happened at one screening, rolled up nightly from bookings (source "live"),
+/// or simulated history for the demo operators (source "demo", always labelled as such).
+/// The demand model learns from these rows; see docs/pulse.md.
+model ShowOutcome {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venueId            String
+  auditoriumId       String
+  /// Null for demo history, which has no real screening behind it.
+  screeningId        String?  @unique
+  filmId             String
+  startsAt           DateTime
+  capacity           Int
+  admissions         Int
+  ticketRevenueMinor Int      @default(0)
+  foodRevenueMinor   Int      @default(0)
+  foodOrders         Int      @default(0)
+  /// "weekday-day" | "weekday-evening" | "fri-sat-evening" | "weekend-day" | "late"
+  slot               String
+  /// 0 = Sunday, in the cinema's time zone.
+  dayOfWeek          Int
+  /// 1-based week since the film's release.
+  filmWeek           Int
+  formats            String[]
+  schoolHoliday      Boolean  @default(false)
+  /// Cumulative share of final sales sold at [168,72,48,24,12,6,3,1,0] hours before the start;
+  /// null when the sales have no timestamps.
+  leadCurve          Json?
+  /// "live" | "demo"
+  source             String
+  computedAt         DateTime @default(now())
+
+  @@index([tenantId, startsAt])
+}
+
+/// UK bank holidays from the gov.uk feed (Open Government Licence), refreshed by the daily
+/// cron. Pulse treats them like Saturdays and the day before like a Friday.
+model BankHoliday {
+  /// "england-and-wales" | "scotland" | "northern-ireland"
+  division  String
+  /// YYYY-MM-DD
+  date      String
+  title     String
+  fetchedAt DateTime @default(now())
+
+  @@id([division, date])
 }
