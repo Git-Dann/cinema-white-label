@@ -637,6 +637,7 @@ export interface PulseForecast extends PulseShowRef {
   demand: number;
   /** Sold now against a usual show at this point; null before sales normally start. */
   paceIndex: number | null;
+  paceBasis?: 'live' | 'early' | 'untimed';
   soldThrough: number;
   confidence: 'low' | 'medium' | 'high';
   baseline: { slot: string; label: string; occupancy: number };

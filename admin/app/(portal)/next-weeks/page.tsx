@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { ErrorNote, Loading, PageHeader } from '@/components/ui';
 import { num } from '@/components/insights';
 import { TileHit } from '@/components/Sheet';
-import { ConfidenceChip, ForecastBar, ForecastSheet, PaceChip, paceText, PulseBasisLine } from '@/components/pulse';
+import { ConfidenceChip, ForecastBar, ForecastSheet, PaceChip, paceFallback, paceText, PulseBasisLine } from '@/components/pulse';
 import { PulseForecast, PulseForecasts, tenantPath } from '@/lib/api';
 import { useCinemaScope } from '@/lib/cinema-scope';
 import { useSession, useTenantData } from '@/lib/session';
@@ -123,7 +123,7 @@ function ProgrammeForecast({ venueId }: { venueId: string }) {
                 </div>
                 <div className="nw-show-foot small">
                   <ConfidenceChip level={f.confidence} />
-                  <span className="muted">{paceText(f.paceIndex) ?? 'Sales not usually open yet'}</span>
+                  <span className="muted">{paceText(f.paceIndex) ?? paceFallback(f.paceBasis)}</span>
                 </div>
               </li>
             ))}

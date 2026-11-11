@@ -282,6 +282,8 @@ export interface PulseForecast {
   demand: number;
   /** Sold now against what is usually sold by this point (1 = on track). Null with nothing expected yet. */
   paceIndex: number | null;
+  /** Why pace is or isn't shown: 'untimed' when most sales have no sale time (seeded or imported). */
+  paceBasis: 'live' | 'early' | 'untimed';
   /** Share of final sales usually sold by now. */
   soldThrough: number;
   confidence: 'low' | 'medium' | 'high';
@@ -297,6 +299,8 @@ const fmtX = (x: number) => `×${x.toFixed(2)}`;
 export interface ForecastInput extends ShowFeatures {
   screeningId: string;
   soldNow: number;
+  /** Sales with a known sale time (tied to a booking). Pace uses only these; defaults to soldNow. */
+  timedSold?: number;
   hoursBefore: number;
   venueName?: string;
   filmTitle?: string;
@@ -320,19 +324,25 @@ export function forecast(show: ForecastInput, ctx: FilmContext, model: PulseMode
     if (Math.abs(cell.m - 1) >= 0.03) drivers.push({ label: `${learnedLabels[d](keyOf(d, show))}: ${fmtX(cell.m)}`, effect: cell.m, explanation: `Learned from ${cell.shows} past show${cell.shows === 1 ? '' : 's'}${cell.m > 1 ? ', selling above the usual pattern' : ', selling below the usual pattern'}.` });
   }
   const F = curveAt(model.curves[show.slot] ?? priorCurve(show.slot), show.hoursBefore);
-  const pace = show.soldNow / Math.max(F, 0.05);
-  const w = Math.pow(Math.min(1, F), 0.7);
-  const demand = w * pace + (1 - w) * mu;
+  // Sales with no sale time (seeded or imported) say nothing about pace, so they only set a floor.
+  const timed = Math.min(show.soldNow, show.timedSold ?? show.soldNow);
+  const untimedShare = show.soldNow ? 1 - timed / show.soldNow : 0;
+  const paceKnown = untimedShare <= 0.5;
+  const pace = timed / Math.max(F, 0.05);
+  const w = paceKnown ? Math.pow(Math.min(1, F), 0.7) : 0;
+  // Without sale times, assume the seats already sold are in and the usual remainder is still to come.
+  const demand = paceKnown ? w * pace + (1 - w) * mu : Math.max(mu, show.soldNow + mu * (1 - Math.min(1, F)));
   const expected = Math.min(show.capacity, Math.max(show.soldNow, demand));
   const sd = Math.sqrt(expected + (expected * expected) / DISPERSION_R) * (1 - w * 0.8);
   const low = Math.max(show.soldNow, Math.round(expected - Z80 * sd));
   const high = Math.min(show.capacity, Math.round(expected + Z80 * sd));
-  const paceIndex = mu * F > 0.5 ? Math.round((show.soldNow / (mu * F)) * 100) / 100 : null;
+  const paceIndex = paceKnown && mu * F > 0.5 ? Math.round((timed / (mu * F)) * 100) / 100 : null;
   if (paceIndex !== null && F > 0.05 && F < 1 && Math.abs(paceIndex - 1) >= 0.15) {
-    drivers.push({ label: paceIndex > 1 ? `Selling ahead of pace: ${fmtX(paceIndex)}` : `Selling behind pace: ${fmtX(paceIndex)}`, effect: paceIndex, explanation: `${show.soldNow} sold so far; a show like this has usually sold ${Math.round(mu * F)} by now.` });
+    drivers.push({ label: paceIndex > 1 ? `Selling ahead of pace: ${fmtX(paceIndex)}` : `Selling behind pace: ${fmtX(paceIndex)}`, effect: paceIndex, explanation: `${timed} sold so far; a show like this has usually sold ${Math.round(mu * F)} by now.` });
   }
   const venueShows = model.multipliers.venue[show.venueId]?.shows ?? 0;
-  const confidence = (venueShows >= 200 && F >= 0.5) || F >= 0.8 ? 'high' : venueShows >= 50 || F >= 0.4 ? 'medium' : 'low';
+  const Fk = paceKnown ? F : 0;
+  const confidence = (venueShows >= 200 && Fk >= 0.5) || Fk >= 0.8 ? 'high' : venueShows >= 50 || Fk >= 0.4 ? 'medium' : 'low';
   return {
     screeningId: show.screeningId,
     expected: Math.round(expected),
@@ -343,6 +353,7 @@ export function forecast(show: ForecastInput, ctx: FilmContext, model: PulseMode
     soldNow: show.soldNow,
     demand: Math.round(demand),
     paceIndex,
+    paceBasis: !paceKnown ? 'untimed' : paceIndex === null ? 'early' : 'live',
     soldThrough: Math.round(F * 1000) / 1000,
     confidence,
     baseline: { slot: show.slot, label: SLOT_LABELS[show.slot], occupancy: p.base },

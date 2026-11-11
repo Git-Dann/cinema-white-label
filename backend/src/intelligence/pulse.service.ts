@@ -115,6 +115,9 @@ export class PulseService {
     const ids = screenings.map((s) => s.id);
     const seats = ids.length ? await this.prisma.screeningSeat.groupBy({ by: ['screeningId', 'state'], where: { screeningId: { in: ids } }, _count: { _all: true } }) : [];
     const count = (id: string, state: string) => seats.find((r) => r.screeningId === id && r.state === state)?._count._all ?? 0;
+    // Only sales tied to a booking have a real sale time; seeded or imported seats do not, so they cannot show pace.
+    const timed = ids.length ? await this.prisma.screeningSeat.groupBy({ by: ['screeningId'], where: { screeningId: { in: ids }, state: 'SOLD', bookingId: { not: null } }, _count: { _all: true } }) : [];
+    const timedSold = (id: string) => timed.find((r) => r.screeningId === id)?._count._all ?? 0;
     return screenings.map((s) => {
       const v = ctx.venues.get(s.venueId)!;
       const fc = ctx.films.get(s.filmId);
@@ -131,6 +134,7 @@ export class PulseService {
         formats: s.formats,
         schoolHoliday: cal.schoolHoliday,
         soldNow: count(s.id, 'SOLD'),
+        timedSold: timedSold(s.id),
         hoursBefore: (s.startsAt.getTime() - now.getTime()) / 3_600_000,
         venueName: v.name,
         filmTitle: fc?.film.title,

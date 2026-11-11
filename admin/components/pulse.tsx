@@ -23,6 +23,11 @@ export function PulseBasisLine({ basis, className }: { basis: PulseBasis | null 
 }
 
 /** Pace in words. Very large ratios read as "far ahead" rather than a meaningless ×28. */
+/** Status line when there is no pace figure to show. */
+export function paceFallback(basis: 'live' | 'early' | 'untimed' | undefined): string {
+  return basis === 'untimed' ? 'No sale times to judge pace' : 'Too early to judge pace';
+}
+
 export function paceText(pace: number | null | undefined): string | null {
   if (pace == null) return null;
   if (pace >= 3) return 'Far ahead of usual pace';
@@ -106,7 +111,7 @@ export function ForecastSheet({ f, basis, onClose }: { f: PulseForecast | null; 
             <div>
               <div className="stat-label">Sold now</div>
               <div className="stat-value num">{f.soldNow}</div>
-              <div className="muted small">{paceText(f.paceIndex) ?? 'Sales not usually open yet'}</div>
+              <div className="muted small">{paceText(f.paceIndex) ?? paceFallback(f.paceBasis)}</div>
             </div>
           </div>
           <ForecastBar f={f} />

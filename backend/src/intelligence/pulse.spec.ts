@@ -86,4 +86,22 @@ describe('Pulse learning and forecast', () => {
     expect(early.low).toBeLessThanOrEqual(early.expected);
     expect(early.high).toBeGreaterThanOrEqual(early.expected);
   });
+
+  it('ignores sales with no sale time when judging pace', () => {
+    const base = { ...show, screeningId: 's2', venueId: 'v1', hoursBefore: 30 };
+    const mu = expectedFromModel(base, { film: film() }, model);
+    // 120 seeded seats with no booking: no pace claim, forecast stays on the model with a floor at seats sold.
+    const seeded = forecast({ ...base, soldNow: 120, timedSold: 0 }, { film: film() }, model);
+    expect(seeded.paceIndex).toBeNull();
+    expect(seeded.drivers.some((d) => d.label.startsWith('Selling'))).toBe(false);
+    expect(seeded.expected).toBeGreaterThan(120);
+    expect(seeded.expected).toBeGreaterThanOrEqual(Math.round(Math.min(200, mu)));
+    expect(seeded.paceBasis).toBe('untimed');
+    expect(seeded.confidence).not.toBe('high');
+    // Mostly real bookings: pace counts only the timed ones.
+    const mixed = forecast({ ...base, soldNow: 40, timedSold: 30 }, { film: film() }, model);
+    const real = forecast({ ...base, soldNow: 30, timedSold: 30 }, { film: film() }, model);
+    expect(mixed.paceIndex).toBe(real.paceIndex);
+    expect(mixed.expected).toBeGreaterThanOrEqual(40);
+  });
 });
