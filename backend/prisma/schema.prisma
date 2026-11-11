@@ -248,6 +248,9 @@ model Film {
   /// Hidden films are left out of listings (e.g. the fictional catalogue once a
   /// real demo catalogue is loaded). Existing bookings still resolve them.
   hidden           Boolean  @default(false)
+  /// Rich details for the film page: cast with photos and biographies, crew, About,
+  /// BBFC content advice. Shape: src/catalogue/film-details.ts (FilmDetails).
+  details          Json     @default("{}")
   /// Field-level provenance: { fieldName: providerId }.
   provenance       Json     @default("{}")
   createdAt        DateTime @default(now())
