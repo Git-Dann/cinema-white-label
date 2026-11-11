@@ -763,3 +763,17 @@ html:not([data-motion="off"]) .btn:hover, html:not([data-motion="off"]) .btn--xl
   .menu-rel p { font-size: 11px; white-space: nowrap; gap: 8px; }
   .menu-rel__sw i { width: 18px; height: 18px; }
 }
+
+/* footer on a phone: links tall enough to tap, and the bottom row stacks (copyright, then Back to top) */
+@media (max-width: 639px) {
+  .footer .footer__col ul { gap: 0; }
+  .footer .footer__col li > a { display: inline-flex; align-items: center; min-height: 40px; }
+  .footer__legal > span { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .footer__legal .footer__top { margin-left: 0; display: inline-flex; align-items: center; min-height: 40px; white-space: nowrap; }
+}
+/* the narrowest phones: a tighter bar button, so the menu icon stays inside the floating bar */
+@media (max-width: 360px) {
+  .nav:not(.is-open) > .nav__bar { padding-left: 14px; gap: 4px; }
+  .nav:not(.is-open) .nav__actions .btn { padding-inline: 14px; font-size: 14px; }
+  .nav:not(.is-open) .nav__actions .btn > .m-arrow, .nav:not(.is-open) .nav__actions .btn > svg, .nav:not(.is-open) .nav__actions .btn::after { display: none; }
+}
