@@ -1,4 +1,4 @@
-import { curveAt, expectedFromModel, FilmFacts, filmStrength, fitModel, forecast, OutcomeRow, popularityRanks, tmdbPopularityLicensed, prior, priorCurve, SLOT_BASE, TARGET_WEEKLY_OCCUPANCY, typicalWeekSlots, weeklyRetention } from './pulse';
+import { curveAt, expectedFromModel, FilmFacts, filmStrength, fitModel, forecast, OutcomeRow, popularityRanks, tmdbPopularityLicensed, releaseFactor, PROGRAMME_DECAY_MEAN, prior, priorCurve, SLOT_BASE, TARGET_WEEKLY_OCCUPANCY, typicalWeekSlots, weeklyRetention } from './pulse';
 
 const film = (over: Partial<FilmFacts> = {}): FilmFacts => ({ id: 'f1', title: 'Saltmarsh', genres: ['Drama'], certificate: '15', releaseDate: new Date('2026-10-02T00:00:00Z'), ...over });
 const show = { venueId: 'v1', filmId: 'f1', capacity: 200, slot: 'fri-sat-evening' as const, dayOfWeek: 5, filmWeek: 1, formats: [], schoolHoliday: null };
@@ -44,7 +44,11 @@ describe('Pulse priors', () => {
 
   it('builds the prior from slot, decay, format and school holiday, with reasons', () => {
     const p = prior({ ...show, filmWeek: 3, formats: ['IMAX'] }, { film: film() });
-    expect(p.mu).toBeCloseTo(200 * SLOT_BASE['fri-sat-evening'] * 0.6 * 0.6 * 1.15, 5);
+    // Week 3 of a drama against a typical programme: 0.6^2 / PROGRAMME_DECAY_MEAN.
+    expect(p.mu).toBeCloseTo(200 * SLOT_BASE['fri-sat-evening'] * releaseFactor(0.6, 3) * 1.15, 5);
+    expect(releaseFactor(0.55, 1)).toBeCloseTo(1 / PROGRAMME_DECAY_MEAN, 2);
+    expect(PROGRAMME_DECAY_MEAN).toBeGreaterThan(0.45);
+    expect(PROGRAMME_DECAY_MEAN).toBeLessThan(0.6);
     expect(p.drivers.map((d) => d.label)).toEqual(['Week 3 of release', 'Premium format']);
     const holiday = prior({ ...show, slot: 'weekday-day', schoolHoliday: 'Summer' }, { film: film() });
     expect(holiday.drivers.some((d) => d.label === 'Summer' && d.effect === 1.3)).toBe(true);
@@ -80,7 +84,8 @@ describe('Pulse learning and forecast', () => {
   });
 
   it('trusts the model early and pace late, never above capacity or below seats sold', () => {
-    const base = { ...show, screeningId: 's1', venueId: 'v1' };
+    // A third-week show, so 150 sold the hour before is well ahead of a usual show.
+    const base = { ...show, screeningId: 's1', venueId: 'v1', filmWeek: 3 };
     const early = forecast({ ...base, soldNow: 0, hoursBefore: 200 }, { film: film() }, model);
     const mu = expectedFromModel(base, { film: film() }, model);
     // A week out with nothing sold yet: almost all model, pulled down slightly by the empty pace.

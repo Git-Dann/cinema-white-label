@@ -10,6 +10,7 @@ import { basketRules } from './baskets';
 import { BankHolidaySet, DAY_NAMES, divisionForPostcode, localParts, Slot, SLOT_LABELS, showCalendar } from './calendar';
 import { demoBaskets, demoCustomers } from './demo';
 import { interestStrength, median } from './interest';
+import { backtest, BacktestResult, calibrateRanges } from './backtest';
 import { attachRates, MixItem, prepForShow, productMix } from './food';
 import { CustomerHistory, scoreCustomers, segmentSummary } from './loyalty';
 import { DEMO_TENANTS, loadBankHolidays } from './outcomes';
@@ -37,6 +38,8 @@ interface Ctx {
   banks: BankHolidaySet;
   venues: Map<string, { name: string; timeZone: string; postcode: string }>;
   outcomes: (OutcomeRow & { certificate: string; foodOrders: number })[];
+  /** Backtest, computed on first request and kept with this fit. */
+  accuracy?: BacktestResult;
 }
 
 /**
@@ -91,7 +94,9 @@ export class PulseService {
       certificate: filmMap.get(r.filmId)?.film.certificate ?? 'TBC',
       foodOrders: r.foodOrders,
     }));
-    const ctx: Ctx = { at: now.getTime(), model: fitModel(outcomes, filmMap), films: filmMap, banks, venues: new Map(venues.map((v) => [v.id, v])), outcomes };
+    const fitted = fitModel(outcomes, filmMap);
+    const model = { ...fitted, rangeScale: calibrateRanges(outcomes, filmMap, fitted) };
+    const ctx: Ctx = { at: now.getTime(), model, films: filmMap, banks, venues: new Map(venues.map((v) => [v.id, v])), outcomes };
     this.cache.set(t.id, ctx);
     return ctx;
   }
@@ -341,6 +346,13 @@ export class PulseService {
     }
     const list = [...days.values()].map((d) => ({ ...d, forecast: Math.round(d.forecast) }));
     return { basis: this.basis(ctx.model), days: list.length, anomalies: anomalies(list) };
+  }
+
+  /** How accurate Pulse would have been over recent weeks it had not seen, against two baselines. */
+  async accuracy(t: Tenant) {
+    const ctx = await this.context(t);
+    ctx.accuracy ??= backtest(ctx.outcomes, ctx.films);
+    return { basis: this.basis(ctx.model), ...ctx.accuracy };
   }
 
   async model(t: Tenant) {

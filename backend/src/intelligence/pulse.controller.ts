@@ -66,6 +66,12 @@ export class PulseAdminController {
   model(@CurrentTenant() t: Tenant) {
     return this.pulse.model(t);
   }
+
+  /** Rolling-origin backtest: Pulse's accuracy on recent weeks it had not seen, with baselines. */
+  @Get('accuracy')
+  accuracy(@CurrentTenant() t: Tenant) {
+    return this.pulse.accuracy(t);
+  }
 }
 
 /** Pulse for customers: films they might like. */

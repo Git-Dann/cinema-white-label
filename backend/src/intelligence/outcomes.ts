@@ -1,7 +1,7 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { zonedToUtc } from '../common/time';
 import { BankHolidaySet, Division, divisionForPostcode, fixtureBankHolidays, isDaySlot, parseGovUkBankHolidays, showCalendar, toSet } from './calendar';
-import { filmWeekOf, LEAD_BUCKETS, priorCurve, SLOT_BASE, TYPICAL_TIMES } from './pulse';
+import { filmWeekOf, LEAD_BUCKETS, priorCurve, PROGRAMME_DECAY_MEAN, SLOT_BASE, TYPICAL_TIMES } from './pulse';
 import { certBand } from './food';
 
 type Db = Pick<PrismaClient, 'showOutcome' | 'screening' | 'screeningSeat' | 'booking' | 'film' | 'venue' | 'auditorium' | 'bankHoliday' | 'tenant' | 'auditoriumLayoutVersion'>;
@@ -137,7 +137,12 @@ export async function ensureDemoHistory(db: Db, now: Date = new Date(), weeks = 
   for (const slug of DEMO_TENANTS) {
     const tenant = await db.tenant.findUnique({ where: { slug }, select: { id: true } });
     if (!tenant) continue;
-    if ((await db.showOutcome.count({ where: { tenantId: tenant.id } })) >= 200) continue;
+    // Regenerate demo history made by the first generator, which kept films on for six months.
+    // (and by the second, whose shows averaged under 10% full because decay ran from opening week).
+    const demoAgg = await db.showOutcome.aggregate({ where: { tenantId: tenant.id, source: 'demo' }, _sum: { admissions: true, capacity: true }, _max: { filmWeek: true } });
+    const stale = (demoAgg._max.filmWeek ?? 0) > 12 || (demoAgg._sum.capacity ? (demoAgg._sum.admissions ?? 0) / demoAgg._sum.capacity < 0.1 : false) ? 1 : 0;
+    if (stale > 0) await db.showOutcome.deleteMany({ where: { tenantId: tenant.id, source: 'demo' } });
+    else if ((await db.showOutcome.count({ where: { tenantId: tenant.id } })) >= 200) continue;
     const bh = await loadBankHolidays(db);
     const [auditoriums, filmsAll] = await Promise.all([
       db.auditorium.findMany({ where: { tenantId: tenant.id }, include: { venue: { select: { id: true, timeZone: true, postcode: true } }, layouts: { where: { status: 'PUBLISHED' }, select: { seatCount: true }, take: 1 } } }),
@@ -166,8 +171,10 @@ export async function ensureDemoHistory(db: Db, now: Date = new Date(), weeks = 
         for (const [ti, time] of TYPICAL_TIMES.entries()) {
           const startsAt = zonedToUtc(day, time, a.venue.timeZone);
           // Films playing: newest releases get the evening slots on big screens.
+          // Like a real programme, films leave after about eight weeks; the newest stay longest.
           const live = films.filter((f) => releaseOf.get(f.id)!.getTime() <= startsAt.getTime());
-          const pool = live.length ? live : films;
+          const current = live.filter((f) => filmWeekOf(releaseOf.get(f.id)!, startsAt) <= 8);
+          const pool = current.length >= 2 ? current : live.length ? [...live].sort((x, y) => releaseOf.get(y.id)!.getTime() - releaseOf.get(x.id)!.getTime()).slice(0, 3) : films;
           const pick = pool[(hash(a.id + day) + ti * 3) % pool.length];
           const cal = showCalendar(startsAt, a.venue.timeZone, division, bh);
           const filmWeek = filmWeekOf(releaseOf.get(pick.id)!, startsAt);
@@ -175,7 +182,7 @@ export async function ensureDemoHistory(db: Db, now: Date = new Date(), weeks = 
           const keep = g.includes('family') || g.includes('animation') ? 0.7 : g.includes('horror') || g.includes('action') ? 0.45 : 0.6;
           const holiday = cal.schoolHoliday && isDaySlot(cal.slot) ? 1.3 : 1;
           const anomaly = anomalyDays.get(`${a.venue.id}:${day}`) ?? 1;
-          const occ = SLOT_BASE[cal.slot] * venueTrue.get(a.venue.id)! * dowTrue[cal.dow] * Math.pow(keep, Math.min(10, filmWeek - 1)) * filmTrue.get(pick.id)! * holiday * anomaly * Math.exp(0.25 * gauss(r));
+          const occ = SLOT_BASE[cal.slot] * venueTrue.get(a.venue.id)! * dowTrue[cal.dow] * (Math.pow(keep, filmWeek - 1) / PROGRAMME_DECAY_MEAN) * filmTrue.get(pick.id)! * holiday * anomaly * Math.exp(0.25 * gauss(r));
           const admissions = Math.max(0, Math.min(capacity, Math.round(capacity * Math.min(1, occ))));
           const band = certBand(pick.certificate);
           const attach = (band === 'family' ? (isDaySlot(cal.slot) ? 0.55 : 0.45) : band === 'teen' ? 0.38 : 0.28) * (0.85 + r() * 0.3);

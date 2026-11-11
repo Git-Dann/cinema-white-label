@@ -164,4 +164,17 @@ describe('Pulse (integration)', () => {
       await prisma.film.deleteMany({ where: { id: { in: [film.id, other.id] } } });
     }
   });
+
+  it('reports its own accuracy from a rolling backtest, against baselines, labelled with its basis', async () => {
+    const a = (await api(app, admin).get(`${A}/accuracy`).expect(200)).body;
+    expect(a.basis.note).toContain('demo');
+    expect(a.folds).toBeGreaterThan(0);
+    expect(a.pulse.map((p: any) => p.hoursBefore)).toEqual([168, 24, 3]);
+    const weekOut = a.pulse[0].score;
+    expect(weekOut.shows).toBeGreaterThan(100);
+    expect(weekOut.wape).toBeLessThan(a.baselines.ukPrior.wape);
+    expect(weekOut.coverage80).toBeGreaterThan(0.5);
+    expect(a.weekly.length).toBe(a.folds);
+    await api(app, kestrel).get(`${A}/accuracy`).expect(403);
+  });
 });

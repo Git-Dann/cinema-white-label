@@ -28,6 +28,24 @@ export function typicalWeekSlots(): Slot[] {
   return out;
 }
 
+/**
+ * The slot bases are averages over a whole programme, which mixes new and older films. Release
+ * decay is therefore measured against the decay of a typical programme, not against opening
+ * week: a typical retention of 0.55 a week, with screenings weighted towards newer films the
+ * way operators programme them (weeks 1 to 6: 1, 0.8, 0.6, 0.45, 0.3, 0.2). Opening week then
+ * sits about 1.9 times above the average and week four about at it.
+ */
+export const PROGRAMME_SHOW_WEIGHTS = [1, 0.8, 0.6, 0.45, 0.3, 0.2];
+export const TYPICAL_RETENTION = 0.55;
+export const PROGRAMME_DECAY_MEAN = (() => {
+  const w = PROGRAMME_SHOW_WEIGHTS;
+  const num = w.reduce((a, x, i) => a + x * Math.pow(TYPICAL_RETENTION, i), 0);
+  return Math.round((num / w.reduce((a, x) => a + x, 0)) * 1000) / 1000;
+})();
+
+/** Release factor against a typical programme: retention^(week − 1) ÷ PROGRAMME_DECAY_MEAN. */
+export const releaseFactor = (retention: number, filmWeek: number) => Math.round((Math.pow(retention, Math.max(0, filmWeek - 1)) / PROGRAMME_DECAY_MEAN) * 1000) / 1000;
+
 /** Base occupancy per slot, scaled so a typical week averages TARGET_WEEKLY_OCCUPANCY. */
 export const SLOT_BASE: Record<Slot, number> = (() => {
   const week = typicalWeekSlots();
@@ -139,13 +157,13 @@ export function prior(show: ShowFeatures, ctx: FilmContext): { base: number; mu:
   // expectations hold up better, not worse (Moretti 2011), so only licensed popularity rank applies here.
   const topDecile = (ctx.rank ?? 0) >= 0.9;
   const ret = weeklyRetention(ctx.film, topDecile);
-  const decay = Math.pow(ret.factor, show.filmWeek - 1);
+  const decay = releaseFactor(ret.factor, show.filmWeek);
   const strength = ctx.interest ? ctx.interest.strength : filmStrength(ctx.rank);
   const fmt = formatUplift(show.formats);
   const holiday = show.schoolHoliday && isDaySlot(show.slot) ? 1.3 : 1;
   const drivers: Driver[] = [];
-  if (show.filmWeek > 1) drivers.push({ label: `Week ${show.filmWeek} of release`, effect: decay, explanation: `As ${ret.kind}, it usually keeps about ${Math.round(ret.factor * 100)}% of its audience each week.` });
-  else drivers.push({ label: 'Opening week', effect: 1, explanation: 'Films sell best in their first week.' });
+  if (show.filmWeek > 1) drivers.push({ label: `Week ${show.filmWeek} of release`, effect: decay, explanation: `As ${ret.kind}, it usually keeps about ${Math.round(ret.factor * 100)}% of its audience each week; ${decay >= 1 ? 'still above' : 'now below'} the average film on a typical programme.` });
+  else drivers.push({ label: 'Opening week', effect: decay, explanation: `Films sell best in their first week: about ${decay.toFixed(1)} times the average film on a typical programme.` });
   if (ctx.interest && strength !== 1) {
     const x = ctx.interest.views / ctx.interest.typical;
     const rel = x >= 1 ? `${x.toFixed(1)} times` : `${Math.round(x * 100)}% of`;
@@ -180,6 +198,11 @@ export interface OutcomeRow extends ShowFeatures {
 export interface PulseModel {
   multipliers: Record<Dimension, Record<string, { m: number; shows: number }>>;
   curves: Record<Slot, number[]>;
+  /**
+   * Range calibration per lead bucket (LEAD_BUCKETS): multiplies the spread so that about 80% of
+   * shows land inside the 80% range. Fitted from recent errors (backtest.ts, calibrateRanges).
+   */
+  rangeScale?: number[];
   curveShows: Record<Slot, number>;
   shows: number;
   liveShows: number;
@@ -277,6 +300,16 @@ export function fitModel(rows: OutcomeRow[], films: Map<string, FilmContext>, it
   };
 }
 
+/** Calibration factor for the lead bucket nearest to `hoursBefore` (1 when not calibrated). */
+export function rangeScaleAt(model: Pick<PulseModel, 'rangeScale'>, hoursBefore: number): number {
+  if (!model.rangeScale) return 1;
+  let best = 0;
+  LEAD_BUCKETS.forEach((h, i) => {
+    if (Math.abs(h - hoursBefore) < Math.abs(LEAD_BUCKETS[best] - hoursBefore)) best = i;
+  });
+  return model.rangeScale[best] ?? 1;
+}
+
 /** Share of final sales expected to be sold `hoursBefore` the start (linear between buckets). */
 export function curveAt(curve: number[], hoursBefore: number): number {
   if (hoursBefore <= 0) return 1;
@@ -305,6 +338,8 @@ export interface PulseForecast {
   soldNow: number;
   /** Uncapped demand: can exceed capacity, which is what screen moves look for. */
   demand: number;
+  /** Spread behind the range (admissions), after calibration. */
+  sd: number;
   /** Sold now against what is usually sold by this point (1 = on track). Null with nothing expected yet. */
   paceIndex: number | null;
   /** Why pace is or isn't shown: 'untimed' when most sales have no sale time (seeded or imported). */
@@ -358,7 +393,7 @@ export function forecast(show: ForecastInput, ctx: FilmContext, model: PulseMode
   // Without sale times, assume the seats already sold are in and the usual remainder is still to come.
   const demand = paceKnown ? w * pace + (1 - w) * mu : Math.max(mu, show.soldNow + mu * (1 - Math.min(1, F)));
   const expected = Math.min(show.capacity, Math.max(show.soldNow, demand));
-  const sd = Math.sqrt(expected + (expected * expected) / DISPERSION_R) * (1 - w * 0.8);
+  const sd = Math.sqrt(expected + (expected * expected) / DISPERSION_R) * (1 - w * 0.8) * rangeScaleAt(model, show.hoursBefore);
   const low = Math.max(show.soldNow, Math.round(expected - Z80 * sd));
   const high = Math.min(show.capacity, Math.round(expected + Z80 * sd));
   const paceIndex = paceKnown && mu * F > 0.5 ? Math.round((timed / (mu * F)) * 100) / 100 : null;
@@ -377,6 +412,7 @@ export function forecast(show: ForecastInput, ctx: FilmContext, model: PulseMode
     occupancy: show.capacity ? Math.round((expected / show.capacity) * 1000) / 1000 : 0,
     soldNow: show.soldNow,
     demand: Math.round(demand),
+    sd: Math.round(sd * 100) / 100,
     paceIndex,
     paceBasis: !paceKnown ? 'untimed' : paceIndex === null ? 'early' : 'live',
     soldThrough: Math.round(F * 1000) / 1000,

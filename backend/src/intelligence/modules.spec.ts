@@ -9,7 +9,7 @@ import { alsoBooked, audiences, recommend } from './recommendations';
 import { screenSwaps } from './screens';
 import { roleKind, staffingPlan, tillsFor } from './staffing';
 
-const fc = (over: Partial<PulseForecast>): PulseForecast => ({ screeningId: 's', expected: 50, low: 40, high: 60, capacity: 100, occupancy: 0.5, soldNow: 20, demand: 50, paceIndex: 1, paceBasis: 'live', soldThrough: 0.4, confidence: 'medium', baseline: { slot: 'weekday-evening', label: '', occupancy: 0.2 }, drivers: [], ...over });
+const fc = (over: Partial<PulseForecast>): PulseForecast => ({ screeningId: 's', expected: 50, low: 40, high: 60, capacity: 100, occupancy: 0.5, soldNow: 20, demand: 50, sd: 8, paceIndex: 1, paceBasis: 'live', soldThrough: 0.4, confidence: 'medium', baseline: { slot: 'weekday-evening', label: '', occupancy: 0.2 }, drivers: [], ...over });
 
 describe('pricing', () => {
   it('raises full or fast-selling shows within 72 hours, and suggests off-peak for empty ones under a day out', () => {
