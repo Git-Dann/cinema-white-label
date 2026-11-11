@@ -2,7 +2,7 @@
 
 import { ErrorNote, Loading, PageHeader } from '@/components/ui';
 import { PulseBasisLine } from '@/components/pulse';
-import { PulseModelView, tenantPath } from '@/lib/api';
+import { PulseAccuracy, PulseModelView, tenantPath } from '@/lib/api';
 import { useSession, useTenantData } from '@/lib/session';
 
 /*
@@ -47,6 +47,51 @@ function Adjustments({ rows }: { rows: Row[] }) {
         );
       })}
     </ul>
+  );
+}
+
+const pct = (x: number) => `${Math.round(x * 100)}%`;
+const leadLabel = (h: number) => (h >= 24 ? `${h / 24 === 7 ? 'A week' : `${h / 24} days`} before` : `${h} hours before`).replace('1 days', 'A day');
+
+/** Backtest: how close Pulse came on recent weeks it had not seen, and how often the range held. */
+function Accuracy({ a }: { a: PulseAccuracy }) {
+  if (!a.folds) {
+    return (
+      <section className="card ins-card pulse-section">
+        <header className="ins-head">
+          <h2 className="h3">How accurate Pulse is</h2>
+        </header>
+        <p className="muted small">Pulse scores itself once it has a few weeks of history to test against.</p>
+      </section>
+    );
+  }
+  return (
+    <section className="card ins-card pulse-section" aria-labelledby="pulse-acc">
+      <header className="ins-head">
+        <h2 id="pulse-acc" className="h3">How accurate Pulse is</h2>
+        <span className="muted small">
+          Tested on {a.folds} recent weeks it had not seen · {a.pulse[0].score.shows.toLocaleString('en-GB')} shows
+        </span>
+      </header>
+      <ul className="pulse-slots pulse-acc">
+        {a.pulse.map((p) => (
+          <li key={p.hoursBefore}>
+            <span className="stat-label">{leadLabel(p.hoursBefore)}</span>
+            <strong className="num">{pct(p.score.wape)}</strong>
+            <span className="muted small">typical error · range held {p.score.coverage80 != null ? pct(p.score.coverage80) : 'n/a'}</span>
+          </li>
+        ))}
+        <li className="pulse-acc-base">
+          <span className="stat-label">UK averages alone</span>
+          <strong className="num">{pct(a.baselines.ukPrior.wape)}</strong>
+          <span className="muted small">typical error a week before</span>
+        </li>
+      </ul>
+      <p className="muted small pulse-foot-note">
+        Typical error is the total gap between forecast and seats sold, as a share of seats sold. The 80% range should hold about 80% of the time.
+        {a.basis.demoShows ? ' Scored on demo history, so treat these as an illustration until your own shows have played.' : ''}
+      </p>
+    </section>
   );
 }
 
@@ -141,6 +186,7 @@ function BookingCurve({ curves }: { curves: PulseModelView['curves'] }) {
 export default function PulsePage() {
   const { tenant } = useSession();
   const res = useTenantData<PulseModelView>(tenantPath(tenant, '/pulse/model'));
+  const acc = useTenantData<PulseAccuracy>(tenantPath(tenant, '/pulse/accuracy'));
   const m = res.data;
 
   return (
@@ -165,6 +211,8 @@ export default function PulsePage() {
               ))}
             </ul>
           </section>
+
+          {acc.data && <Accuracy a={acc.data} />}
 
           {m.interest && m.interest.length > 0 && <AudienceInterest rows={m.interest} />}
 

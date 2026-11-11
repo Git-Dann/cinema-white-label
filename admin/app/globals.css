@@ -4956,6 +4956,13 @@ dialog.sheet.sheet-narrow {
     grid-template-columns: 1fr;
   }
 }
+.pulse-acc li {
+  gap: 2px;
+}
+.pulse-acc-base {
+  background: transparent !important;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
 .pulse-foot-note {
   margin: var(--s2) 0 0;
 }

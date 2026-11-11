@@ -736,6 +736,23 @@ export interface PulseAnomalies {
   anomalies: { venueId: string; venueName: string; date: string; actual: number; forecast: number; ratio: number; z: number; sentence: string }[];
 }
 
+export interface PulseScore {
+  shows: number;
+  wape: number;
+  bias: number;
+  coverage80: number | null;
+}
+
+export interface PulseAccuracy {
+  basis: PulseBasis;
+  folds: number;
+  from: string | null;
+  to: string | null;
+  pulse: { hoursBefore: number; score: PulseScore }[];
+  baselines: { ukPrior: PulseScore; seasonalNaive: PulseScore };
+  weekly: { weekStart: string; wape: number; shows: number }[];
+}
+
 export interface PulseModelView {
   basis: PulseBasis;
   priors: { slotBase: Record<string, number>; targetWeeklyOccupancy: number; shrinkageK: number };
