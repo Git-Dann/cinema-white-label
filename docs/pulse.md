@@ -16,7 +16,7 @@ For each screening:
 
    - **Slot base** is the expected share of seats filled for the time slot: weekday daytime, weekday evening (including Sunday evening), Friday or Saturday evening, weekend daytime, late show (21:30 or later). Bank holidays count as Saturdays and the day before one as a Friday.
    - **Release decay** is `weekly retention ^ (week of release − 1)`, with retention set by genre (below).
-   - **Film strength** is `0.8 + 0.4 × popularity rank`, kept between 0.6 and 1.8. The rank is the film's TMDB popularity percentile among the operator's films. Films without TMDB data are neutral (×1).
+   - **Film strength** is neutral (×1) by default. TMDB's free licence forbids commercial use and machine-learning use, so its popularity only counts when `PULSE_TMDB_LICENSED=true` records a written agreement; then strength is `0.8 + 0.4 × popularity rank`, kept between 0.6 and 1.8. Without it, each film's own sales teach its learned film multiplier.
    - **Format**: IMAX and 4DX ×1.15, 3D ×1.05.
    - **School holiday**: daytime shows ×1.3.
 
@@ -71,8 +71,9 @@ Every forecast comes with **drivers**: the factors that moved it, with their siz
 ## Where the priors come from
 
 - **Occupancy.** UK multiplex occupancy runs at roughly 15 to 20%. The Independent Cinema Office plans a single screen on 20% as the base case and 15% as the downside, with screens that do very well reaching 30 to 40%. We keep the shape of demand across slots and scale it so a typical week (four shows a day) averages 19%. Source: [Independent Cinema Office, sample sensitivity analysis for one screen](https://www.independentcinemaoffice.org.uk/advice-support/how-to-start-a-cinema/appendix-2-sample-sensitivity-analysis-for-one-screen/).
-- **Release decay.** A normal second weekend drops about 40% (we keep 60% a week). Drops above 60% count as weak, and front-loaded films (superhero and action blockbusters, horror) drop 55 to 60% (we keep 42%). Family, animation and drama hold up better at about 30% (we keep 70%). Big openings (top decile of TMDB popularity) use the steeper rate, and May to July releases drop a further 10% a week. Source: [Second weekend in box office performance](https://en.wikipedia.org/wiki/Second_weekend_in_box_office_performance).
-- **Film strength.** TMDB popularity, which we already import with each film (Seatfold uses the TMDB API but is not endorsed or certified by TMDB).
+- **Release decay.** Set from UK "legs" (final gross divided by opening weekend, BFI Statistical Yearbook 2024, 2023 top films): median 3.67 overall, 5.2 family and animation, 2.95 franchise action, 4.3 adult drama and comedy. Taking the weekend as about 58% of a week's sales, legs L imply weekly retention `r = 1 − 1 / (0.58 L)`: we keep 55% a week for a typical film, 67% for family, 60% for drama and 42% for action blockbusters and horror. Moretti (2011, US) gives 40% on average, 53% for films that open above expectations and 29% below, which we treat as an outer bound. May to July releases keep 10% less a week. Big openings (top decile of licensed popularity) use the steeper rate. Details and licence notes: [pulse-data-sources.md](pulse-data-sources.md).
+- **Film strength.** Off by default (see above). The recommended replacement is a hype index from Wikipedia pageviews (CC0): across 42 matched 2023 films, doubling pageviews a month out went with a UK opening about 1.4 times larger once release width is counted. Not built yet.
+- **Month seasonality.** UK admissions by month (BFI yearbook) range from 0.72 of an average day in September to 1.42 in July. Not used in code until BFI confirms the figures can be used commercially; the learned multipliers pick up seasonality from an operator's own history meanwhile.
 - **Bank holidays.** [gov.uk bank holidays](https://www.gov.uk/bank-holidays.json), Open Government Licence v3.0.
 - **Arrivals.** Most cinemagoers arrive in the 20 to 30 minutes before the start, hence 60% / 30% / 10%.
 - **Weather** is not used. Free forecast APIs such as Open-Meteo restrict commercial use.

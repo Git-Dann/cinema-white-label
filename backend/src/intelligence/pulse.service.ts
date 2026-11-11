@@ -13,7 +13,7 @@ import { attachRates, MixItem, prepForShow, productMix } from './food';
 import { CustomerHistory, scoreCustomers, segmentSummary } from './loyalty';
 import { DEMO_TENANTS, loadBankHolidays } from './outcomes';
 import { priceSuggestion, PRICE_CAPS } from './pricing';
-import { DIMENSIONS, expectedFromModel, FilmContext, filmWeekOf, fitModel, forecast, LEAD_BUCKETS, OutcomeRow, popularityRanks, PulseForecast, PulseModel, SHRINKAGE_K, SLOT_BASE, TARGET_WEEKLY_OCCUPANCY } from './pulse';
+import { DIMENSIONS, expectedFromModel, FilmContext, filmWeekOf, fitModel, forecast, LEAD_BUCKETS, OutcomeRow, popularityRanks, PulseForecast, tmdbPopularityLicensed, PulseModel, SHRINKAGE_K, SLOT_BASE, TARGET_WEEKLY_OCCUPANCY } from './pulse';
 import { alsoBooked, audiences, recommend, RecFilm } from './recommendations';
 import { screenSwaps } from './screens';
 import { staffingPlan } from './staffing';
@@ -62,7 +62,8 @@ export class PulseService {
       loadBankHolidays(this.prisma),
     ]);
     const facts = films.map((f) => ({ id: f.id, title: f.title, genres: f.genres, certificate: f.certificate, releaseDate: f.releaseDate, popularity: numberOrNull((f.provenance as Record<string, unknown>)?.popularity) }));
-    const ranks = popularityRanks(facts.filter((f) => !films.find((x) => x.id === f.id)!.hidden));
+    // Off unless licensed (see tmdbPopularityLicensed): each film's own sales still teach its learned multiplier.
+    const ranks = tmdbPopularityLicensed() ? popularityRanks(facts.filter((f) => !films.find((x) => x.id === f.id)!.hidden)) : new Map<string, number>();
     const filmMap = new Map(
       facts.map((f) => {
         const full = films.find((x) => x.id === f.id)!;

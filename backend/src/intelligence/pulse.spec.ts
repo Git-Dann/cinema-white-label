@@ -1,4 +1,4 @@
-import { curveAt, expectedFromModel, FilmFacts, filmStrength, fitModel, forecast, OutcomeRow, popularityRanks, prior, priorCurve, SLOT_BASE, TARGET_WEEKLY_OCCUPANCY, typicalWeekSlots, weeklyRetention } from './pulse';
+import { curveAt, expectedFromModel, FilmFacts, filmStrength, fitModel, forecast, OutcomeRow, popularityRanks, tmdbPopularityLicensed, prior, priorCurve, SLOT_BASE, TARGET_WEEKLY_OCCUPANCY, typicalWeekSlots, weeklyRetention } from './pulse';
 
 const film = (over: Partial<FilmFacts> = {}): FilmFacts => ({ id: 'f1', title: 'Saltmarsh', genres: ['Drama'], certificate: '15', releaseDate: new Date('2026-10-02T00:00:00Z'), ...over });
 const show = { venueId: 'v1', filmId: 'f1', capacity: 200, slot: 'fri-sat-evening' as const, dayOfWeek: 5, filmWeek: 1, formats: [], schoolHoliday: null };
@@ -13,13 +13,23 @@ describe('Pulse priors', () => {
   });
 
   it('decays by genre, harder for big openings and summer releases', () => {
-    expect(weeklyRetention(film({ genres: ['Comedy'] })).factor).toBe(0.6);
+    expect(weeklyRetention(film({ genres: ['Comedy'] })).factor).toBe(0.55);
     expect(weeklyRetention(film({ genres: ['Action'] })).factor).toBe(0.42);
     expect(weeklyRetention(film({ genres: ['Horror'] })).factor).toBe(0.42);
-    expect(weeklyRetention(film({ genres: ['Animation', 'Family'] })).factor).toBe(0.7);
-    expect(weeklyRetention(film({ genres: ['Drama'] })).factor).toBe(0.7);
+    expect(weeklyRetention(film({ genres: ['Animation', 'Family'] })).factor).toBe(0.67);
+    expect(weeklyRetention(film({ genres: ['Drama'] })).factor).toBe(0.6);
     expect(weeklyRetention(film({ genres: ['Comedy'] }), true).factor).toBe(0.42);
-    expect(weeklyRetention(film({ genres: ['Comedy'], releaseDate: new Date('2026-06-12T00:00:00Z') })).factor).toBe(0.54);
+    expect(weeklyRetention(film({ genres: ['Comedy'], releaseDate: new Date('2026-06-12T00:00:00Z') })).factor).toBe(0.495);
+  });
+
+  it('keeps TMDB popularity out of forecasts unless an agreement is recorded', () => {
+    const before = process.env.PULSE_TMDB_LICENSED;
+    delete process.env.PULSE_TMDB_LICENSED;
+    expect(tmdbPopularityLicensed()).toBe(false);
+    process.env.PULSE_TMDB_LICENSED = 'true';
+    expect(tmdbPopularityLicensed()).toBe(true);
+    if (before === undefined) delete process.env.PULSE_TMDB_LICENSED;
+    else process.env.PULSE_TMDB_LICENSED = before;
   });
 
   it('scales film strength by TMDB popularity rank', () => {
@@ -34,7 +44,7 @@ describe('Pulse priors', () => {
 
   it('builds the prior from slot, decay, format and school holiday, with reasons', () => {
     const p = prior({ ...show, filmWeek: 3, formats: ['IMAX'] }, { film: film() });
-    expect(p.mu).toBeCloseTo(200 * SLOT_BASE['fri-sat-evening'] * 0.7 * 0.7 * 1.15, 5);
+    expect(p.mu).toBeCloseTo(200 * SLOT_BASE['fri-sat-evening'] * 0.6 * 0.6 * 1.15, 5);
     expect(p.drivers.map((d) => d.label)).toEqual(['Week 3 of release', 'Premium format']);
     const holiday = prior({ ...show, slot: 'weekday-day', schoolHoliday: 'Summer' }, { film: film() });
     expect(holiday.drivers.some((d) => d.label === 'Summer' && d.effect === 1.3)).toBe(true);

@@ -57,17 +57,26 @@ const STEADY = ['family', 'animation', 'drama', 'documentary', 'history', 'music
  */
 export function weeklyRetention(film: Pick<FilmFacts, 'genres' | 'releaseDate'>, topDecile = false): { factor: number; kind: string } {
   const g = lower(film.genres);
-  let factor = 0.6;
+  // UK legs (final gross / opening weekend, 2023 top films): median 3.67 overall, 5.2 family,
+  // 2.95 franchise action, 4.3 adult drama. With the weekend about 58% of a week's sales,
+  // legs L imply week-on-week retention r = 1 - 1 / (0.58 L). See docs/pulse-data-sources.md.
+  let factor = 0.55;
   let kind = 'a typical film';
-  if (g.includes('family') || g.includes('animation')) [factor, kind] = [0.7, 'a family film'];
+  if (g.includes('family') || g.includes('animation')) [factor, kind] = [0.67, 'a family film'];
   else if (g.includes('horror')) [factor, kind] = [0.42, 'a horror film'];
   else if (g.some((x) => BLOCKBUSTER.includes(x))) [factor, kind] = [0.42, 'a big action release'];
-  else if (g.some((x) => STEADY.includes(x))) [factor, kind] = [0.7, 'a drama'];
+  else if (g.some((x) => STEADY.includes(x))) [factor, kind] = [0.6, 'a drama'];
   if (topDecile && factor > 0.42) [factor, kind] = [0.42, 'a big opening'];
   const month = film.releaseDate.getUTCMonth() + 1;
   if (month >= 5 && month <= 7) factor = factor * 0.9;
   return { factor: Math.round(factor * 1000) / 1000, kind };
 }
+
+/**
+ * TMDB's free licence forbids commercial use and use in machine-learning applications, so its
+ * popularity only feeds Pulse when an operator has a written TMDB agreement that covers it.
+ */
+export const tmdbPopularityLicensed = () => process.env.PULSE_TMDB_LICENSED === 'true';
 
 /** Percentile rank (0 to 1) of each film's TMDB popularity among the operator's films that have one. */
 export function popularityRanks(films: FilmFacts[]): Map<string, number> {
@@ -129,7 +138,7 @@ export function prior(show: ShowFeatures, ctx: FilmContext): { base: number; mu:
   const drivers: Driver[] = [];
   if (show.filmWeek > 1) drivers.push({ label: `Week ${show.filmWeek} of release`, effect: decay, explanation: `As ${ret.kind}, it usually keeps about ${Math.round(ret.factor * 100)}% of its audience each week.` });
   else drivers.push({ label: 'Opening week', effect: 1, explanation: 'Films sell best in their first week.' });
-  if (strength !== 1) drivers.push({ label: strength > 1 ? 'Popular film' : 'Quieter film', effect: strength, explanation: `Ranks in the ${Math.round((ctx.rank ?? 0) * 100)}th percentile of TMDB popularity among your films.` });
+  if (strength !== 1) drivers.push({ label: strength > 1 ? 'Popular film' : 'Quieter film', effect: strength, explanation: `Ranks in the ${Math.round((ctx.rank ?? 0) * 100)}th percentile of popularity among your films (licensed TMDB data).` });
   if (fmt !== 1) drivers.push({ label: 'Premium format', effect: fmt, explanation: 'IMAX, 4DX and 3D shows usually sell a little better.' });
   if (holiday !== 1) drivers.push({ label: show.schoolHoliday!, effect: holiday, explanation: 'Daytime shows sell more in school holidays (approximate England and Wales dates).' });
   return { base, mu: show.capacity * base * decay * strength * fmt * holiday, drivers };
