@@ -18,14 +18,40 @@ public struct Promotion: Codable, Sendable, Hashable, Identifiable {
     public var ctaLabel: String?
     public var action: Action
     public var validTo: Date?
+    /// Banner photo. For a film offer without its own photo the server sends the film's backdrop.
+    public var image: ImageRef?
 
-    public init(id: String, title: String, body: String, ctaLabel: String?, action: Action, validTo: Date? = nil) {
+    public init(id: String, title: String, body: String, ctaLabel: String?, action: Action, validTo: Date? = nil, image: ImageRef? = nil) {
         self.id = id
         self.title = title
         self.body = body
         self.ctaLabel = ctaLabel
         self.action = action
         self.validTo = validTo
+        self.image = image
+    }
+
+    /// The banner's two lines: a small lead and a big headline. Mirrors
+    /// `bannerLines` in the operator portal so its preview matches the phone.
+    /// - A saving in the title ("10% off", "£2 off", "2 for 1") is the headline.
+    /// - A film offer leads with its title and makes the film's name the headline.
+    /// - Otherwise the last word is the headline ("Pre-order your" / "SNACKS").
+    public func bannerLines(filmTitle: String? = nil) -> (lead: String, headline: String) {
+        let text = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        for pattern in [#"\d+%\s*off"#, #"£\d+(?:\.\d{2})?\s*off"#, #"\d\s*for\s*\d"#] {
+            if let r = text.range(of: pattern, options: [.regularExpression, .caseInsensitive]) {
+                return (Self.tidy(text.replacingCharacters(in: r, with: "")), String(text[r]).uppercased())
+            }
+        }
+        if let filmTitle, !filmTitle.isEmpty { return (Self.tidy(text), filmTitle.uppercased()) }
+        let words = text.split(whereSeparator: \.isWhitespace).map(String.init)
+        guard words.count > 1, let last = words.last else { return ("", text.uppercased()) }
+        return (Self.tidy(words.dropLast().joined(separator: " ")), Self.tidy(last).uppercased())
+    }
+
+    private static func tidy(_ s: String) -> String {
+        let edges = CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: ",.:;–-"))
+        return s.components(separatedBy: .whitespaces).filter { !$0.isEmpty }.joined(separator: " ").trimmingCharacters(in: edges)
     }
 
     /// Whether the card should show a button. Unknown or unsafe actions decode to `.none`.

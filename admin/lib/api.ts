@@ -481,6 +481,9 @@ export interface Promotion {
   sortOrder: number;
   /** Whether customers can see it right now (operator-wide promotions only; null when cinema-specific). */
   showing: boolean | null;
+  imageAssetId: string | null;
+  /** The banner photo; for a film offer without one, the film's backdrop. */
+  image: ImageRef | null;
 }
 
 export interface LoyaltyProgram {

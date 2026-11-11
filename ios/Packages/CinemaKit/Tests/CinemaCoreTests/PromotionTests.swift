@@ -22,6 +22,29 @@ struct PromotionTests {
         #expect(list.map(\.hasButton) == [true, true, true, false])
     }
 
+    @Test func decodesTheBannerPhotoWhenSent() throws {
+        let list = try decode("""
+        [
+          {"id":"a","title":"t","body":"b","ctaLabel":null,"action":{"kind":"none"},"image":{"id":"m1","url":"/v1/media/m1?v=1","width":1200,"height":900,"aspectRatio":1.333,"focalPoint":{"x":0.5,"y":0.5},"dominantColor":"#2D1C17","attribution":"Photo: Unsplash","renditions":[160,342,500,780]}},
+          {"id":"b","title":"t","body":"b","ctaLabel":null,"action":{"kind":"none"}}
+        ]
+        """)
+        #expect(list[0].image?.id == "m1")
+        #expect(list[1].image == nil)
+    }
+
+    @Test func splitsTitlesIntoBannerLines() {
+        func lines(_ title: String, film: String? = nil) -> [String] {
+            let l = Promotion(id: "x", title: title, body: "b", ctaLabel: nil, action: .none).bannerLines(filmTitle: film)
+            return [l.lead, l.headline]
+        }
+        #expect(lines("New here? 10% off") == ["New here?", "10% OFF"])
+        #expect(lines("Tuesdays: £2 off popcorn") == ["Tuesdays: popcorn", "£2 OFF"])
+        #expect(lines("Pre-order your snacks") == ["Pre-order your", "SNACKS"])
+        #expect(lines("Opening night, booked early", film: "Saltmarsh") == ["Opening night, booked early", "SALTMARSH"])
+        #expect(lines("Quiz") == ["", "QUIZ"])
+    }
+
     @Test func unsafeOrUnknownActionsBecomeInformationOnly() throws {
         let list = try decode("""
         [

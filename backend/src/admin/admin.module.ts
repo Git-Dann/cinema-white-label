@@ -200,7 +200,7 @@ export class AdminBrandingController {
         tenantId: t.id, filmId: b.filmId ?? null, kind: b.kind, provider: 'operator', sourceRef: `upload:${name}`, storageKey: `upload/${t.id}/${name}`,
         width: finalMeta.width ?? meta.width, height: finalMeta.height ?? meta.height, mimeType: isLogo ? 'image/png' : 'image/jpeg', attribution: b.attribution ?? null, licenceRef: b.licenceRef ?? null,
         dominantColor: `#${[d.r, d.g, d.b].map((x) => x.toString(16).padStart(2, '0')).join('')}`.toUpperCase(),
-        approvedContexts: isLogo ? ['branding'] : b.kind === 'PRODUCT' ? ['menu'] : b.kind === 'VENUE' ? ['venue'] : ['list', 'detail'],
+        approvedContexts: isLogo ? ['branding'] : b.kind === 'PRODUCT' ? ['menu'] : b.kind === 'VENUE' ? ['venue'] : b.kind === 'BANNER' ? ['promotion'] : ['list', 'detail'],
       },
     });
     await this.audit.record({ tenantId: t.id, actorId: a.sub, action: 'media.upload', entityType: 'MediaAsset', entityId: asset.id, data: { kind: b.kind, filmId: b.filmId } });

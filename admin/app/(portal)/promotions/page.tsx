@@ -7,6 +7,10 @@ import { formatDate } from '@/lib/format';
 import { ApiErrorNote, ErrorNote, Loading, PageHeader, ReadOnlyNote, SuccessNote } from '@/components/ui';
 import { ScopeNote, useCinemaScope } from '@/lib/cinema-scope';
 import { Sheet, TileHit } from '@/components/Sheet';
+import { OfferBanner } from '@/components/OfferBanner';
+import { SafeImage } from '@/components/SafeImage';
+import { mediaUrl } from '@/lib/api';
+import { MAX_UPLOAD_BYTES, readFileBase64 } from '@/lib/files';
 
 type ApiErr = { message: string; details: string[] } | null;
 
@@ -30,9 +34,11 @@ interface Form {
   validTo: string;
   active: boolean;
   sortOrder: string;
+  imageAssetId: string | null;
+  imageUrl: string | null;
 }
 
-const EMPTY: Form = { title: '', body: '', ctaLabel: ACTIONS.voucher.cta, action: 'voucher', filmId: '', voucherCode: '', linkUrl: '', venueId: '', validFrom: '', validTo: '', active: true, sortOrder: '0' };
+const EMPTY: Form = { title: '', body: '', ctaLabel: ACTIONS.voucher.cta, action: 'voucher', filmId: '', voucherCode: '', linkUrl: '', venueId: '', validFrom: '', validTo: '', active: true, sortOrder: '0', imageAssetId: null, imageUrl: null };
 
 const startOfDay = (d: string) => (d ? `${d}T00:00:00.000Z` : null);
 const endOfDay = (d: string) => (d ? `${d}T23:59:59.000Z` : null);
@@ -43,6 +49,7 @@ function toForm(p: Promotion): Form {
     title: p.title, body: p.body, ctaLabel: p.ctaLabel, action: p.action,
     filmId: p.filmId ?? '', voucherCode: p.voucherCode ?? '', linkUrl: p.linkUrl ?? '', venueId: p.venueId ?? '',
     validFrom: dateInput(p.validFrom), validTo: dateInput(p.validTo), active: p.active, sortOrder: String(p.sortOrder),
+    imageAssetId: p.imageAssetId, imageUrl: p.imageAssetId ? p.image?.url ?? null : null,
   };
 }
 
@@ -76,6 +83,25 @@ export default function PromotionsPage() {
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<ApiErr>(null);
   const [msg, setMsg] = useState<{ ok?: string; error?: string }>({});
+  const [uploading, setUploading] = useState(false);
+
+  async function uploadPhoto(file: File | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return fail('Choose a JPEG, PNG or WebP image.');
+    if (file.size > MAX_UPLOAD_BYTES) return fail('That image is over 10 MB. Choose a smaller one.');
+    setUploading(true);
+    setFormError(null);
+    try {
+      const res = await api<{ id: string; url: string }>(tenantPath(tenant, '/media'), { method: 'POST', body: { kind: 'BANNER', dataBase64: await readFileBase64(file) } });
+      setForm((f) => ({ ...f, imageAssetId: res.id, imageUrl: res.url }));
+    } catch (err) {
+      setFormError({ message: errorMessage(err), details: errorDetails(err) });
+    } finally {
+      setUploading(false);
+    }
+  }
+  /** Film offers without their own photo use the film's backdrop, as the app does. */
+  const backdropOf = (filmId: string) => films.data?.find((f) => f.id === filmId)?.backdrop?.url ?? null;
 
   const fail = (message: string) => setFormError({ message, details: [] });
   const set = (k: keyof Form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -109,6 +135,7 @@ export default function PromotionsPage() {
       title: form.title.trim(), body: form.body.trim(), ctaLabel: form.action === 'none' ? '' : form.ctaLabel.trim(), action: form.action,
       filmId: form.filmId || null, voucherCode: form.voucherCode || null, linkUrl: form.linkUrl.trim() || null, venueId: form.venueId || null,
       validFrom: startOfDay(form.validFrom), validTo: endOfDay(form.validTo), active: form.active, sortOrder,
+      imageAssetId: form.imageAssetId,
     };
     setBusy(true);
     setFormError(null);
@@ -160,7 +187,7 @@ export default function PromotionsPage() {
         onSubmit={submit}
         footer={
           <>
-            <button type="submit" className="btn btn-primary" disabled={busy}>
+            <button type="submit" className="btn btn-primary" disabled={busy || uploading}>
               {busy ? 'Saving…' : editing === 'new' ? 'Create offer' : 'Save changes'}
             </button>
             <button type="button" className="btn btn-ghost" onClick={() => setEditing(null)}>
@@ -174,10 +201,33 @@ export default function PromotionsPage() {
           </>
         }
       >
+        <div className="offer-sheet-preview" aria-label="Preview">
+          <OfferBanner
+            title={form.title}
+            body={form.body}
+            cta={form.action === 'none' ? null : form.ctaLabel}
+            code={form.action === 'voucher' ? form.voucherCode || null : null}
+            imageUrl={form.imageUrl ?? (form.action === 'film' ? backdropOf(form.filmId) : null)}
+            filmTitle={form.action === 'film' && form.filmId ? filmTitle(form.filmId) : null}
+          />
+        </div>
+        <div className="row gap-1 offer-photo-row">
+          <label className={`btn btn-sm file-btn${uploading ? ' disabled' : ''}`}>
+            {uploading ? 'Uploading…' : form.imageAssetId ? 'Replace photo' : 'Add a photo'}
+            <input type="file" accept="image/jpeg,image/png,image/webp" className="visually-hidden" disabled={uploading} onChange={(e) => uploadPhoto(e.target.files?.[0])} />
+          </label>
+          {form.imageAssetId && (
+            <button type="button" className="btn btn-sm btn-ghost" onClick={() => setForm({ ...form, imageAssetId: null, imageUrl: null })}>
+              Remove photo
+            </button>
+          )}
+          <span className="help">{form.action === 'film' && !form.imageAssetId ? 'Film offers use the film’s backdrop unless you add a photo.' : 'Wide photos work best, around 1600 × 800.'}</span>
+        </div>
         <div className="form-grid">
           <div className="field span-2">
             <label htmlFor="pr-t">Title</label>
-            <input id="pr-t" maxLength={60} value={form.title} onChange={set('title')} placeholder="New here? 10% off" />
+            <input id="pr-t" maxLength={60} value={form.title} onChange={set('title')} placeholder="New here? 10% off" aria-describedby="pr-t-help" />
+            <p id="pr-t-help" className="help">A saving such as “10% off” becomes the big line; otherwise the last word does, or the film’s name for a film offer.</p>
           </div>
           <div className="field span-2">
             <label htmlFor="pr-b">Text</label>
@@ -282,13 +332,17 @@ export default function PromotionsPage() {
             {shown.map((p) => {
               const s = status(p);
               return (
-                <li key={p.id} className={`card tile${p.active ? '' : ' is-off'}${canEdit ? ' tile-click' : ''}`}>
+                <li key={p.id} className={`card tile offer-tile${p.active ? '' : ' is-off'}${canEdit ? ' tile-click' : ''}`}>
                   {canEdit && <TileHit label={`Edit ${p.title}`} onClick={() => open(p)} />}
-                  <div className="offer-preview">
-                    <div className="offer-preview-title">{p.title}</div>
-                    <div className="offer-preview-body">{p.body}</div>
-                    {p.action !== 'none' && <span className="offer-preview-cta">{p.ctaLabel}</span>}
-                  </div>
+                  <OfferBanner
+                    title={p.title}
+                    body={p.body}
+                    cta={p.action === 'none' ? null : p.ctaLabel}
+                    code={p.action === 'voucher' ? p.voucherCode : null}
+                    imageUrl={p.image?.url}
+                    filmTitle={p.action === 'film' ? filmTitle(p.filmId) : null}
+                  />
+                  <div className="offer-meta">
                   <div className="tile-head">
                     <span className={`badge badge-${s.tone}`}>{s.label}</span>
                   </div>
@@ -305,6 +359,7 @@ export default function PromotionsPage() {
                     <dt>When</dt>
                     <dd>{schedule(p)}</dd>
                   </dl>
+                  </div>
                 </li>
               );
             })}
