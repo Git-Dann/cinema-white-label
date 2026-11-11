@@ -92,6 +92,10 @@ function main(env = process.env) {
         console.log(`deploy-db: ${t.slug}: ${await rollupOutcomes(prisma, t.id, new Date())} show outcomes rolled up.`);
       }
       console.log(`deploy-db: ${await ensureDemoHistory(prisma)} demo show outcomes added.`);
+      const { ensureDemoInterest } = require('../dist/intelligence/interest');
+      const { SLOT_BASE } = require('../dist/intelligence/pulse');
+      const { DEMO_TENANTS } = require('../dist/intelligence/outcomes');
+      console.log(`deploy-db: ${await ensureDemoInterest(prisma, DEMO_TENANTS, SLOT_BASE)} demo films given audience interest (labelled demo).`);
       await prisma.$disconnect();
       return;
     }

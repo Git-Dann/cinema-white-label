@@ -741,4 +741,6 @@ export interface PulseModelView {
   priors: { slotBase: Record<string, number>; targetWeeklyOccupancy: number; shrinkageK: number };
   multipliers: Record<'venue' | 'slot' | 'dayOfWeek' | 'filmWeekBand' | 'film', { key: string; label: string; multiplier: number; shows: number }[]>;
   curves: { hoursBefore: number[]; bySlot: { slot: string; label: string; values: number[]; shows: number }[] };
+  /** Audience interest: Wikipedia page views (CC0) against the typical film showing. */
+  interest?: { filmId: string; title: string; views: number; typical: number; strength: number; source: 'wikipedia' | 'demo'; series: boolean }[];
 }

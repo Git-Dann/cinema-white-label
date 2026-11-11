@@ -264,11 +264,31 @@ model Film {
   updatedAt        DateTime @updatedAt
 
   externalIds FilmExternalId[]
+  interest    FilmInterest?
   assets      MediaAsset[]
   trailers    Trailer[]
   screenings  Screening[]
 
   @@unique([tenantId, slug])
+}
+
+/// Pulse audience interest: English Wikipedia page views (Wikimedia, CC0) over the 30 days
+/// before release, or the latest 30 days once released. Article found via Wikidata (CC0).
+/// source "demo" marks made-up figures for the demo operators.
+model FilmInterest {
+  id        String   @id @default(cuid())
+  tenantId  String
+  filmId    String   @unique
+  film      Film     @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  source    String
+  article   String?
+  /// Part of a series or a sequel (Wikidata P179 or P155).
+  series    Boolean  @default(false)
+  views     Int
+  windowEnd DateTime
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
 }
 
 model FilmExternalId {

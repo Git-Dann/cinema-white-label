@@ -4947,6 +4947,18 @@ dialog.sheet.sheet-narrow {
 .pulse-learned-wide {
   grid-column: 1 / -1;
 }
+.pulse-adjust-cols {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--s4);
+}
+@media (max-width: 900px) {
+  .pulse-adjust-cols {
+    grid-template-columns: 1fr;
+  }
+}
+.pulse-foot-note {
+  margin: var(--s2) 0 0;
+}
 .pulse-learned-wide .pulse-adjust {
   grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   column-gap: var(--s4);

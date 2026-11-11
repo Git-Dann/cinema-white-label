@@ -3,6 +3,7 @@ import request from 'supertest';
 import { PrismaClient } from '@prisma/client';
 import { api, createApp, guest, T } from './harness';
 import { leadCurveFrom, refreshBankHolidays, rollupOutcomes, rng } from '../src/intelligence/outcomes';
+import { InterestFetcher, refreshInterest } from '../src/intelligence/interest';
 
 describe('Pulse (integration)', () => {
   let app: INestApplication;
@@ -112,5 +113,55 @@ describe('Pulse (integration)', () => {
     expect(n).toBe(1);
     expect(await prisma.bankHoliday.count()).toBe(1);
     await prisma.bankHoliday.deleteMany();
+  });
+
+  it('shows demo audience interest, labelled, and drives the forecast with it', async () => {
+    const m = (await api(app, admin).get(`${A}/model`).expect(200)).body;
+    expect(m.interest.length).toBeGreaterThan(0);
+    expect(m.interest.every((i: any) => i.source === 'demo' && i.views > 0 && i.strength >= 0.6 && i.strength <= 1.8)).toBe(true);
+    const f = (await api(app, admin).get(`${A}/forecasts?venueId=${venueId}`).expect(200)).body;
+    const drivers = f.forecasts.flatMap((x: any) => x.drivers.map((d: any) => d.label));
+    expect(drivers.some((l: string) => l.endsWith('audience interest'))).toBe(true);
+    expect(JSON.stringify(f)).not.toMatch(/hype/i);
+  });
+
+  it('refreshes audience interest from Wikidata and Wikipedia page views, leaving unmatched films neutral', async () => {
+    const tenant = (await prisma.tenant.findUniqueOrThrow({ where: { slug: 'kestrel' } }))!;
+    const now = new Date();
+    const film = await prisma.film.create({
+      data: { tenantId: tenant.id, slug: `pulse-interest-${Date.now()}`, title: 'Interest Test Film', synopsis: 'x', releaseDate: new Date(now.getTime() + 20 * 86400_000), runtimeMinutes: 100, certificate: '12A', genres: ['Drama'] },
+    });
+    const other = await prisma.film.create({
+      data: { tenantId: tenant.id, slug: `pulse-nomatch-${Date.now()}`, title: 'No Article Film', synopsis: 'x', releaseDate: new Date(now.getTime() + 25 * 86400_000), runtimeMinutes: 90, certificate: 'PG', genres: ['Comedy'] },
+    });
+    const queries: string[] = [];
+    const urls: string[] = [];
+    const fetcher: InterestFetcher = {
+      async wikidata(q) {
+        queries.push(q);
+        return q.includes('"Interest Test Film"@en')
+          ? { results: { bindings: [{ film: { value: 'http://www.wikidata.org/entity/Q1' }, article: { value: 'https://en.wikipedia.org/wiki/Interest_Test_Film' }, series: { value: 'true' } }] } }
+          : { results: { bindings: [] } };
+      },
+      async pageviews(url) {
+        urls.push(url);
+        return { items: [{ views: 1200 }, { views: 800 }] };
+      },
+    };
+    try {
+      const r = await refreshInterest(prisma, tenant.id, now, fetcher);
+      expect(r.updated).toBeGreaterThanOrEqual(1);
+      expect(r.unmatched).toBeGreaterThanOrEqual(1);
+      const row = await prisma.filmInterest.findUniqueOrThrow({ where: { filmId: film.id } });
+      expect(row).toMatchObject({ source: 'wikipedia', article: 'Interest Test Film', series: true, views: 2000 });
+      expect(urls.some((u) => u.includes('/Interest_Test_Film/daily/'))).toBe(true);
+      expect(await prisma.filmInterest.findUnique({ where: { filmId: other.id } })).toBeNull();
+      // Once matched, later refreshes reuse the article and skip Wikidata.
+      const before = queries.length;
+      await refreshInterest(prisma, tenant.id, now, fetcher);
+      expect(queries.filter((q) => q.includes('"Interest Test Film"@en')).length).toBe(queries.slice(0, before).filter((q) => q.includes('"Interest Test Film"@en')).length);
+    } finally {
+      await prisma.film.deleteMany({ where: { id: { in: [film.id, other.id] } } });
+    }
   });
 });

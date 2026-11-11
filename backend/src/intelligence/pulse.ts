@@ -42,8 +42,10 @@ export interface FilmFacts {
   genres: string[];
   certificate: string;
   releaseDate: Date;
-  /** TMDB popularity, when imported. */
+  /** TMDB popularity, when imported. Only used when licensed (tmdbPopularityLicensed). */
   popularity?: number | null;
+  /** Part of a series or a sequel (Wikidata). Front-loaded like franchise releases. */
+  series?: boolean;
 }
 
 const lower = (g: string[]) => g.map((x) => x.toLowerCase());
@@ -55,7 +57,7 @@ const STEADY = ['family', 'animation', 'drama', 'documentary', 'history', 'music
  * blockbusters, horror and top-decile openings keep ~42%; family, animation and drama keep ~70%.
  * Summer (May to July) releases drop a further 10% a week.
  */
-export function weeklyRetention(film: Pick<FilmFacts, 'genres' | 'releaseDate'>, topDecile = false): { factor: number; kind: string } {
+export function weeklyRetention(film: Pick<FilmFacts, 'genres' | 'releaseDate' | 'series'>, topDecile = false): { factor: number; kind: string } {
   const g = lower(film.genres);
   // UK legs (final gross / opening weekend, 2023 top films): median 3.67 overall, 5.2 family,
   // 2.95 franchise action, 4.3 adult drama. With the weekend about 58% of a week's sales,
@@ -66,6 +68,7 @@ export function weeklyRetention(film: Pick<FilmFacts, 'genres' | 'releaseDate'>,
   else if (g.includes('horror')) [factor, kind] = [0.42, 'a horror film'];
   else if (g.some((x) => BLOCKBUSTER.includes(x))) [factor, kind] = [0.42, 'a big action release'];
   else if (g.some((x) => STEADY.includes(x))) [factor, kind] = [0.6, 'a drama'];
+  if (film.series && factor > 0.42 && kind !== 'a family film') [factor, kind] = [0.42, 'a sequel or series film'];
   if (topDecile && factor > 0.42) [factor, kind] = [0.42, 'a big opening'];
   const month = film.releaseDate.getUTCMonth() + 1;
   if (month >= 5 && month <= 7) factor = factor * 0.9;
@@ -123,22 +126,35 @@ export interface Driver {
 
 export interface FilmContext {
   film: FilmFacts;
+  /** TMDB popularity percentile; only set when licensed. */
   rank?: number;
+  /** Audience interest from Wikipedia page views (see interest.ts). */
+  interest?: { views: number; typical: number; strength: number; source: 'wikipedia' | 'demo' };
 }
 
 /** The prior expectation for a show, with the reasons. */
 export function prior(show: ShowFeatures, ctx: FilmContext): { base: number; mu: number; drivers: Driver[] } {
   const base = SLOT_BASE[show.slot];
+  // Audience interest lifts the opening only. It does not steepen decay: films that open above
+  // expectations hold up better, not worse (Moretti 2011), so only licensed popularity rank applies here.
   const topDecile = (ctx.rank ?? 0) >= 0.9;
   const ret = weeklyRetention(ctx.film, topDecile);
   const decay = Math.pow(ret.factor, show.filmWeek - 1);
-  const strength = filmStrength(ctx.rank);
+  const strength = ctx.interest ? ctx.interest.strength : filmStrength(ctx.rank);
   const fmt = formatUplift(show.formats);
   const holiday = show.schoolHoliday && isDaySlot(show.slot) ? 1.3 : 1;
   const drivers: Driver[] = [];
   if (show.filmWeek > 1) drivers.push({ label: `Week ${show.filmWeek} of release`, effect: decay, explanation: `As ${ret.kind}, it usually keeps about ${Math.round(ret.factor * 100)}% of its audience each week.` });
   else drivers.push({ label: 'Opening week', effect: 1, explanation: 'Films sell best in their first week.' });
-  if (strength !== 1) drivers.push({ label: strength > 1 ? 'Popular film' : 'Quieter film', effect: strength, explanation: `Ranks in the ${Math.round((ctx.rank ?? 0) * 100)}th percentile of popularity among your films (licensed TMDB data).` });
+  if (ctx.interest && strength !== 1) {
+    const x = ctx.interest.views / ctx.interest.typical;
+    const rel = x >= 1 ? `${x.toFixed(1)} times` : `${Math.round(x * 100)}% of`;
+    drivers.push({
+      label: strength > 1 ? 'Strong audience interest' : 'Quieter audience interest',
+      effect: strength,
+      explanation: `Its Wikipedia page views over the month that counts are ${rel} the typical film you are showing${ctx.interest.source === 'demo' ? ' (demo figures)' : ' (Wikimedia, CC0)'}.`,
+    });
+  } else if (strength !== 1) drivers.push({ label: strength > 1 ? 'Popular film' : 'Quieter film', effect: strength, explanation: `Ranks in the ${Math.round((ctx.rank ?? 0) * 100)}th percentile of popularity among your films (licensed TMDB data).` });
   if (fmt !== 1) drivers.push({ label: 'Premium format', effect: fmt, explanation: 'IMAX, 4DX and 3D shows usually sell a little better.' });
   if (holiday !== 1) drivers.push({ label: show.schoolHoliday!, effect: holiday, explanation: 'Daytime shows sell more in school holidays (approximate England and Wales dates).' });
   return { base, mu: show.capacity * base * decay * strength * fmt * holiday, drivers };

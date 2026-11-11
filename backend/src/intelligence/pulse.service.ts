@@ -9,6 +9,7 @@ import { anomalies } from './anomalies';
 import { basketRules } from './baskets';
 import { BankHolidaySet, DAY_NAMES, divisionForPostcode, localParts, Slot, SLOT_LABELS, showCalendar } from './calendar';
 import { demoBaskets, demoCustomers } from './demo';
+import { interestStrength, median } from './interest';
 import { attachRates, MixItem, prepForShow, productMix } from './food';
 import { CustomerHistory, scoreCustomers, segmentSummary } from './loyalty';
 import { DEMO_TENANTS, loadBankHolidays } from './outcomes';
@@ -56,18 +57,22 @@ export class PulseService {
     const now = this.clock.now();
     if (hit && now.getTime() - hit.at < MODEL_TTL) return hit;
     const [films, venues, rows, banks] = await Promise.all([
-      this.prisma.film.findMany({ where: { tenantId: t.id }, include: { assets: true } }),
+      this.prisma.film.findMany({ where: { tenantId: t.id }, include: { assets: true, interest: true } }),
       this.prisma.venue.findMany({ where: { tenantId: t.id }, select: { id: true, name: true, timeZone: true, postcode: true } }),
       this.prisma.showOutcome.findMany({ where: { tenantId: t.id, startsAt: { gte: new Date(now.getTime() - 365 * DAY) } } }),
       loadBankHolidays(this.prisma),
     ]);
-    const facts = films.map((f) => ({ id: f.id, title: f.title, genres: f.genres, certificate: f.certificate, releaseDate: f.releaseDate, popularity: numberOrNull((f.provenance as Record<string, unknown>)?.popularity) }));
+    const facts = films.map((f) => ({ id: f.id, title: f.title, genres: f.genres, certificate: f.certificate, releaseDate: f.releaseDate, popularity: numberOrNull((f.provenance as Record<string, unknown>)?.popularity), series: f.interest?.series ?? false }));
+    // Audience interest against the typical (median) film this operator is showing.
+    const typical = median(films.filter((f) => !f.hidden && f.interest).map((f) => f.interest!.views));
+    const interestOf = (f: (typeof films)[number]) =>
+      f.interest && f.interest.views > 0 && typical > 0 ? { views: f.interest.views, typical, strength: interestStrength(f.interest.views, typical), source: f.interest.source as 'wikipedia' | 'demo' } : undefined;
     // Off unless licensed (see tmdbPopularityLicensed): each film's own sales still teach its learned multiplier.
     const ranks = tmdbPopularityLicensed() ? popularityRanks(facts.filter((f) => !films.find((x) => x.id === f.id)!.hidden)) : new Map<string, number>();
     const filmMap = new Map(
       facts.map((f) => {
         const full = films.find((x) => x.id === f.id)!;
-        return [f.id, { film: f, rank: ranks.get(f.id), slug: full.slug, hidden: full.hidden, posterUrl: imageRef(pickAsset(full.assets, 'POSTER', now))?.url ?? null }];
+        return [f.id, { film: f, rank: ranks.get(f.id), interest: interestOf(full), slug: full.slug, hidden: full.hidden, posterUrl: imageRef(pickAsset(full.assets, 'POSTER', now))?.url ?? null }];
       }),
     );
     const outcomes = rows.map((r) => ({
@@ -347,6 +352,11 @@ export class PulseService {
       priors: { slotBase: SLOT_BASE, targetWeeklyOccupancy: TARGET_WEEKLY_OCCUPANCY, shrinkageK: SHRINKAGE_K },
       multipliers: Object.fromEntries(DIMENSIONS.map((d) => [d, Object.entries(ctx.model.multipliers[d]).map(([k, c]) => ({ key: k, label: label(d, k), multiplier: c.m, shows: c.shows })).sort((a, b) => b.multiplier - a.multiplier)])),
       curves: { hoursBefore: LEAD_BUCKETS, bySlot: Object.entries(ctx.model.curves).map(([slot, values]) => ({ slot, label: SLOT_LABELS[slot as Slot], values, shows: ctx.model.curveShows[slot as Slot] })) },
+      // Audience interest for films showing now or soon, strongest first.
+      interest: [...ctx.films.values()]
+        .filter((f) => !f.hidden && f.interest)
+        .map((f) => ({ filmId: f.film.id, title: f.film.title, views: f.interest!.views, typical: f.interest!.typical, strength: f.interest!.strength, source: f.interest!.source, series: !!f.film.series }))
+        .sort((a, b) => b.views - a.views),
     };
   }
 

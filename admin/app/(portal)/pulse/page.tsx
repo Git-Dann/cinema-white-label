@@ -50,6 +50,46 @@ function Adjustments({ rows }: { rows: Row[] }) {
   );
 }
 
+/** Films by Wikipedia page views, with the effect each has on its forecast. */
+function AudienceInterest({ rows }: { rows: NonNullable<PulseModelView['interest']> }) {
+  const shown = rows.slice(0, 12);
+  const typical = shown[0]?.typical ?? 0;
+  const demo = rows.some((r) => r.source === 'demo');
+  const span = Math.max(0.25, ...shown.map((r) => Math.abs(Math.log(r.strength))));
+  return (
+    <section className="card ins-card pulse-section" aria-labelledby="pulse-interest">
+      <header className="ins-head">
+        <h2 id="pulse-interest" className="h3">Audience interest</h2>
+        <span className="row gap-1 small">
+          <span className="muted">
+            Wikipedia page views in the month before release, against the typical film you show ({typical.toLocaleString('en-GB')})
+          </span>
+          {demo && <span className="badge badge-sample">Demo figures</span>}
+        </span>
+      </header>
+      <ul className="pulse-adjust pulse-adjust-cols">
+        {shown.map((r) => {
+          const v = Math.log(r.strength) / span;
+          return (
+            <li key={r.filmId}>
+              <span className="pulse-adjust-label" title={`${r.title}: ${r.views.toLocaleString('en-GB')} page views`}>
+                {r.title}
+                <span className="muted small"> · {r.views.toLocaleString('en-GB')}</span>
+                {r.series && <span className="muted small"> · series</span>}
+              </span>
+              <span className="pulse-adjust-bar" aria-hidden="true">
+                <i className={v >= 0 ? 'up' : 'down'} style={v >= 0 ? { left: '50%', width: `${v * 50}%` } : { right: '50%', width: `${-v * 50}%` }} />
+              </span>
+              <span className="pulse-adjust-value num">×{r.strength.toFixed(2)}</span>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="muted small pulse-foot-note">Each doubling of page views goes with about 1.4 times the opening audience, kept between ×0.60 and ×1.80. Source: Wikimedia Foundation, CC0.</p>
+    </section>
+  );
+}
+
 /** Share of a show's final sales sold by each point before it starts, one line per time of day. */
 function BookingCurve({ curves }: { curves: PulseModelView['curves'] }) {
   const W = 1000;
@@ -125,6 +165,8 @@ export default function PulsePage() {
               ))}
             </ul>
           </section>
+
+          {m.interest && m.interest.length > 0 && <AudienceInterest rows={m.interest} />}
 
           <section className="pulse-section" aria-labelledby="pulse-learned">
             <header className="pulse-section-head">
