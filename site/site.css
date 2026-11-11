@@ -575,7 +575,7 @@ main > section:is(#who, #remote, #platform, #seats, #questions) { min-height: 0;
 .footer .footer__col > h3 { font: 500 var(--t-small)/1.4 var(--font-text); letter-spacing: 0; color: var(--muted); margin-bottom: var(--s-4); }
 /* connect: on a phone the diagram's frame had no height of its own and showed only the core; give it room
    for the stacked layout */
-@media (max-width: 639px) { main > #connect > .wrap > .connect__frame { flex: none; height: 560px; } }
+@media (max-width: 639px) { main > #connect > .wrap > .connect__frame { flex: none; height: 420px; } }
 
 /* remote: the phone's panel is as tall as the phone it frames (it stretched to the section's height on a
    tall window, a large empty teal box); the phone's foot is cropped and faded */
@@ -629,7 +629,7 @@ footer.closing { min-height: 0 !important; }
 .cta-panel__copy h2 { max-width: 14ch; }
 .cta-panel__copy .t-lead { color: rgb(255 255 255 / .82); max-width: 40ch; }
 .cta-panel__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4) var(--s-6); margin-top: var(--s-2); }
-.cta-panel__points { display: flex !important; flex-wrap: nowrap; gap: 8px 10px; margin-top: var(--s-3); list-style: none; padding: 0; }
+.cta-panel__points { display: flex !important; flex-wrap: wrap; gap: 8px 10px; margin-top: var(--s-3); list-style: none; padding: 0; }
 .cta-panel__points > li { width: auto; flex: 0 0 auto; }
 .cta-panel__points li { padding: 6px 12px 6px 28px; position: relative; border-radius: 99px; background: rgb(255 255 255 / .06); border: 1px solid rgb(255 255 255 / .1); font-size: var(--t-small); color: rgb(255 255 255 / .86); }
 .cta-panel__points li::before { content: ""; position: absolute; left: 11px; top: 50%; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%; background: var(--accent); }
@@ -709,3 +709,34 @@ footer.closing > .wrap { position: relative; z-index: 1; }
 
 /* buttons stay put on hover: the colour and the arrow answer the pointer, the button never lifts or scales */
 html:not([data-motion="off"]) .btn:hover, html:not([data-motion="off"]) .btn--xl:hover { transform: none; }
+
+/* phones */
+@media (max-width: 639px) {
+  /* sections are as tall as what they hold: no frame stretched to two screens, no empty band (the pinned journey keeps its own height) */
+  main > section:not([data-moment]) { min-height: 0 !important; }
+  main > section:not([data-moment]) .fill { flex: none !important; }
+  /* the hero grows to hold its phone window, so the phones fade out inside it instead of being cut at its foot */
+  .hero.hero--centred { height: auto !important; }
+  .hero.hero--centred .hero__window { flex: none; }
+  /* the menu button sits inside the bar as a bare icon, so the bar's edge never runs under a second ring */
+  .nav:not(.is-open) > .nav__bar { padding-right: 4px; }
+  .nav:not(.is-open) .nav__toggle { border-color: transparent; width: 40px; height: 40px; }
+}
+/* the CTA chips stay on one line where there is room, and wrap on a phone rather than run off it */
+.cta-panel__points > li { white-space: nowrap; }
+
+/* the portal-or-build table: on a phone, one line per row, the thing on the left and one chip on the right
+   (Live from the portal, or New build), with the column headings kept for screen readers only */
+.cmp__m { display: none; }
+@media (max-width: 639px) {
+  .cmp__row--head { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .cmp__row { grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--s-3); row-gap: 0; padding-block: 12px; }
+  .cmp__row > :first-child { grid-column: auto; font-weight: 400; }
+  .cmp__row > .cmp__no { display: none; }
+  .cmp__row > .cmp__yes { justify-self: end; padding: 4px 10px 4px 8px; border-radius: 999px; font-size: var(--t-small);
+    background: color-mix(in oklab, var(--accent) 16%, transparent); color: var(--accent); }
+  .cmp__row > .cmp__yes--build { background: rgb(255 255 255 / .08); color: var(--ink); }
+  .cmp__yes--build::before { display: none; }
+  .cmp__d { display: none; }
+  .cmp__m { display: inline; }
+}
