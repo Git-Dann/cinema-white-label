@@ -265,19 +265,17 @@ function toPlanForm(p: MembershipPlan): PlanForm {
   };
 }
 
-/** Benefits in words, e.g. "10% off tickets, no booking fee, 1.5× points". */
-function benefits(e: MembershipEntitlements): string {
+/** Benefits as separate lines, e.g. ["10% off tickets", "No booking fee", "1.5× points"]. */
+function benefitList(e: MembershipEntitlements): string[] {
   const parts: string[] = [];
   if (e.ticketDiscountPercent && e.ticketDiscountPercent === e.foodDiscountPercent) parts.push(`${e.ticketDiscountPercent}% off tickets and food`);
   else {
     if (e.ticketDiscountPercent) parts.push(`${e.ticketDiscountPercent}% off tickets`);
     if (e.foodDiscountPercent) parts.push(`${e.foodDiscountPercent}% off food and drink`);
   }
-  if (e.bookingFeeWaived) parts.push('no booking fee');
-  if (e.pointsMultiplier > 1) parts.push(`${e.pointsMultiplier}× points`);
-  if (!parts.length) return 'No benefits set';
-  const text = parts.join(', ');
-  return text.charAt(0).toUpperCase() + text.slice(1);
+  if (e.bookingFeeWaived) parts.push('No booking fee');
+  if (e.pointsMultiplier > 1) parts.push(`${e.pointsMultiplier}× points on everything`);
+  return parts.map((t) => t.charAt(0).toUpperCase() + t.slice(1));
 }
 
 function MembershipPlansCard({ tenant, canEdit }: { tenant: string; canEdit: boolean }) {
@@ -464,19 +462,24 @@ function MembershipPlansCard({ tenant, canEdit }: { tenant: string; canEdit: boo
             <li key={p.id} className={`card tile plan-tile${p.active ? '' : ' is-off'}${canEdit ? ' tile-click' : ''}`}>
               {canEdit && <TileHit label={`Edit ${p.name}`} onClick={() => open(p)} />}
               <div className="tile-head">
-                <div>
-                  <div className="tile-title">{p.name}</div>
-                  <div className="plan-price">
-                    <span className="num">{formatMoney(p.priceMinor, 'GBP')}</span>
-                    <span className="muted small"> a {INTERVALS[p.interval]}</span>
-                  </div>
-                </div>
-                <span className={`badge ${p.active ? 'badge-success' : 'badge-neutral'}`}>{p.active ? 'On' : 'Off'}</span>
+                <div className="tile-title">{p.name}</div>
+                <span className={`badge ${p.active ? 'badge-success' : 'badge-neutral'}`}>{p.active ? 'On sale' : 'Off sale'}</span>
               </div>
-              {p.description && <div className="muted small">{p.description}</div>}
-              <div className="small">{benefits(p.entitlements)}</div>
-              <div className="small">
-                <strong className="num">{count(p.activeMembers)}</strong> <span className="muted">active members</span>
+              <div className="plan-price">
+                <span className="num">{formatMoney(p.priceMinor, 'GBP')}</span>
+                <span className="muted"> a {INTERVALS[p.interval]}</span>
+              </div>
+              {benefitList(p.entitlements).length ? (
+                <ul className="plan-benefits">
+                  {benefitList(p.entitlements).map((b) => (
+                    <li key={b}>{b}</li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="muted small">No benefits set</div>
+              )}
+              <div className="plan-foot small">
+                <strong className="num">{count(p.activeMembers)}</strong> <span className="muted">active member{p.activeMembers === 1 ? '' : 's'}</span>
               </div>
             </li>
           ))}
