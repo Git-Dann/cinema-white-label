@@ -476,3 +476,103 @@ main > section.section.section:is(.bg-band, .bg-dots):not(.section--hero) { disp
 
 /* ---------- platform ---------- */
 .platform .card { padding: var(--s-6); }
+
+/* Sections grow with their content instead of being exactly one or two screens: a fixed height let a
+   section's content run into the next one on short or narrow windows (connect into questions, questions
+   into the footer). Each still fills at least its screens, so the full-screen sections look as before. */
+main > :is(section, .section):not(.hero), footer.closing {
+  height: auto !important; display: flex; flex-direction: column;
+  min-height: calc(var(--h, 1) * 100vh); min-height: calc(var(--h, 1) * 100svh);
+}
+/* the wrap takes the section's height, so a .fill frame still runs down to the screen's foot */
+main > :is(section, .section):not(.hero) > :is(.wrap, .container), footer.closing > .wrap { flex: 1 0 auto; height: auto; min-height: 0; }
+@media (max-width: 639px) {
+  main > :is(section, .section):not(.hero), footer.closing { min-height: calc(var(--hm, var(--h, 1)) * 100lvh); }
+}
+/* the short card sections are only as tall as their content, so no band of empty ground follows them */
+main > section:is(#who, #platform, #seats) { min-height: 0; }
+
+/* no pause buttons on the page's moving pictures, at the owner's request (reduced motion still stops them) */
+.loop-pause { display: none !important; }
+
+/* seats: a map that fills most of a screen */
+@media (min-width: 1024px) { #seats .seatmap { height: clamp(560px, 100svh - var(--padt) - var(--padb) - 8px, 760px); } }
+
+/* ---------- who: a small loop in each card that shows its claim ---------- */
+.who__vis { position: relative; margin: calc(-1 * var(--s-2)) 0 var(--s-3); padding: 16px; border-radius: 14px; background: #070b10; border: 1px solid #1a2330; font-size: 13px; color: #c5cdda; overflow: hidden; }
+/* chains: a release rolls out across the estate, one cinema at a time */
+.wv__head { display: flex; justify-content: space-between; gap: 12px; }
+.wv__head span:first-child { color: #f4f7fb; font-weight: 500; }
+.wv__state { color: #93f1f7; }
+.wv__bar { height: 4px; margin: 12px 0 14px; border-radius: 99px; background: #1a2330; overflow: hidden; }
+.wv__bar i { display: block; height: 100%; width: 100%; background: #93f1f7; transform-origin: left; }
+.wv__sites { display: flex; flex-wrap: wrap; gap: 8px; }
+.wv__site { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px 5px 8px; border-radius: 99px; border: 1px solid #1f2b3a; color: #8e9ab0; animation: 8s ease-in-out infinite; }
+.wv__site b { width: 7px; height: 7px; border-radius: 50%; background: #3a4658; animation: 8s ease-in-out infinite; }
+/* one clock for the whole card: each cinema goes live in turn as the bar fills, then all reset together */
+.wv__site:nth-child(1) { animation-name: wv-site-0; } .wv__site:nth-child(1) b { animation-name: wv-dot-0; }
+@keyframes wv-site-0 { 0%, 7% { color: #8e9ab0; border-color: #1f2b3a; background: transparent; } 10%, 90% { color: #f4f7fb; border-color: rgb(147 241 247 / .45); background: rgb(147 241 247 / .08); } 97%, 100% { color: #8e9ab0; border-color: #1f2b3a; background: transparent; } }
+@keyframes wv-dot-0 { 0%, 7% { background: #3a4658; box-shadow: none; } 10%, 90% { background: #93f1f7; box-shadow: 0 0 0 4px rgb(147 241 247 / .18); } 97%, 100% { background: #3a4658; box-shadow: none; } }
+.wv__site:nth-child(2) { animation-name: wv-site-1; } .wv__site:nth-child(2) b { animation-name: wv-dot-1; }
+@keyframes wv-site-1 { 0%, 17% { color: #8e9ab0; border-color: #1f2b3a; background: transparent; } 20%, 90% { color: #f4f7fb; border-color: rgb(147 241 247 / .45); background: rgb(147 241 247 / .08); } 97%, 100% { color: #8e9ab0; border-color: #1f2b3a; background: transparent; } }
+@keyframes wv-dot-1 { 0%, 17% { background: #3a4658; box-shadow: none; } 20%, 90% { background: #93f1f7; box-shadow: 0 0 0 4px rgb(147 241 247 / .18); } 97%, 100% { background: #3a4658; box-shadow: none; } }
+.wv__site:nth-child(3) { animation-name: wv-site-2; } .wv__site:nth-child(3) b { animation-name: wv-dot-2; }
+@keyframes wv-site-2 { 0%, 27% { color: #8e9ab0; border-color: #1f2b3a; background: transparent; } 30%, 90% { color: #f4f7fb; border-color: rgb(147 241 247 / .45); background: rgb(147 241 247 / .08); } 97%, 100% { color: #8e9ab0; border-color: #1f2b3a; background: transparent; } }
+@keyframes wv-dot-2 { 0%, 27% { background: #3a4658; box-shadow: none; } 30%, 90% { background: #93f1f7; box-shadow: 0 0 0 4px rgb(147 241 247 / .18); } 97%, 100% { background: #3a4658; box-shadow: none; } }
+.wv__site:nth-child(4) { animation-name: wv-site-3; } .wv__site:nth-child(4) b { animation-name: wv-dot-3; }
+@keyframes wv-site-3 { 0%, 37% { color: #8e9ab0; border-color: #1f2b3a; background: transparent; } 40%, 90% { color: #f4f7fb; border-color: rgb(147 241 247 / .45); background: rgb(147 241 247 / .08); } 97%, 100% { color: #8e9ab0; border-color: #1f2b3a; background: transparent; } }
+@keyframes wv-dot-3 { 0%, 37% { background: #3a4658; box-shadow: none; } 40%, 90% { background: #93f1f7; box-shadow: 0 0 0 4px rgb(147 241 247 / .18); } 97%, 100% { background: #3a4658; box-shadow: none; } }
+.wv__site:nth-child(5) { animation-name: wv-site-4; } .wv__site:nth-child(5) b { animation-name: wv-dot-4; }
+@keyframes wv-site-4 { 0%, 47% { color: #8e9ab0; border-color: #1f2b3a; background: transparent; } 50%, 90% { color: #f4f7fb; border-color: rgb(147 241 247 / .45); background: rgb(147 241 247 / .08); } 97%, 100% { color: #8e9ab0; border-color: #1f2b3a; background: transparent; } }
+@keyframes wv-dot-4 { 0%, 47% { background: #3a4658; box-shadow: none; } 50%, 90% { background: #93f1f7; box-shadow: 0 0 0 4px rgb(147 241 247 / .18); } 97%, 100% { background: #3a4658; box-shadow: none; } }
+.wv__site:nth-child(6) { animation-name: wv-site-5; } .wv__site:nth-child(6) b { animation-name: wv-dot-5; }
+@keyframes wv-site-5 { 0%, 57% { color: #8e9ab0; border-color: #1f2b3a; background: transparent; } 60%, 90% { color: #f4f7fb; border-color: rgb(147 241 247 / .45); background: rgb(147 241 247 / .08); } 97%, 100% { color: #8e9ab0; border-color: #1f2b3a; background: transparent; } }
+@keyframes wv-dot-5 { 0%, 57% { background: #3a4658; box-shadow: none; } 60%, 90% { background: #93f1f7; box-shadow: 0 0 0 4px rgb(147 241 247 / .18); } 97%, 100% { background: #3a4658; box-shadow: none; } }
+.wv__bar i { animation: wv-fill 8s ease-in-out infinite; }
+@keyframes wv-fill { 0%, 5% { transform: scaleX(0); opacity: 1; } 62%, 90% { transform: scaleX(1); opacity: 1; } 97%, 100% { transform: scaleX(1); opacity: 0; } }
+.wv__state { display: grid; } .wv__state > span { grid-area: 1 / 1; text-align: right; }
+.wv__s1 { animation: wv-s1 8s steps(1) infinite; } .wv__s2 { opacity: 0; animation: wv-s2 8s steps(1) infinite; }
+@keyframes wv-s1 { 0% { opacity: 1; } 64% { opacity: 0; } 97% { opacity: 1; } }
+@keyframes wv-s2 { 0% { opacity: 0; } 64% { opacity: 1; } 97% { opacity: 0; } }
+.who__vis { min-height: 124px; box-sizing: border-box; }
+/* independents: one app, the brand colour of whoever runs it */
+.who__vis--indie { display: grid; gap: 14px; }
+.wv__app { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #0e141c; }
+.wv__dot { width: 12px; height: 12px; border-radius: 50%; animation: wv-brand 8s steps(1) infinite; }
+.wv__name { flex: 1; color: #f4f7fb; font-weight: 600; font-size: 15px; }
+.wv__btn { padding: 6px 12px; border-radius: 99px; color: #0b0b0f; font-weight: 600; animation: wv-brand 8s steps(1) infinite; transition: background .4s; }
+.wv__swatches { display: flex; gap: 10px; }
+.wv__swatches i { width: 22px; height: 22px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 2px #070b10; animation: wv-ring 8s steps(1) infinite; }
+.wv__swatches i:nth-child(2) { animation-delay: -6s; } .wv__swatches i:nth-child(3) { animation-delay: -4s; } .wv__swatches i:nth-child(4) { animation-delay: -2s; }
+@keyframes wv-brand { 0% { background: #2dd4bf; } 25% { background: #ff5a6a; } 50% { background: #ff8a3d; } 75% { background: #f2d04b; } }
+@keyframes wv-ring { 0% { box-shadow: 0 0 0 2px #070b10, 0 0 0 4px #f4f7fb; } 25%, 100% { box-shadow: 0 0 0 2px #070b10; } }
+
+/* ---------- platform: an icon per card, and a slow light travelling round each card's edge ---------- */
+@property --plat-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+.platform .card { position: relative; isolation: isolate; }
+.platform .card::before {
+  content: ""; position: absolute; inset: -1px; z-index: -1; border-radius: inherit; padding: 1px;
+  background: conic-gradient(from var(--plat-a), transparent 0 70%, rgb(147 241 247 / .55) 82%, transparent 94%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: plat-edge 9s linear infinite; pointer-events: none;
+}
+.platform .card:nth-child(2)::before { animation-delay: -1.5s; } .platform .card:nth-child(3)::before { animation-delay: -3s; }
+.platform .card:nth-child(4)::before { animation-delay: -4.5s; } .platform .card:nth-child(5)::before { animation-delay: -6s; } .platform .card:nth-child(6)::before { animation-delay: -7.5s; }
+@keyframes plat-edge { to { --plat-a: 360deg; } }
+.plat__ico { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: var(--s-3); border-radius: 11px; background: rgb(147 241 247 / .1); color: var(--accent); transition: transform .25s ease, background .25s ease; }
+.plat__ico svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.platform .card:hover .plat__ico { transform: translateY(-2px) scale(1.06); background: rgb(147 241 247 / .18); }
+
+@media (prefers-reduced-motion: reduce) {
+  .who__vis *, .platform .card::before { animation: none !important; }
+  .wv__bar i { transform: none; } .wv__s1 { opacity: 0; } .wv__s2 { opacity: 1; } .wv__site { color: #f4f7fb; border-color: rgb(147 241 247 / .45); } .wv__site b, .wv__dot, .wv__btn { background: #93f1f7; }
+  .platform .card::before { display: none; }
+}
+/* remote: the table never squeezes below its own rows on a short window; the section grows instead */
+#remote > .wrap > .fill { flex: 1 0 auto; }
+
+/* footer column headings are h3 (after the close's h2, so the outline never skips a level); styled as the kit's footer h4 */
+.footer .footer__col > h3 { font: 500 var(--t-small)/1.4 var(--font-text); letter-spacing: 0; color: var(--muted); margin-bottom: var(--s-4); }
+/* connect: on a phone the diagram's frame had no height of its own and showed only the core; give it room
+   for the stacked layout */
+@media (max-width: 639px) { main > #connect > .wrap > .connect__frame { flex: none; height: 560px; } }

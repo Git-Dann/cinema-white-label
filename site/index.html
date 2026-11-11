@@ -29,9 +29,8 @@
 <meta name="twitter:description" content="A native iPhone booking app in your brand, run from one portal, with planning around the release slate.">
 <meta name="twitter:image" content="https://www.seatfold.uk/og-image.jpg">
 <meta name="twitter:image:alt" content="Seatfold: your cinema’s own booking app. Three iPhones show the same booking app in three cinema brands.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400..700&family=JetBrains+Mono:wght@400..500&display=swap" rel="stylesheet">
+<link rel="preload" href="fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="assets/system.css">
 <link rel="stylesheet" href="assets/ui/cards.css">
 <link rel="stylesheet" href="assets/motion/motion.css">
@@ -209,6 +208,11 @@
       </div>
       <div class="grid who">
         <div class="card span-6 who__card">
+          <div class="who__vis who__vis--chain" aria-hidden="true">
+            <div class="wv__head"><span>Version 15 · Christmas offers</span><span class="wv__state"><span class="wv__s1">Rolling out</span><span class="wv__s2">Live at 6 of 6</span></span></div>
+            <div class="wv__bar"><i></i></div>
+            <div class="wv__sites"><span class="wv__site" style="--i:0"><b></b>Leeds</span><span class="wv__site" style="--i:1"><b></b>York</span><span class="wv__site" style="--i:2"><b></b>Hull</span><span class="wv__site" style="--i:3"><b></b>Sheffield</span><span class="wv__site" style="--i:4"><b></b>Bristol</span><span class="wv__site" style="--i:5"><b></b>Leicester</span></div>
+          </div>
           <p class="t-label who__tag">National and regional chains</p>
           <h3>Every site under one account</h3>
           <ul class="who__list">
@@ -219,6 +223,10 @@
           </ul>
         </div>
         <div class="card span-6 who__card">
+          <div class="who__vis who__vis--indie" aria-hidden="true">
+            <div class="wv__app"><span class="wv__dot"></span><span class="wv__name">Your cinema</span><span class="wv__btn">Book tickets</span></div>
+            <div class="wv__swatches"><i style="--c:#2dd4bf"></i><i style="--c:#ff5a6a"></i><i style="--c:#ff8a3d"></i><i style="--c:#f2d04b"></i></div>
+          </div>
           <p class="t-label who__tag">Independents and small groups</p>
           <h3>Your own app, without a development team</h3>
           <ul class="who__list">
@@ -426,21 +434,21 @@
             <h3>The next twelve months</h3>
             <p>Demand week by week against last year, with every big release marked. Which months need seasonal staff, what to order and when, and when each campaign starts.</p>
           </div>
-          <div class="span-9 plan__shot"><img src="img/portal-ya-1280.webp" srcset="img/portal-ya-1280.webp 1280w, img/portal-ya.webp 2560w" sizes="(max-width: 1023px) 100vw, 940px" width="1280" height="820" loading="lazy" alt="Year ahead in the portal: forecast admissions, the demand curve with releases marked, and staffing by month"></div>
+          <div class="span-9 plan__shot"><img src="img/portal-ya-1280.webp" srcset="img/portal-ya-640.webp 640w, img/portal-ya-1280.webp 1280w, img/portal-ya.webp 2560w" sizes="(max-width: 1023px) 100vw, 940px" width="1280" height="820" loading="lazy" alt="Year ahead in the portal: forecast admissions, the demand curve with releases marked, and staffing by month"></div>
         </div>
         <div class="grid plan__pane" role="tabpanel" id="plan-p2" aria-labelledby="plan-t2" hidden>
           <div class="span-3 stack-4 plan__copy">
             <h3>The next six weeks, for one cinema</h3>
             <p>Hours needed against the rota, how many shifts to add, the big nights and what to do on them, and the orders to place. One button copies it into whichever rota app you use.</p>
           </div>
-          <div class="span-9 plan__shot"><img src="img/portal-nw-1280.webp" srcset="img/portal-nw-1280.webp 1280w, img/portal-nw.webp 2560w" sizes="(max-width: 1023px) 100vw, 940px" width="1280" height="820" loading="lazy" alt="Next 6 weeks in the portal: a card per week with hours needed against the rota and the shifts to add"></div>
+          <div class="span-9 plan__shot"><img src="img/portal-nw-1280.webp" srcset="img/portal-nw-640.webp 640w, img/portal-nw-1280.webp 1280w, img/portal-nw.webp 2560w" sizes="(max-width: 1023px) 100vw, 940px" width="1280" height="820" loading="lazy" alt="Next 6 weeks in the portal: a card per week with hours needed against the rota and the shifts to add"></div>
         </div>
         <div class="grid plan__pane" role="tabpanel" id="plan-p3" aria-labelledby="plan-t3" hidden>
           <div class="span-3 stack-4 plan__copy">
             <h3>This week, and nothing else</h3>
             <p>Shifts with a heads-up on the busy ones, the team briefing and what’s coming. No forecasts, no revenue.</p>
           </div>
-          <div class="span-9 plan__shot"><img src="img/portal-mw-1280.webp" srcset="img/portal-mw-1280.webp 1280w, img/portal-mw.webp 2560w" sizes="(max-width: 1023px) 100vw, 940px" width="1280" height="820" loading="lazy" alt="My week in the portal: shifts with busy-night notes, the team briefing and an upcoming opening"></div>
+          <div class="span-9 plan__shot"><img src="img/portal-mw-1280.webp" srcset="img/portal-mw-640.webp 640w, img/portal-mw-1280.webp 1280w, img/portal-mw.webp 2560w" sizes="(max-width: 1023px) 100vw, 940px" width="1280" height="820" loading="lazy" alt="My week in the portal: shifts with busy-night notes, the team briefing and an upcoming opening"></div>
         </div>
       </div>
       <p class="t-small muted plan__note">Shown with sample data and fictional film titles. With your account, the forecast runs on your own bookings.</p>
@@ -454,12 +462,12 @@
         <h2 id="platform-h">Built properly underneath. <span class="muted">For whoever signs off the technology.</span></h2>
       </div>
       <div class="grid platform">
-        <div class="card span-4"><h3>The server decides, not the phone</h3><p>Seats are held on the server while a customer pays, totals are worked out there, and a payment that is retried is never taken twice.</p></div>
-        <div class="card span-4"><h3>Every operator kept apart</h3><p>Each chain’s data is separated on every request. Each cinema in it keeps its own screens, menus and prices.</p></div>
-        <div class="card span-4"><h3>Changes are versioned releases</h3><p>Branding and settings go out as releases you can schedule and roll back. A published seat map never changes under a booking.</p></div>
-        <div class="card span-4"><h3>Accessible before it goes live</h3><p>Every colour pair in a theme is checked against WCAG 2.2 AA before it can publish, and the app works with VoiceOver and larger text.</p></div>
-        <div class="card span-4"><h3>Film data that keeps itself fresh</h3><p>Titles, certificates, running times and artwork come from a film data feed and refresh every morning, with showtimes kept a week ahead.</p></div>
-        <div class="card span-4"><h3>An open, documented API</h3><p>Everything the app and portal do is a documented API, so your ticketing system, website and partners can connect.</p></div>
+        <div class="card span-4"><span class="plat__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h16v5H4zM4 14h16v5H4z"/><path d="M8 7.5h.01M8 16.5h.01"/></svg></span><h3>The server decides, not the phone</h3><p>Seats are held on the server while a customer pays, totals are worked out there, and a payment that is retried is never taken twice.</p></div>
+        <div class="card span-4"><span class="plat__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/></svg></span><h3>Every operator kept apart</h3><p>Each chain’s data is separated on every request. Each cinema in it keeps its own screens, menus and prices.</p></div>
+        <div class="card span-4"><span class="plat__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M6 8.5v7M8.3 7.2 15.7 11M8.3 16.8l7.4-3.8"/></svg></span><h3>Changes are versioned releases</h3><p>Branding and settings go out as releases you can schedule and roll back. A published seat map never changes under a booking.</p></div>
+        <div class="card span-4"><span class="plat__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M12 3a9 9 0 0 1 0 18"/></svg></span><h3>Accessible before it goes live</h3><p>Every colour pair in a theme is checked against WCAG 2.2 AA before it can publish, and the app works with VoiceOver and larger text.</p></div>
+        <div class="card span-4"><span class="plat__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4h-4"/></svg></span><h3>Film data that keeps itself fresh</h3><p>Titles, certificates, running times and artwork come from a film data feed and refresh every morning, with showtimes kept a week ahead.</p></div>
+        <div class="card span-4"><span class="plat__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 5l-3 14"/></svg></span><h3>An open, documented API</h3><p>Everything the app and portal do is a documented API, so your ticketing system, website and partners can connect.</p></div>
       </div>
     </div>
   </section>
@@ -506,7 +514,7 @@
           <article class="card card--row card--open span-6 m-nolift">
             <h3>Puts the booking on the Lock Screen</h3>
             <p>After booking, a Live Activity shows the film, screen and seats, and the minutes to the start.</p>
-            <div class="panel" data-fx-live data-fx="painterly-landscape" data-fx-seed="11" data-fx-params='{"blur":1,"brush":0.35,"slope":0,"hillY":0.3,"horizon":0.62,"drift":0.035}' data-fx-palette='{"bg":"#a3b0b6","accent":"#c49a6c"}'>
+            <div class="panel" data-fx-live data-fx="painterly-landscape" data-fx-seed="11" data-fx-params='{"blur":1,"brush":0.35,"slope":0,"hillY":0.3,"horizon":0.62,"drift":0.12}' data-fx-palette='{"bg":"#a3b0b6","accent":"#c49a6c"}'>
               <div class="stage nph-stage">
                 <div class="nph" role="img" aria-label="An iPhone Lock Screen at 17:46 with a Live Activity: Ember Protocol, Screen 4, seats D1 and D2, starts at 18:10, in 24 minutes"><div class="nph__screen nph--lock">
                   <span class="nph__sb nph__sb--lock" aria-hidden="true"><span></span><span class="nph__sb-r" aria-hidden="true"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="5" y="5.5" width="3" height="6.5" rx=".8"/><rect x="10" y="3" width="3" height="9" rx=".8"/><rect x="15" y="0" width="3" height="12" rx=".8"/></svg><svg viewBox="0 0 16 12"><path d="M8 11.5 5.6 8.9a3.4 3.4 0 0 1 4.8 0zM3.4 6.7a6.5 6.5 0 0 1 9.2 0l-1.3 1.4a4.6 4.6 0 0 0-6.6 0zM1 4.3a9.9 9.9 0 0 1 14 0l-1.3 1.3a8 8 0 0 0-11.4 0z"/></svg><i class="nph__batt"></i></span></span>
@@ -529,10 +537,10 @@
           <article class="card card--row card--open span-6 m-nolift">
             <h3>Opens booked tickets with no signal</h3>
             <p>Tickets are stored on the phone, ready at the door.</p>
-            <div class="panel" data-fx-live data-fx="painterly-landscape" data-fx-seed="23" data-fx-params='{"drift":0.035}' data-fx-palette='{"bg":"#cdd6c6","surface":"#dce3d6","ink":"#262d24","accent":"#6c8e63"}'>
+            <div class="panel" data-fx-live data-fx="painterly-landscape" data-fx-seed="23" data-fx-params='{"drift":0.12}' data-fx-palette='{"bg":"#cdd6c6","surface":"#dce3d6","ink":"#262d24","accent":"#6c8e63"}'>
               <div class="stage nph-stage">
                 <div class="nph" role="img" aria-label="The app’s ticket screen: Ember Protocol, Friday 6 November at 18:10, a QR code, booking reference 5321825, Screen 4, seats D1 and D2"><div class="nph__screen nph--shot">
-                  <img class="nph__shot" src="img/app-ticket-detail-480.webp" srcset="img/app-ticket-detail-240.webp 240w, img/app-ticket-detail-480.webp 480w, img/app-ticket-detail.webp 960w" sizes="300px" alt="" width="480" height="1043" loading="lazy">
+                  <img class="nph__shot" src="img/app-ticket-detail-480.webp" srcset="img/app-ticket-detail-240.webp 240w, img/app-ticket-detail-480.webp 480w, img/app-ticket-detail.webp 960w" sizes="(max-width: 639px) 230px, 300px" alt="" width="480" height="1043" loading="lazy">
                   <i class="nph__island" aria-hidden="true"></i><i class="nph__home" aria-hidden="true"></i>
                 </div></div>
               </div>
@@ -544,7 +552,7 @@
           <article class="card card--row card--open span-6 m-nolift">
             <h3>Finds cinema times in Spotlight</h3>
             <p>Films and tickets show up in iPhone search and Shortcuts.</p>
-            <div class="panel" data-fx-live data-fx="painterly-landscape" data-fx-seed="37" data-fx-params='{"drift":0.035}' data-fx-palette='{"bg":"#c6d3df","surface":"#d6e0e9","ink":"#25303a","accent":"#3f6a92"}'>
+            <div class="panel" data-fx-live data-fx="painterly-landscape" data-fx-seed="37" data-fx-params='{"drift":0.12}' data-fx-palette='{"bg":"#c6d3df","surface":"#d6e0e9","ink":"#25303a","accent":"#3f6a92"}'>
               <div class="stage nph-stage">
                 <div class="nph" role="img" aria-label="iPhone Spotlight search for ember: the film Ember Protocol as the top hit, then your ticket and the Leeds Riverside cinema from Northlight"><div class="nph__screen nph--spot">
                   <span class="nph__sb" aria-hidden="true"><span>17:46</span><span class="nph__sb-r" aria-hidden="true"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="5" y="5.5" width="3" height="6.5" rx=".8"/><rect x="10" y="3" width="3" height="9" rx=".8"/><rect x="15" y="0" width="3" height="12" rx=".8"/></svg><svg viewBox="0 0 16 12"><path d="M8 11.5 5.6 8.9a3.4 3.4 0 0 1 4.8 0zM3.4 6.7a6.5 6.5 0 0 1 9.2 0l-1.3 1.4a4.6 4.6 0 0 0-6.6 0zM1 4.3a9.9 9.9 0 0 1 14 0l-1.3 1.3a8 8 0 0 0-11.4 0z"/></svg><i class="nph__batt"></i></span></span>
@@ -565,7 +573,7 @@
           <article class="card card--row card--open span-6 m-nolift">
             <h3>Reads cinema seats aloud</h3>
             <p>VoiceOver users pick seats from a plain list instead of the map.</p>
-            <div class="panel" data-fx-live data-fx="painterly-landscape" data-fx-seed="41" data-fx-params='{"drift":0.035}' data-fx-palette='{"bg":"#d9ccb7","surface":"#e9e0d2","ink":"#2a2622","accent":"#a8794a"}'>
+            <div class="panel" data-fx-live data-fx="painterly-landscape" data-fx-seed="41" data-fx-params='{"drift":0.12}' data-fx-palette='{"bg":"#d9ccb7","surface":"#e9e0d2","ink":"#2a2622","accent":"#a8794a"}'>
               <div class="stage nph-stage">
                 <div class="nph" role="img" aria-label="The seat list with VoiceOver on: row D, seat 1, VIP bed, £34.95, available, double-tap to select"><div class="nph__screen nph--vo">
                   <span class="nph__sb" aria-hidden="true"><span>17:46</span><span class="nph__sb-r" aria-hidden="true"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx=".8"/><rect x="5" y="5.5" width="3" height="6.5" rx=".8"/><rect x="10" y="3" width="3" height="9" rx=".8"/><rect x="15" y="0" width="3" height="12" rx=".8"/></svg><svg viewBox="0 0 16 12"><path d="M8 11.5 5.6 8.9a3.4 3.4 0 0 1 4.8 0zM3.4 6.7a6.5 6.5 0 0 1 9.2 0l-1.3 1.4a4.6 4.6 0 0 0-6.6 0zM1 4.3a9.9 9.9 0 0 1 14 0l-1.3 1.3a8 8 0 0 0-11.4 0z"/></svg><i class="nph__batt"></i></span></span>
@@ -603,7 +611,7 @@
         <p class="t-lead span-6 start-7">Seatfold will run an MCP server, the open standard AI agents use, on top of your booking data. Your team, your customers and your suppliers all get more from it.</p>
       </div>
       <div class="frame connect__frame fill">
-        <div class="dg" data-diagram><script type="application/json">{"layout":"bowtie","alt":"Film distributors and food and drink suppliers send updates into Seatfold through MCP, and listing partners and AI assistants read showtimes and free seats from it.","sources":[{"label":"Film distributors","icon":"ui:clapperboard","sub":"Films and artwork"},{"label":"Food suppliers","icon":"ui:popcorn","sub":"Products and stock"}],"core":{"label":"Seatfold MCP","icon":"ui:plug"},"targets":[{"label":"Listing sites","icon":"ui:globe","sub":"Showtimes"},{"label":"AI assistants","icon":"ui:bot","sub":"Free seats"},{"label":"Your app","icon":"ui:smartphone","sub":"Customers book"}],"ground":"dots"}</script></div>
+        <div class="dg" data-diagram><script type="application/json">{"layout":"bowtie","alt":"Film distributors, food suppliers, ticketing systems, payment providers, staff rotas and loyalty systems connect into Seatfold through MCP; AI assistants, your app, listing sites, search and maps, email offers, reports, foyer screens and accounts read from it.","sources":[{"label":"Film distributors","icon":"ui:clapperboard","sub":"Films and artwork"},{"label":"Food suppliers","icon":"ui:popcorn","sub":"Products and stock"},{"label":"Ticketing systems","icon":"ui:ticket","sub":"Sessions and seats"},{"label":"Payment providers","icon":"ui:credit-card","sub":"Payments and refunds"},{"label":"Staff rotas","icon":"ui:calendar-clock","sub":"Shifts and cover"},{"label":"Loyalty and CRM","icon":"ui:users","sub":"Members and points"}],"core":{"label":"Seatfold MCP","icon":"ui:plug"},"targets":[{"label":"AI assistants","icon":"ui:bot","sub":"What’s on, free seats"},{"label":"Your app","icon":"ui:smartphone","sub":"Customers book"},{"label":"Listing sites","icon":"ui:globe","sub":"Showtimes"},{"label":"Search and maps","icon":"ui:search","sub":"Times in results"},{"label":"Email and offers","icon":"ui:megaphone","sub":"Quiet-show deals"},{"label":"Reports","icon":"ui:chart-column","sub":"Sales and occupancy"},{"label":"Foyer screens","icon":"ui:monitor","sub":"Live seat counts"},{"label":"Accounts","icon":"ui:calculator","sub":"Takings by site"}],"ground":"dots"}</script></div>
       </div>
       <div class="grid connect__cols">
         <div class="span-4"><h3>Answers questions about your sales</h3><p>Ask which shows were quiet last week or where bookings drop out, in plain English.</p></div>
@@ -653,10 +661,10 @@
           <a class="nav__logo" href="#top"><span class="mark" data-mark="dots" aria-hidden="true"></span>Seatfold</a>
           <p class="footer__lede">Booking apps and planning for cinema chains and independents</p>
         </div>
-        <div class="span-2 footer__col"><h4>Product</h4><ul><li><a href="#portal">Portal</a></li><li><a href="#plan">Planning</a></li><li><a href="#platform">Platform</a></li></ul></div>
-        <div class="span-2 footer__col"><h4>Booking</h4><ul><li><a href="#journey">Booking flow</a></li><li><a href="#seats">Seat maps</a></li></ul></div>
-        <div class="span-2 footer__col"><h4>iPhone</h4><ul><li><a href="#native">iOS features</a></li><li><a href="#connect">AI layer, coming soon</a></li></ul></div>
-        <div class="span-2 footer__col"><h4>Questions</h4><ul><li><a href="#questions">Answers</a></li><li><a href="mailto:hello@seatfold.uk">Contact</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>Product</h3><ul><li><a href="#portal">Portal</a></li><li><a href="#plan">Planning</a></li><li><a href="#platform">Platform</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>Booking</h3><ul><li><a href="#journey">Booking flow</a></li><li><a href="#seats">Seat maps</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>iPhone</h3><ul><li><a href="#native">iOS features</a></li><li><a href="#connect">AI layer, coming soon</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>Questions</h3><ul><li><a href="#questions">Answers</a></li><li><a href="mailto:hello@seatfold.uk">Contact</a></li></ul></div>
       </div>
       <div class="footer__legal">
         <span>&copy; 2026 Seatfold</span>
@@ -673,7 +681,7 @@
 <script type="module" src="site.js"></script>
 <script type="module" src="js/theme-demo.js"></script>
 <script type="module" src="js/hero-phones.js"></script>
-<script type="module" src="js/native-pause.js"></script>
+<script type="module" src="js/native-fx.js"></script>
 <script type="module" src="assets/diagrams/mount.js"></script>
 </body>
 </html>
