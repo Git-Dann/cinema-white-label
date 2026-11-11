@@ -177,4 +177,24 @@ describe('Pulse (integration)', () => {
     expect(a.weekly.length).toBe(a.folds);
     await api(app, kestrel).get(`${A}/accuracy`).expect(403);
   });
+
+  it('simulates a change to one cinema-day without changing anything', async () => {
+    const day = new Date(Date.now() + 86400_000).toISOString().slice(0, 10);
+    const f = (await api(app, admin).get(`${A}/forecasts?venueId=${venueId}&from=${day}T00:00:00Z&to=${day}T23:59:00Z`).expect(200)).body.forecasts;
+    expect(f.length).toBeGreaterThan(1);
+    const before = await prisma.screening.count({ where: { venueId } });
+    const add = (await api(app, admin).post(`${A}/simulate`).send({ venueId, date: f[0].localDate, change: { kind: 'add', filmId: f[0].film.id, auditoriumId: f[0].screen.id, time: '23:30' } }).expect(200)).body;
+    expect(add.action).toContain('Add');
+    expect(add.change.admissions).toBeGreaterThanOrEqual(0);
+    expect(add.assumptions.length).toBeGreaterThanOrEqual(3);
+    expect(add.basis.note).toContain('demo');
+    const cancel = (await api(app, admin).post(`${A}/simulate`).send({ venueId, date: f[0].localDate, change: { kind: 'remove', screeningId: f[0].screeningId } }).expect(200)).body;
+    expect(cancel.change.admissions).toBeLessThanOrEqual(0);
+    const price = (await api(app, admin).post(`${A}/simulate`).send({ venueId, date: f[0].localDate, change: { kind: 'price', screeningId: f[0].screeningId, percent: -20 } }).expect(200)).body;
+    expect(price.assumptions.some((a: string) => a.includes('price'))).toBe(true);
+    expect(await prisma.screening.count({ where: { venueId } })).toBe(before);
+    await api(app, admin).post(`${A}/simulate`).send({ venueId, change: { kind: 'price', screeningId: f[0].screeningId, percent: 0 } }).expect(422);
+    await api(app, admin).post(`${A}/simulate`).send({ venueId, change: { kind: 'add', filmId: f[0].film.id, auditoriumId: f[0].screen.id, time: '25:00' } }).expect(422);
+    await api(app, kestrel).post(`${A}/simulate`).send({ venueId, change: { kind: 'remove', screeningId: f[0].screeningId } }).expect(403);
+  });
 });

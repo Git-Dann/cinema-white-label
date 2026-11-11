@@ -1,8 +1,21 @@
-import { Controller, Get, Module, Param, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Module, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { z } from 'zod';
+import { ZodPipe } from '../common/zod.pipe';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Tenant } from '@prisma/client';
 import { AdminGuard, CurrentTenant, CustomerGuard, CustomerId, TenantGuard } from '../common/tenant-context';
 import { PulseService } from './pulse.service';
+
+const simulateBody = z.object({
+  venueId: z.string().min(1),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  change: z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('add'), filmId: z.string().min(1), auditoriumId: z.string().min(1), time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/) }),
+    z.object({ kind: z.literal('remove'), screeningId: z.string().min(1) }),
+    z.object({ kind: z.literal('move'), screeningId: z.string().min(1), auditoriumId: z.string().min(1) }),
+    z.object({ kind: z.literal('price'), screeningId: z.string().min(1), percent: z.number().min(-50).max(50).refine((x) => x !== 0, 'Choose a change other than 0%') }),
+  ]),
+});
 
 /**
  * Seatfold Pulse for operators: forecasts and what to do about them. Read-only, so every
@@ -65,6 +78,13 @@ export class PulseAdminController {
   @Get('model')
   model(@CurrentTenant() t: Tenant) {
     return this.pulse.model(t);
+  }
+
+  /** What-if for one cinema-day. Read-only: it changes nothing, so any portal role may run it. */
+  @Post('simulate')
+  @HttpCode(200)
+  simulate(@CurrentTenant() t: Tenant, @Body(new ZodPipe(simulateBody)) b: z.infer<typeof simulateBody>) {
+    return this.pulse.simulate(t, b);
   }
 
   /** Rolling-origin backtest: Pulse's accuracy on recent weeks it had not seen, with baselines. */

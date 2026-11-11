@@ -4,13 +4,14 @@ import { imageRef, pickAsset } from '../catalogue/film-dto';
 import { Clock } from '../common/clock';
 import { Errors } from '../common/errors';
 import { PrismaService } from '../common/prisma.service';
-import { zonedDayBounds } from '../common/time';
+import { zonedDayBounds, zonedToUtc } from '../common/time';
 import { anomalies } from './anomalies';
 import { basketRules } from './baskets';
 import { BankHolidaySet, DAY_NAMES, divisionForPostcode, localParts, Slot, SLOT_LABELS, showCalendar } from './calendar';
 import { demoBaskets, demoCustomers } from './demo';
 import { interestStrength, median } from './interest';
 import { backtest, BacktestResult, calibrateRanges } from './backtest';
+import { Change, DEFAULT_CHOICE, NightShow, simulate } from './choice';
 import { attachRates, MixItem, prepForShow, productMix } from './food';
 import { CustomerHistory, scoreCustomers, segmentSummary } from './loyalty';
 import { DEMO_TENANTS, loadBankHolidays } from './outcomes';
@@ -30,6 +31,12 @@ export interface Basis {
   /** Plain-English summary for the UI, e.g. "Based on 26 weeks of demo history". */
   note: string;
 }
+
+export type SimulateBody = {
+  venueId: string;
+  date?: string;
+  change: { kind: 'add'; filmId: string; auditoriumId: string; time: string } | { kind: 'remove'; screeningId: string } | { kind: 'move'; screeningId: string; auditoriumId: string } | { kind: 'price'; screeningId: string; percent: number };
+};
 
 interface Ctx {
   at: number;
@@ -225,6 +232,71 @@ export class PulseService {
     const { start, end } = zonedDayBounds(day, v.timeZone);
     const rows = await this.upcoming(t, ctx, start, end, venueId);
     return { ctx, v, day, start, end, rows };
+  }
+
+  /**
+   * What-if for one cinema-day: add, remove or move a show, or change its price. Pulse forecasts
+   * each show, then the night's choice model (choice.ts) works out what the change does to the
+   * whole programme, including audience taken from other shows. Nothing is changed.
+   */
+  async simulate(t: Tenant, body: SimulateBody) {
+    const { ctx, v, day, rows } = await this.venueDay(t, body.venueId, body.date);
+    const now = this.clock.now();
+    const priceRow = await this.prisma.showOutcome.aggregate({ where: { tenantId: t.id, venueId: body.venueId, startsAt: { gte: new Date(now.getTime() - 90 * DAY) } }, _sum: { ticketRevenueMinor: true, admissions: true } });
+    const priceMinor = priceRow._sum.admissions ? Math.round((priceRow._sum.ticketRevenueMinor ?? 0) / priceRow._sum.admissions) : 1000;
+    const shows: NightShow[] = rows.map((r) => ({ id: r.screening.id, filmId: r.screening.filmId, start: r.screening.startsAt.getTime(), capacity: r.forecast.capacity, demand: r.forecast.demand, priceMinor }));
+    const find = (id: string) => {
+      const r = rows.find((x) => x.screening.id === id);
+      if (!r) throw Errors.notFound('Screening on this day');
+      return r;
+    };
+    const seatsOf = async (auditoriumId: string) => {
+      const a = await this.prisma.auditorium.findFirst({ where: { id: auditoriumId, tenantId: t.id, venueId: body.venueId }, include: { layouts: { where: { status: 'PUBLISHED' }, select: { seatCount: true }, take: 1 } } });
+      if (!a) throw Errors.notFound('Screen');
+      return { name: a.name, seats: a.layouts[0]?.seatCount ?? 0 };
+    };
+    let change: Change;
+    let label: string;
+    const c = body.change;
+    if (c.kind === 'add') {
+      const fc = ctx.films.get(c.filmId);
+      if (!fc) throw Errors.notFound('Film');
+      const screen = await seatsOf(c.auditoriumId);
+      const startsAt = zonedToUtc(day, c.time, v.timeZone);
+      const cal = showCalendar(startsAt, v.timeZone, divisionForPostcode(v.postcode), ctx.banks);
+      const f = forecast(
+        { screeningId: 'new', venueId: body.venueId, filmId: c.filmId, capacity: screen.seats, slot: cal.slot, dayOfWeek: cal.dow, filmWeek: filmWeekOf(fc.film.releaseDate, startsAt), formats: [], schoolHoliday: cal.schoolHoliday, soldNow: 0, timedSold: 0, hoursBefore: 24 * 365, venueName: v.name, filmTitle: fc.film.title },
+        fc,
+        ctx.model,
+      );
+      // A show that is not on sale yet has no pace to read, so it is forecast from the model alone.
+      change = { kind: 'add', show: { id: 'new', filmId: c.filmId, start: startsAt.getTime(), capacity: screen.seats, demand: f.demand, priceMinor } };
+      label = `Add ${fc.film.title} at ${c.time} in ${screen.name}`;
+    } else if (c.kind === 'remove') {
+      const r = find(c.screeningId);
+      change = { kind: 'remove', showId: c.screeningId };
+      label = `Cancel ${ctx.films.get(r.screening.filmId)?.film.title ?? 'the show'} at ${r.summary.localTime}`;
+    } else if (c.kind === 'move') {
+      const r = find(c.screeningId);
+      const screen = await seatsOf(c.auditoriumId);
+      change = { kind: 'move', showId: c.screeningId, capacity: screen.seats };
+      label = `Move ${ctx.films.get(r.screening.filmId)?.film.title ?? 'the show'} at ${r.summary.localTime} to ${screen.name} (${screen.seats} seats)`;
+    } else {
+      const r = find(c.screeningId);
+      change = { kind: 'price', showId: c.screeningId, percent: c.percent };
+      label = `${c.percent > 0 ? 'Raise' : 'Cut'} prices ${Math.abs(c.percent)}% on ${ctx.films.get(r.screening.filmId)?.film.title ?? 'the show'} at ${r.summary.localTime}`;
+    }
+    const sim = simulate(shows, change, DEFAULT_CHOICE);
+    const title = (id: string, filmId: string) => (id === 'new' ? `${ctx.films.get(filmId)?.film.title ?? 'New show'} (new)` : `${ctx.films.get(filmId)?.film.title ?? 'Film'} ${rows.find((x) => x.screening.id === id)?.summary.localTime ?? ''}`.trim());
+    return {
+      basis: this.basis(ctx.model),
+      venue: { id: body.venueId, name: v.name },
+      date: day,
+      action: label,
+      ...sim,
+      shows: sim.shows.map((s) => ({ ...s, label: title(s.id, s.filmId) })).filter((s) => s.before !== s.after || s.id === 'new'),
+      averageTicketMinor: priceMinor,
+    };
   }
 
   async staffing(t: Tenant, venueId?: string, date?: string) {
