@@ -29,3 +29,4 @@ ios/Widgets/*.entitlements
 # marketing page check output
 site/shots/
 site/.taste-skill/consistency/
+site/site.*.css
