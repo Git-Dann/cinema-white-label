@@ -649,3 +649,12 @@ footer.closing { min-height: 0 !important; }
 /* the hero's deep ground fades into the page at its foot instead of ending on a hard line */
 .hero.bg-deep { position: relative; }
 .hero.bg-deep::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 180px; z-index: 0; pointer-events: none; background: linear-gradient(transparent, var(--bg, #000)); }
+/* the hero window's ground fades in from the page at its top edge (no hard line under the buttons);
+   the layer sits under the phones, so only the teal ground fades */
+.hero-phones.hero__window { border-radius: 0; }
+.hero-phones.hero__window::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 38%; z-index: 1; pointer-events: none;
+  background: linear-gradient(var(--bg, #000) 0%, rgb(0 0 0 / .75) 25%, rgb(0 0 0 / .35) 55%, transparent 100%); }
+.hero-phones.hero__window::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(90deg, var(--bg, #000) 0%, transparent 12%, transparent 88%, var(--bg, #000) 100%); }
+.hero-phones.hero__window > .mo-cs__light { z-index: 0; }
+.hero-phones__row { z-index: 2; }
