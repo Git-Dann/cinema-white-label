@@ -4271,145 +4271,94 @@ dialog.sheet.sheet-narrow {
   background: color-mix(in srgb, var(--surface-2) 80%, var(--text) 6%);
 }
 
-/* ---------- Offers: banner as the app shows it (components/OfferBanner.tsx) ---------- */
-.offer-banner {
+/* ---------- Offers: shelf-edge card as the app shows it (components/OfferBanner.tsx) ---------- */
+.offer-card {
   display: grid;
-  border-radius: 16px;
+  grid-template-columns: 1fr 41%;
+  min-height: 212px;
+  border-radius: 18px;
   overflow: hidden;
-  background: var(--surface-2);
+  background: var(--accent);
+  color: var(--accent-text);
 }
-.offer-banner.is-dim {
+.offer-card.is-dim {
   opacity: 0.55;
 }
-.offer-banner-art {
-  position: relative;
-  aspect-ratio: 2 / 1;
+.offer-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 18px 16px 16px 20px;
+}
+.offer-card-lead {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.offer-card-headline {
+  font-size: 42px;
+  font-weight: 900;
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+.offer-card-headline.long {
+  font-size: 30px;
+}
+.offer-card-text p {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  opacity: 0.85;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  background: var(--surface-2);
 }
-.offer-banner-art.no-photo {
-  background: color-mix(in srgb, var(--accent) 16%, var(--surface-2));
+.offer-card-cta {
+  align-self: flex-start;
+  margin-top: auto;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: var(--accent-text);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
 }
-.offer-banner-art img {
+.offer-card-photo {
+  position: relative;
+  background: color-mix(in srgb, var(--accent-text) 12%, var(--accent));
+}
+.offer-card-photo img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.offer-banner-block {
+.offer-card-sticker {
   position: absolute;
-  left: 16px;
-  bottom: 16px;
-  max-width: calc(100% - 32px);
+  top: 14px;
+  left: -26px;
+  width: 92px;
+  height: 92px;
   display: grid;
-  gap: 2px;
-  padding: 12px 16px 13px;
-  border-radius: 14px;
-  background: var(--accent);
-  color: var(--accent-text);
-}
-.offer-banner-lead {
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.15;
-}
-.offer-banner-headline {
-  font-size: 34px;
-  font-weight: 800;
-  line-height: 0.95;
-  letter-spacing: -0.01em;
-  overflow-wrap: anywhere;
-}
-.offer-banner-headline.long {
-  font-size: 24px;
-}
-.offer-banner {
-  /* What shows through the notches: the page behind the card. */
-  --ticket-cut: var(--bg);
-  overflow: visible;
-}
-.offer-banner-art {
-  border-radius: inherit;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
-.offer-banner-foot {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 84px;
-  padding: 12px 18px 14px;
-  background: color-mix(in srgb, var(--surface-2) 88%, var(--text) 6%);
-  border-top: 2px dashed color-mix(in srgb, var(--muted) 45%, transparent);
-  border-bottom-left-radius: inherit;
-  border-bottom-right-radius: inherit;
-}
-.offer-banner-foot::before,
-.offer-banner-foot::after {
-  content: '';
-  position: absolute;
-  top: -12px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--ticket-cut);
-}
-.offer-banner-foot::before {
-  left: -11px;
-}
-.offer-banner-foot::after {
-  right: -11px;
-}
-.offer-banner-text {
-  flex: 1;
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-}
-.offer-banner-kind {
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.offer-banner-foot p {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.35;
-  color: var(--text-2);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.offer-banner-cta {
-  flex: none;
-  padding: 7px 14px;
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--accent-text);
-  font-size: 13px;
-  font-weight: 600;
-}
-.offer-banner-code {
-  flex: none;
-  display: grid;
+  place-content: center;
   justify-items: center;
-  gap: 1px;
-  padding: 7px 10px;
-  border-radius: 10px;
-  border: 1px dashed var(--muted);
+  padding: 14px;
+  background: var(--accent-text);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+  transform: rotate(-12deg);
 }
-.offer-banner-code strong {
+.offer-card-sticker .big {
+  font-size: 12.5px;
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 13px;
-}
-.offer-banner-code small {
-  font-size: 10px;
-  color: var(--muted);
 }
 .offer-tile {
   padding: 0;
@@ -4425,9 +4374,7 @@ dialog.sheet.sheet-narrow {
   max-width: 420px;
   margin: 0 auto var(--s3);
 }
-.offer-sheet-preview .offer-banner {
-  --ticket-cut: var(--surface);
-}
+
 .offer-photo-row {
   align-items: center;
   flex-wrap: wrap;
@@ -4436,7 +4383,6 @@ dialog.sheet.sheet-narrow {
 .offer-photo-row .help {
   margin: 0;
 }
-.offer-tile .offer-banner {
+.offer-tile .offer-card {
   border-radius: 0;
-  background: transparent;
 }

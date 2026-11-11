@@ -20,3 +20,21 @@ export function bannerLines(title: string, filmTitle?: string | null): { lead: s
 }
 
 const tidy = (s: string) => s.replace(/^[\s,.:;–-]+|[\s,.:;–-]+$/g, '').replace(/\s{2,}/g, ' ');
+
+/** The starburst sticker's words. Mirrors Promotion.stickerLines in CinemaCore. */
+export function stickerLines(action: 'voucher' | 'film' | 'link' | 'none', code?: string | null): string[] {
+  if (action === 'voucher' && code) return ['USE CODE', code];
+  if (action === 'film') return ['ON SALE', 'NOW'];
+  return ['NEW'];
+}
+
+/** CSS polygon for a starburst with `points` spikes. */
+export function starburstPolygon(points = 18, inner = 0.86): string {
+  const out: string[] = [];
+  for (let i = 0; i < points * 2; i++) {
+    const r = (i % 2 === 0 ? 1 : inner) * 50;
+    const a = (i / (points * 2)) * 2 * Math.PI - Math.PI / 2;
+    out.push(`${(50 + Math.cos(a) * r).toFixed(2)}% ${(50 + Math.sin(a) * r).toFixed(2)}%`);
+  }
+  return `polygon(${out.join(', ')})`;
+}

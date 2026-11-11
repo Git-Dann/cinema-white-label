@@ -45,6 +45,12 @@ struct PromotionTests {
         #expect(lines("Quiz") == ["", "QUIZ"])
     }
 
+    @Test func stickerSaysWhatToDo() {
+        #expect(Promotion(id: "a", title: "t", body: "b", ctaLabel: "Show code", action: .voucher(code: "WELCOME10")).stickerLines == ["USE CODE", "WELCOME10"])
+        #expect(Promotion(id: "b", title: "t", body: "b", ctaLabel: "Book", action: .film(id: "f")).stickerLines == ["ON SALE", "NOW"])
+        #expect(Promotion(id: "c", title: "t", body: "b", ctaLabel: nil, action: .none).stickerLines == ["NEW"])
+    }
+
     @Test func unsafeOrUnknownActionsBecomeInformationOnly() throws {
         let list = try decode("""
         [

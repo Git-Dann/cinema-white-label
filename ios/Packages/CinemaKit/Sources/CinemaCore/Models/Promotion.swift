@@ -49,6 +49,16 @@ public struct Promotion: Codable, Sendable, Hashable, Identifiable {
         return (Self.tidy(words.dropLast().joined(separator: " ")), Self.tidy(last).uppercased())
     }
 
+    /// The sticker stamped on the offer's photo, shelf-edge style: the code to use,
+    /// "On sale now" for a film, otherwise "New". Mirrors `stickerLines` in the portal.
+    public var stickerLines: [String] {
+        switch action {
+        case .voucher(let code): ["USE CODE", code]
+        case .film: ["ON SALE", "NOW"]
+        default: ["NEW"]
+        }
+    }
+
     private static func tidy(_ s: String) -> String {
         let edges = CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: ",.:;–-"))
         return s.components(separatedBy: .whitespaces).filter { !$0.isEmpty }.joined(separator: " ").trimmingCharacters(in: edges)
