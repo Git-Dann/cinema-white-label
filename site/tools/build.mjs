@@ -1,4 +1,4 @@
-// Deploy-time build for the marketing site (Vercel runs it: site/vercel.json buildCommand). No dependencies.
+// Deploy-time build for the marketing site (Vercel runs it: the root vercel.json buildCommand; the site project builds from the repo root). No dependencies.
 //
 // The page links about a dozen stylesheets in <head>, and each one blocks the first paint. This joins the
 // page's local stylesheets, in their order, into one minified file named by its content hash
