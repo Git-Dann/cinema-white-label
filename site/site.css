@@ -649,12 +649,42 @@ footer.closing { min-height: 0 !important; }
 /* the hero's deep ground fades into the page at its foot instead of ending on a hard line */
 .hero.bg-deep { position: relative; }
 .hero.bg-deep::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 180px; z-index: 0; pointer-events: none; background: linear-gradient(transparent, var(--bg, #000)); }
-/* the hero window's ground fades in from the page at its top edge (no hard line under the buttons);
-   the layer sits under the phones, so only the teal ground fades */
-.hero-phones.hero__window { border-radius: 0; }
-.hero-phones.hero__window::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 38%; z-index: 1; pointer-events: none;
-  background: linear-gradient(var(--bg, #000) 0%, rgb(0 0 0 / .75) 25%, rgb(0 0 0 / .35) 55%, transparent 100%); }
-.hero-phones.hero__window::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
-  background: linear-gradient(90deg, var(--bg, #000) 0%, transparent 12%, transparent 88%, var(--bg, #000) 100%); }
-.hero-phones.hero__window > .mo-cs__light { z-index: 0; }
+/* the hero window's teal ground fades in from the page at its top (no hard line under the buttons):
+   the ground is painted on a layer under the phones with a mask that is clear at the top; the box's
+   rounded sides stay as they were */
+.hero-phones.hero__window { background: none !important; }
+.hero-phones.hero__window::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; border-radius: inherit;
+  background: radial-gradient(70% 90% at 50% 0%, #1b6b6f 0%, #0f4c53 34%, #0a3238 64%, #071f24 100%);
+  -webkit-mask: linear-gradient(transparent 0%, rgb(0 0 0 / .35) 10%, rgb(0 0 0 / .8) 22%, #000 34%);
+  mask: linear-gradient(transparent 0%, rgb(0 0 0 / .35) 10%, rgb(0 0 0 / .8) 22%, #000 34%); }
+.hero-phones.hero__window > .mo-cs__light { z-index: 1;
+  -webkit-mask: linear-gradient(transparent 0%, #000 30%); mask: linear-gradient(transparent 0%, #000 30%); }
 .hero-phones__row { z-index: 2; }
+
+/* ---------- header: a floating bar, inset from the top and sides, glass over the page ---------- */
+.nav { top: 12px; background: transparent; border-bottom: 0; }
+.nav > .nav__bar {
+  height: calc(var(--nav) - 12px); padding: 0 8px 0 20px; border-radius: 999px;
+  background: rgb(10 12 14 / .72); -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid rgb(255 255 255 / .1); box-shadow: 0 12px 40px -18px rgb(0 0 0 / .8), inset 0 1px 0 rgb(255 255 255 / .04);
+}
+.nav .nav__actions .btn { height: 40px; }
+@media (max-width: 1023px) { .nav { top: 8px; } .nav > .nav__bar { padding: 0 6px 0 16px; height: calc(var(--nav) - 8px); } }
+
+/* ---------- footer: the name set huge at the page's foot, rising out of a teal glow ---------- */
+footer.closing { position: relative; overflow: hidden; padding-bottom: 0 !important; }
+footer.closing { background: radial-gradient(70% 520px at 50% 100%, #1b6b6f 0%, rgb(15 76 83 / .75) 30%, rgb(10 50 56 / .35) 58%, transparent 80%), var(--bg, #000) !important; }
+footer.closing > .wrap { position: relative; z-index: 1; }
+.footer__word.close__word {
+  margin: var(--s-8) 0 -0.12em; text-align: center; line-height: .82; white-space: nowrap;
+  font-size: min(calc((100vw - 2 * var(--gut)) / 3.5), 380px);
+  background: linear-gradient(180deg, rgb(255 255 255 / .95) 0%, rgb(222 252 255 / .8) 45%, rgb(147 241 247 / .35) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.footer__top { margin-left: var(--s-4); color: var(--muted); text-decoration: none !important; }
+.footer__top:hover { color: var(--ink); }
+/* the open phone menu is fixed to the screen; a backdrop-filter on the bar would make the bar its
+   containing block and clip it, so the open bar drops the filter and goes solid */
+.nav.is-open > .nav__bar { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bg); }
+.nav.is-open { top: 0; background: var(--bg); }
+.nav.is-open > .nav__bar { border-radius: 0; border-color: transparent; box-shadow: none; }
