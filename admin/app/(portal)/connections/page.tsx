@@ -5,6 +5,7 @@ import { ApiErrorNote, ErrorNote, Loading, PageHeader, ReadOnlyNote, SuccessNote
 import { API_BASE, ApiKeyRow, api, errorDetails, errorMessage, Film, IntegrationCatalogue, ShiftRow, tenantPath, WebhookRow } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import { useSession, useTenantData } from '@/lib/session';
+import { Sheet, TileHit } from '@/components/Sheet';
 
 /*
  * Connections: how Seatfold plugs into the systems an operator already runs.
@@ -163,24 +164,52 @@ function Apps({ shifts, films, keys, hooks, onTab }: { shifts: ShiftRow[]; films
   );
 }
 
+/** A secret shown once, with Copy, inside the panel that created it. */
+function OnceSecret({ title, note, value }: { title: string; note: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="conn-secret" role="status">
+      <strong>{title}</strong>
+      <p className="small muted">{note}</p>
+      <div className="team-password">
+        <code className="break">{value}</code>
+        <button
+          type="button"
+          className="btn btn-sm"
+          onClick={() => {
+            navigator.clipboard?.writeText(value);
+            setCopied(true);
+          }}
+        >
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Keys({ tenant, canEdit, rows, loading, error, reload, catalogue }: { tenant: string; canEdit: boolean; rows: ApiKeyRow[] | null; loading: boolean; error: string | null; reload: () => void; catalogue: IntegrationCatalogue | null }) {
-  const [form, setForm] = useState<{ name: string; scopes: string[] } | null>(null);
-  const [created, setCreated] = useState<{ name: string; key: string } | null>(null);
+  // The panel shows one of: a new-key form, the key just created (shown once), or an existing key.
+  const [panel, setPanel] = useState<{ kind: 'new'; name: string; scopes: string[] } | { kind: 'created'; name: string; key: string } | { kind: 'view'; key: ApiKeyRow } | null>(null);
   const [formError, setFormError] = useState<ApiErr>(null);
+  const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const label = (id: string) => catalogue?.scopes.find((s) => s.id === id)?.label ?? id;
+  const close = () => setPanel(null);
 
   async function create(e: FormEvent) {
     e.preventDefault();
-    if (!form) return;
+    if (panel?.kind !== 'new') return;
     setFormError(null);
+    setBusy(true);
     try {
-      const r = await api<{ name: string; key: string }>(tenantPath(tenant, '/api-keys'), { method: 'POST', body: form });
-      setCreated({ name: r.name, key: r.key });
-      setForm(null);
+      const r = await api<{ name: string; key: string }>(tenantPath(tenant, '/api-keys'), { method: 'POST', body: { name: panel.name, scopes: panel.scopes } });
+      setPanel({ kind: 'created', name: r.name, key: r.key });
       reload();
     } catch (err) {
       setFormError({ message: errorMessage(err), details: errorDetails(err) });
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -189,55 +218,86 @@ function Keys({ tenant, canEdit, rows, loading, error, reload, catalogue }: { te
     try {
       await api(tenantPath(tenant, `/api-keys/${k.id}`), { method: 'DELETE' });
       setMsg(`${k.name} revoked.`);
+      setPanel(null);
       reload();
     } catch (err) {
-      setMsg(errorMessage(err));
+      setFormError({ message: errorMessage(err), details: [] });
     }
   }
+
+  const title = panel?.kind === 'new' ? 'New API key' : panel?.kind === 'created' ? `${panel.name} is ready` : panel?.kind === 'view' ? panel.key.name : '';
 
   return (
     <>
       <div className="row between conn-bar">
         <p className="muted small">Send the key as <code>Authorization: Bearer sf_live_…</code> to <code>{API_BASE}/v1/partner</code>.</p>
-        {canEdit && !form && <button className="btn btn-primary" onClick={() => { setForm({ name: '', scopes: [] }); setCreated(null); }}>Create key</button>}
+        {canEdit && <button className="btn btn-primary" onClick={() => { setFormError(null); setPanel({ kind: 'new', name: '', scopes: [] }); }}>Create key</button>}
       </div>
-      {created && (
-        <div className="card team-created" role="status">
-          <strong>{created.name} is ready.</strong>
-          <p className="small">Copy it now and keep it somewhere safe. It is shown once; after this only its first characters are visible.</p>
-          <div className="team-password">
-            <code className="break">{created.key}</code>
-            <button className="btn btn-ghost btn-sm" onClick={() => navigator.clipboard?.writeText(created.key)}>Copy</button>
-          </div>
-        </div>
-      )}
-      {form && (
-        <form className="card team-form" onSubmit={create} aria-labelledby="key-new">
-          <h2 id="key-new" className="h3">New API key</h2>
-          <ApiErrorNote error={formError} />
-          <div className="field">
-            <label htmlFor="key-name">Name</label>
-            <input id="key-name" required placeholder="e.g. Planday, Power BI" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          </div>
-          <fieldset className="plain">
-            <legend className="label">What it can do</legend>
-            <div className="check-grid">
-              {(catalogue?.scopes ?? []).map((s) => (
-                <label key={s.id} className="check">
-                  <input type="checkbox" checked={form.scopes.includes(s.id)} onChange={(e) => setForm({ ...form, scopes: e.target.checked ? [...form.scopes, s.id] : form.scopes.filter((x) => x !== s.id) })} />
-                  <span>
-                    <code>{s.id}</code> <span className="muted small">{s.label}</span>
-                  </span>
-                </label>
-              ))}
+
+      <Sheet
+        open={!!panel}
+        narrow
+        title={title}
+        subtitle={panel?.kind === 'view' ? <><code>{panel.key.prefix}…</code> · created {formatDateTime(panel.key.createdAt)}</> : panel?.kind === 'new' ? 'One key per system, so you can revoke one without touching the others.' : undefined}
+        onClose={close}
+        onSubmit={panel?.kind === 'new' ? create : (e) => { e.preventDefault(); close(); }}
+        footer={
+          panel?.kind === 'new' ? (
+            <>
+              <button type="submit" className="btn btn-primary" disabled={busy || !panel.name.trim() || !panel.scopes.length}>{busy ? 'Creating…' : 'Create key'}</button>
+              <button type="button" className="btn btn-ghost" onClick={close}>Cancel</button>
+            </>
+          ) : panel?.kind === 'created' ? (
+            <button type="submit" className="btn btn-primary">I’ve copied it</button>
+          ) : panel?.kind === 'view' ? (
+            <>
+              <button type="button" className="btn btn-ghost" onClick={close}>Close</button>
+              {canEdit && !panel.key.revokedAt && (
+                <button type="button" className="btn btn-danger sheet-foot-end" onClick={() => revoke(panel.key)}>Revoke key</button>
+              )}
+            </>
+          ) : null
+        }
+      >
+        {panel?.kind === 'new' && (
+          <>
+            <div className="field">
+              <label htmlFor="key-name">Name</label>
+              <input id="key-name" required placeholder="e.g. Planday, Power BI" value={panel.name} onChange={(e) => setPanel({ ...panel, name: e.target.value })} />
             </div>
-          </fieldset>
-          <div className="row gap-1">
-            <button className="btn btn-primary" disabled={!form.name.trim() || !form.scopes.length}>Create key</button>
-            <button type="button" className="btn btn-ghost" onClick={() => setForm(null)}>Cancel</button>
-          </div>
-        </form>
-      )}
+            <fieldset className="plain">
+              <legend className="label">What it can do</legend>
+              <div className="conn-checks">
+                {(catalogue?.scopes ?? []).map((s) => (
+                  <label key={s.id} className="check">
+                    <input type="checkbox" checked={panel.scopes.includes(s.id)} onChange={(e) => setPanel({ ...panel, scopes: e.target.checked ? [...panel.scopes, s.id] : panel.scopes.filter((x) => x !== s.id) })} />
+                    <span>
+                      {s.label} <code className="muted small">{s.id}</code>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </>
+        )}
+        {panel?.kind === 'created' && <OnceSecret title="Copy the key now" note="Keep it somewhere safe. It is shown once; after this only its first characters are visible." value={panel.key} />}
+        {panel?.kind === 'view' && (
+          <dl className="tile-meta conn-detail">
+            <dt>Status</dt>
+            <dd>{panel.key.revokedAt ? `Revoked ${formatDateTime(panel.key.revokedAt)}` : 'Active'}</dd>
+            <dt>Last used</dt>
+            <dd>{panel.key.lastUsedAt ? formatDateTime(panel.key.lastUsedAt) : 'Not used yet'}</dd>
+            <dt>Can</dt>
+            <dd>
+              <ul className="conn-scope-list">
+                {panel.key.scopes.map((s) => <li key={s}>{label(s)} <code className="muted small">{s}</code></li>)}
+              </ul>
+            </dd>
+          </dl>
+        )}
+        <ApiErrorNote error={formError} />
+      </Sheet>
+
       <ErrorNote message={error} />
       <SuccessNote message={msg} />
       {loading && !rows ? (
@@ -247,25 +307,19 @@ function Keys({ tenant, canEdit, rows, loading, error, reload, catalogue }: { te
       ) : (
         <ul className="tile-grid">
           {(rows ?? []).map((k) => (
-            <li key={k.id} className={`card tile${k.revokedAt ? ' is-off' : ''}`}>
+            <li key={k.id} className={`card tile tile-click${k.revokedAt ? ' is-off' : ''}`}>
+              <TileHit label={`Open ${k.name}`} onClick={() => { setFormError(null); setPanel({ kind: 'view', key: k }); }} />
               <div className="tile-head">
                 <div>
                   <div className="tile-title">{k.name}</div>
-                  <code className="small">{k.prefix}…</code>
+                  <code className="small muted">{k.prefix}…</code>
                 </div>
                 <span className={`badge ${k.revokedAt ? 'badge-neutral' : 'badge-success'}`}>{k.revokedAt ? 'Revoked' : 'Active'}</span>
               </div>
-              <ul className="tag-list" aria-label="Scopes">
-                {k.scopes.map((s) => <li key={s} title={label(s)}>{s}</li>)}
+              <ul className="tag-list" aria-label="What it can do">
+                {k.scopes.map((s) => <li key={s}>{label(s)}</li>)}
               </ul>
-              <div className="muted small">
-                Created {formatDateTime(k.createdAt)} · {k.lastUsedAt ? `last used ${formatDateTime(k.lastUsedAt)}` : 'not used yet'}
-              </div>
-              {canEdit && !k.revokedAt && (
-                <div className="tile-actions">
-                  <button className="btn btn-sm btn-danger" onClick={() => revoke(k)}>Revoke</button>
-                </div>
-              )}
+              <div className="muted small conn-foot">{k.lastUsedAt ? `Last used ${formatDateTime(k.lastUsedAt)}` : 'Not used yet'}</div>
             </li>
           ))}
         </ul>
@@ -275,36 +329,64 @@ function Keys({ tenant, canEdit, rows, loading, error, reload, catalogue }: { te
 }
 
 function Webhooks({ tenant, canEdit, rows, loading, error, reload, catalogue }: { tenant: string; canEdit: boolean; rows: WebhookRow[] | null; loading: boolean; error: string | null; reload: () => void; catalogue: IntegrationCatalogue | null }) {
-  const [form, setForm] = useState<{ url: string; description: string; events: string[] } | null>(null);
-  const [created, setCreated] = useState<{ url: string; secret: string } | null>(null);
+  type Form = { url: string; description: string; events: string[] };
+  const [panel, setPanel] = useState<{ kind: 'new'; form: Form } | { kind: 'created'; url: string; secret: string } | { kind: 'edit'; id: string; form: Form } | null>(null);
   const [formError, setFormError] = useState<ApiErr>(null);
+  const [note, setNote] = useState<{ ok?: string; error?: string }>({});
+  const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok?: string; error?: string }>({});
+  const close = () => setPanel(null);
+  const hook = panel?.kind === 'edit' ? rows?.find((h) => h.id === panel.id) ?? null : null;
+  const eventLabel = (id: string) => catalogue?.events.find((e) => e.id === id)?.label ?? id;
 
-  async function create(e: FormEvent) {
-    e.preventDefault();
-    if (!form) return;
+  function open(h: WebhookRow) {
     setFormError(null);
+    setNote({});
+    setPanel({ kind: 'edit', id: h.id, form: { url: h.url, description: h.description ?? '', events: h.events } });
+  }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!panel || panel.kind === 'created') return close();
+    setFormError(null);
+    setBusy(true);
     try {
-      const r = await api<{ url: string; secret: string }>(tenantPath(tenant, '/webhooks'), { method: 'POST', body: { ...form, description: form.description || null } });
-      setCreated(r);
-      setForm(null);
+      const body = { ...panel.form, description: panel.form.description || null };
+      if (panel.kind === 'new') {
+        const r = await api<{ url: string; secret: string }>(tenantPath(tenant, '/webhooks'), { method: 'POST', body });
+        setPanel({ kind: 'created', url: r.url, secret: r.secret });
+      } else {
+        await api(tenantPath(tenant, `/webhooks/${panel.id}`), { method: 'PUT', body });
+        setMsg({ ok: 'Webhook saved.' });
+        setPanel(null);
+      }
       reload();
     } catch (err) {
       setFormError({ message: errorMessage(err), details: errorDetails(err) });
+    } finally {
+      setBusy(false);
     }
   }
 
-  async function act(fn: () => Promise<{ status?: string; responseCode?: number | null; error?: string | null } | unknown>, ok: string) {
-    setMsg({});
+  /** Test, pause and resend report inside the panel; delete closes it. */
+  async function act(fn: () => Promise<unknown>, ok: string, closeAfter = false) {
+    setNote({});
     try {
       const r = (await fn()) as { status?: string; error?: string | null } | undefined;
-      if (r && r.status === 'failed') setMsg({ error: `Not delivered: ${r.error ?? 'no answer'}` });
-      else setMsg({ ok });
+      if (r && r.status === 'failed') setNote({ error: `Not delivered: ${r.error ?? 'no answer'}` });
+      else if (closeAfter) {
+        setMsg({ ok });
+        setPanel(null);
+      } else setNote({ ok });
       reload();
     } catch (err) {
-      setMsg({ error: errorMessage(err) });
+      setNote({ error: errorMessage(err) });
     }
   }
+
+  const form = panel && panel.kind !== 'created' ? panel.form : null;
+  const setForm = (f: Form) => panel && panel.kind !== 'created' && setPanel({ ...panel, form: f });
+  const title = panel?.kind === 'new' ? 'New webhook' : panel?.kind === 'created' ? 'Webhook added' : hook ? hook.description || 'Webhook' : '';
 
   return (
     <>
@@ -312,51 +394,88 @@ function Webhooks({ tenant, canEdit, rows, loading, error, reload, catalogue }: 
         <p className="muted small">
           Each request carries <code>Seatfold-Signature: t=…,v1=…</code>, an HMAC-SHA256 of <code>{'{t}.{body}'}</code> with your secret.
         </p>
-        {canEdit && !form && <button className="btn btn-primary" onClick={() => { setForm({ url: '', description: '', events: ['booking.confirmed'] }); setCreated(null); }}>Add webhook</button>}
+        {canEdit && <button className="btn btn-primary" onClick={() => { setFormError(null); setPanel({ kind: 'new', form: { url: '', description: '', events: ['booking.confirmed'] } }); }}>Add webhook</button>}
       </div>
-      {created && (
-        <div className="card team-created" role="status">
-          <strong>Webhook added for {created.url}</strong>
-          <p className="small">This is its signing secret. It is shown once, so copy it into the receiving system now.</p>
-          <div className="team-password">
-            <code className="break">{created.secret}</code>
-            <button className="btn btn-ghost btn-sm" onClick={() => navigator.clipboard?.writeText(created.secret)}>Copy</button>
-          </div>
-        </div>
-      )}
-      {form && (
-        <form className="card team-form" onSubmit={create} aria-labelledby="hook-new">
-          <h2 id="hook-new" className="h3">New webhook</h2>
-          <ApiErrorNote error={formError} />
-          <div className="form-grid">
-            <div className="field span-2">
-              <label htmlFor="hook-url">HTTPS address</label>
-              <input id="hook-url" type="url" required placeholder="https://hooks.example.com/seatfold" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} />
+
+      <Sheet
+        open={!!panel}
+        title={title}
+        subtitle={hook ? <span className="break">{hook.url}</span> : panel?.kind === 'created' ? <span className="break">{panel.url}</span> : undefined}
+        onClose={close}
+        onSubmit={submit}
+        footer={
+          panel?.kind === 'created' ? (
+            <button type="submit" className="btn btn-primary">I’ve copied it</button>
+          ) : panel && canEdit ? (
+            <>
+              <button type="submit" className="btn btn-primary" disabled={busy || !form?.url || !form?.events.length}>
+                {busy ? 'Saving…' : panel.kind === 'new' ? 'Add webhook' : 'Save changes'}
+              </button>
+              {hook && (
+                <>
+                  <button type="button" className="btn" onClick={() => act(() => api(tenantPath(tenant, `/webhooks/${hook.id}/test`), { method: 'POST' }), 'Test event delivered.')}>Send test</button>
+                  <button type="button" className="btn btn-ghost" onClick={() => act(() => api(tenantPath(tenant, `/webhooks/${hook.id}`), { method: 'PUT', body: { active: !hook.active } }), hook.active ? 'Paused.' : 'Turned on.')}>{hook.active ? 'Pause' : 'Turn on'}</button>
+                  <button type="button" className="btn btn-danger sheet-foot-end" onClick={() => window.confirm('Delete this webhook?') && act(() => api(tenantPath(tenant, `/webhooks/${hook.id}`), { method: 'DELETE' }), 'Webhook deleted.', true)}>Delete</button>
+                </>
+              )}
+              {panel.kind === 'new' && <button type="button" className="btn btn-ghost" onClick={close}>Cancel</button>}
+            </>
+          ) : (
+            <button type="button" className="btn btn-ghost" onClick={close}>Close</button>
+          )
+        }
+      >
+        {panel?.kind === 'created' && <OnceSecret title="Copy the signing secret now" note="The receiving system uses it to check each request came from Seatfold. It is shown once." value={panel.secret} />}
+        {form && (
+          <fieldset className="plain" disabled={!canEdit}>
+            <div className="form-grid">
+              <div className="field span-2">
+                <label htmlFor="hook-url">HTTPS address</label>
+                <input id="hook-url" type="url" required placeholder="https://hooks.example.com/seatfold" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} />
+              </div>
+              <div className="field span-2">
+                <label htmlFor="hook-desc">What it's for (optional)</label>
+                <input id="hook-desc" placeholder="e.g. Bookings into Power BI" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              </div>
             </div>
-            <div className="field span-2">
-              <label htmlFor="hook-desc">What it's for (optional)</label>
-              <input id="hook-desc" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-            </div>
-          </div>
-          <fieldset className="plain">
-            <legend className="label">Send these events</legend>
-            <div className="check-grid">
+            <div className="label">Send these events</div>
+            <div className="conn-checks">
               {(catalogue?.events ?? []).map((ev) => (
                 <label key={ev.id} className="check">
                   <input type="checkbox" checked={form.events.includes(ev.id)} onChange={(e) => setForm({ ...form, events: e.target.checked ? [...form.events, ev.id] : form.events.filter((x) => x !== ev.id) })} />
                   <span>
-                    <code>{ev.id}</code> <span className="muted small">{ev.label}</span>
+                    {ev.label} <code className="muted small">{ev.id}</code>
                   </span>
                 </label>
               ))}
             </div>
           </fieldset>
-          <div className="row gap-1">
-            <button className="btn btn-primary" disabled={!form.url || !form.events.length}>Add webhook</button>
-            <button type="button" className="btn btn-ghost" onClick={() => setForm(null)}>Cancel</button>
-          </div>
-        </form>
-      )}
+        )}
+        {hook && (
+          <section className="conn-log conn-log-sheet" aria-label="Recent deliveries">
+            <div className="label">Recent deliveries</div>
+            {hook.deliveries.length === 0 ? (
+              <span className="muted small">Nothing sent yet. Send a test to check the address.</span>
+            ) : (
+              hook.deliveries.slice(0, 8).map((d) => (
+                <div key={d.id} className="conn-log-row small">
+                  <span className={`conn-dot ${d.status}`} aria-label={d.status} />
+                  <span>{eventLabel(d.event)}</span>
+                  <span className="muted">{d.responseCode ?? d.error ?? ''}</span>
+                  <span className="muted">{formatDateTime(d.createdAt)}</span>
+                  {canEdit && d.status === 'failed' && (
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => act(() => api(tenantPath(tenant, `/webhook-deliveries/${d.id}/resend`), { method: 'POST' }), 'Delivered.')}>Resend</button>
+                  )}
+                </div>
+              ))
+            )}
+          </section>
+        )}
+        <ErrorNote message={note.error} />
+        <SuccessNote message={note.ok} />
+        <ApiErrorNote error={formError} />
+      </Sheet>
+
       <ErrorNote message={error ?? msg.error} />
       <SuccessNote message={msg.ok} />
       {loading && !rows ? (
@@ -365,44 +484,36 @@ function Webhooks({ tenant, canEdit, rows, loading, error, reload, catalogue }: 
         <p className="muted">No webhooks yet.</p>
       ) : (
         <ul className="tile-grid wide">
-          {(rows ?? []).map((h) => (
-            <li key={h.id} className={`card tile${h.active ? '' : ' is-off'}`}>
-              <div className="tile-head">
-                <div className="conn-url">
-                  <div className="tile-title break">{h.url}</div>
-                  {h.description && <div className="muted small">{h.description}</div>}
+          {(rows ?? []).map((h) => {
+            const last = h.deliveries[0];
+            return (
+              <li key={h.id} className={`card tile tile-click${h.active ? '' : ' is-off'}`}>
+                <TileHit label={`Open webhook ${h.description ?? h.url}`} onClick={() => open(h)} />
+                <div className="tile-head">
+                  <div className="conn-url">
+                    <div className="tile-title">{h.description || 'Webhook'}</div>
+                    <div className="muted small break">{h.url}</div>
+                  </div>
+                  <span className={`badge ${h.active ? 'badge-success' : 'badge-neutral'}`}>{h.active ? 'On' : 'Paused'}</span>
                 </div>
-                <span className={`badge ${h.active ? 'badge-success' : 'badge-neutral'}`}>{h.active ? 'On' : 'Paused'}</span>
-              </div>
-              <ul className="tag-list" aria-label="Events">
-                {h.events.map((e) => <li key={e}>{e}</li>)}
-              </ul>
-              <div className="conn-log" aria-label="Recent deliveries">
-                {h.deliveries.length === 0 ? (
-                  <span className="muted small">Nothing sent yet</span>
-                ) : (
-                  h.deliveries.slice(0, 5).map((d) => (
-                    <div key={d.id} className="conn-log-row small">
-                      <span className={`conn-dot ${d.status}`} aria-label={d.status} />
-                      <code>{d.event}</code>
-                      <span className="muted">{d.responseCode ?? d.error ?? ''}</span>
-                      <span className="muted">{formatDateTime(d.createdAt)}</span>
-                      {canEdit && d.status === 'failed' && (
-                        <button className="btn btn-ghost btn-sm" onClick={() => act(() => api(tenantPath(tenant, `/webhook-deliveries/${d.id}/resend`), { method: 'POST' }), 'Delivered.')}>Resend</button>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-              {canEdit && (
-                <div className="tile-actions">
-                  <button className="btn btn-sm" onClick={() => act(() => api(tenantPath(tenant, `/webhooks/${h.id}/test`), { method: 'POST' }), 'Test event delivered.')}>Send test</button>
-                  <button className="btn btn-sm" onClick={() => act(() => api(tenantPath(tenant, `/webhooks/${h.id}`), { method: 'PUT', body: { active: !h.active } }), h.active ? 'Paused.' : 'Turned on.')}>{h.active ? 'Pause' : 'Turn on'}</button>
-                  <button className="btn btn-sm btn-danger" onClick={() => window.confirm('Delete this webhook?') && act(() => api(tenantPath(tenant, `/webhooks/${h.id}`), { method: 'DELETE' }), 'Webhook deleted.')}>Delete</button>
+                <ul className="tag-list" aria-label="Events">
+                  {h.events.map((e) => <li key={e}>{eventLabel(e)}</li>)}
+                </ul>
+                <div className="small conn-foot">
+                  {last ? (
+                    <>
+                      <span className={`conn-dot ${last.status}`} aria-hidden="true" />
+                      <span className="muted">
+                        Last {last.status === 'failed' ? 'delivery failed' : 'delivered'} {formatDateTime(last.createdAt)}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="muted">Nothing sent yet</span>
+                  )}
                 </div>
-              )}
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
     </>
