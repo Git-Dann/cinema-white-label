@@ -718,9 +718,6 @@ html:not([data-motion="off"]) .btn:hover, html:not([data-motion="off"]) .btn--xl
   /* the hero grows to hold its phone window, so the phones fade out inside it instead of being cut at its foot */
   .hero.hero--centred { height: auto !important; }
   .hero.hero--centred .hero__window { flex: none; }
-  /* the menu button sits inside the bar as a bare icon, so the bar's edge never runs under a second ring */
-  .nav:not(.is-open) > .nav__bar { padding-right: 4px; }
-  .nav:not(.is-open) .nav__toggle { border-color: transparent; width: 40px; height: 40px; }
 }
 /* the CTA chips stay on one line where there is room, and wrap on a phone rather than run off it */
 .cta-panel__points > li { white-space: nowrap; }
@@ -771,9 +768,24 @@ html:not([data-motion="off"]) .btn:hover, html:not([data-motion="off"]) .btn--xl
   .footer__legal > span { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
   .footer__legal .footer__top { margin-left: 0; display: inline-flex; align-items: center; min-height: 40px; white-space: nowrap; }
 }
-/* the narrowest phones: a tighter bar button, so the menu icon stays inside the floating bar */
+
+/* phones and tablets: the floating bar splits into three shapes. The logo sits in its own glass pill on the
+   left; the demo button and a round glass menu button float on the right. The open menu is unchanged. */
+@media (max-width: 1023px) {
+  .nav:not(.is-open) > .nav__bar { background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; padding: 0; gap: 8px; }
+  .nav:not(.is-open) .nav__logo, .nav:not(.is-open) .nav__toggle {
+    height: 48px; background: rgb(10 12 14 / .72); -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
+    border: 1px solid rgb(255 255 255 / .1); box-shadow: 0 12px 40px -18px rgb(0 0 0 / .8), inset 0 1px 0 rgb(255 255 255 / .04);
+  }
+  .nav:not(.is-open) .nav__logo { padding: 0 18px 0 14px; border-radius: 999px; }
+  .nav:not(.is-open) .nav__actions { margin-left: auto; }
+  .nav:not(.is-open) .nav__actions .btn { height: 48px; box-shadow: 0 12px 40px -18px rgb(0 0 0 / .8); }
+  .nav:not(.is-open) .nav__toggle { margin-left: 0; width: 48px; border-radius: 50%; }
+}
+/* the narrowest phones: a little wider row, and the demo button drops its arrow, so all three fit */
 @media (max-width: 360px) {
-  .nav:not(.is-open) > .nav__bar { padding-left: 14px; gap: 4px; }
+  .nav:not(.is-open) > .nav__bar { width: calc(100% - 24px); gap: 6px; }
+  .nav:not(.is-open) .nav__logo { padding: 0 14px 0 12px; }
   .nav:not(.is-open) .nav__actions .btn { padding-inline: 14px; font-size: 14px; }
-  .nav:not(.is-open) .nav__actions .btn > .m-arrow, .nav:not(.is-open) .nav__actions .btn > svg, .nav:not(.is-open) .nav__actions .btn::after { display: none; }
+  .nav:not(.is-open) .nav__actions .btn::after { display: none; }
 }
