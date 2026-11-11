@@ -30,6 +30,7 @@ final class FakeService: CinemaService, @unchecked Sendable {
     func releaseHold(id: String) async throws {}
     func concessions(venueId: String) async throws -> ConcessionMenu { ConcessionMenu(features: VenueFeatures(), categories: []) }
     func promotions(venueId: String?) async throws -> [Promotion] { [] }
+    func recommendations() async throws -> RecommendationList { .empty }
     func loyalty() async throws -> LoyaltySummary { .none }
     func membershipPlans() async throws -> [MembershipPlan] { [] }
     func myMembership() async throws -> Membership? { nil }

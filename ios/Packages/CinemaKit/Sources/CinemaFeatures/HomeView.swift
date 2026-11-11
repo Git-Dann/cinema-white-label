@@ -99,11 +99,33 @@ struct HomeView: View {
                 .scrollTargetBehavior(.viewAligned)
             }
         case .nowShowing where !app.nowShowing.isEmpty:
-            posterRow(section, films: app.nowShowing, caption: { $0.formats.contains("IMAX") ? "Also in IMAX" : $0.genres.first })
+            VStack(alignment: .leading, spacing: Spacing.section) {
+                posterRow(section, films: app.nowShowing, caption: { $0.formats.contains("IMAX") ? "Also in IMAX" : $0.genres.first })
+                recommendedRow
+            }
         case .comingSoon where !app.comingSoon.isEmpty:
             posterRow(section, films: app.comingSoon, caption: { releaseCaption($0) })
         default:
             EmptyView()
+        }
+    }
+
+    /// Pulse picks, placed under Now showing. Hidden when there is nothing the app can show.
+    @ViewBuilder private var recommendedRow: some View {
+        let picks = app.recommendedFilms
+        if !picks.isEmpty {
+            VStack(alignment: .leading, spacing: Spacing.header) {
+                SectionHeader("You might like", subtitle: app.recommendations.subtitle)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(alignment: .top, spacing: Spacing.item) {
+                        ForEach(picks) { pick in
+                            NavigationLink(value: pick.film) { PosterCard(film: pick.film, size: .medium, caption: pick.caption, captionLines: 2) }.buttonStyle(.plain)
+                        }
+                    }
+                    .pagePadding()
+                }
+            }
+            .accessibilityIdentifier("home.recommended")
         }
     }
 

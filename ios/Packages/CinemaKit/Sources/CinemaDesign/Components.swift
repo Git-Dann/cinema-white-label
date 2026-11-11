@@ -59,8 +59,9 @@ public struct PosterCard: View {
     let caption: String?
     @Environment(\.palette) private var palette
 
-    public init(film: Film, size: Size = .medium, caption: String? = nil) {
-        self.film = film; self.size = size; self.caption = caption
+    let captionLines: Int
+    public init(film: Film, size: Size = .medium, caption: String? = nil, captionLines: Int = 1) {
+        self.film = film; self.size = size; self.caption = caption; self.captionLines = captionLines
     }
 
     public var body: some View {
@@ -72,7 +73,7 @@ public struct PosterCard: View {
                 .overlay(RoundedRectangle(cornerRadius: palette.cornerRadius.medium, style: .continuous).strokeBorder(.white.opacity(0.08)))
                 .shadow(color: .black.opacity(0.35), radius: 10, y: 6)
             if let caption {
-                Text(caption).font(.footnote).foregroundStyle(palette.textMuted).lineLimit(1)
+                Text(caption).font(.footnote).foregroundStyle(palette.textMuted).lineLimit(captionLines, reservesSpace: captionLines > 1)
                     .frame(width: size.width, alignment: .leading)
             }
         }

@@ -176,6 +176,15 @@ public actor MockCinemaService: CinemaService {
 
     public func promotions(venueId: String?) async throws -> [Promotion] { try await simulateNetwork(); return PreviewFixtures.promotions }
 
+    /// Demo picks from the fixture films, labelled as popular rather than personal.
+    public func recommendations() async throws -> RecommendationList {
+        try await simulateNetwork()
+        let items = PreviewFixtures.films.filter { $0.status == .nowShowing }.reversed().prefix(6).map {
+            RecommendationList.Item(film: .init(id: $0.id, title: $0.title), reason: "Popular at your cinema right now")
+        }
+        return RecommendationList(basis: .init(personal: false), recommendations: Array(items))
+    }
+
     public func quote(holdId: String, tickets: [TicketSelection], extras: BasketExtras) async throws -> Quote {
         try await simulateNetwork()
         guard let h = holds[holdId], let s = screenings[h.screeningId] else { throw APIError(status: 404, code: .notFound, message: "Reservation not found") }
