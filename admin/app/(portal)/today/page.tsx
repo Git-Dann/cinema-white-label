@@ -220,7 +220,7 @@ export default function TodayPage() {
           {d.shows.length === 0 ? (
             <p className="muted">No shows at {site?.name} on this day.</p>
           ) : (
-            <div className="board" aria-label="Shows by screen">
+            <div className="board" aria-label="Shows by screen" style={{ '--cols': Math.min(4, Math.max(1, screens.length)) } as React.CSSProperties}>
               {screens.map(([screen, list]) => (
                 <section key={screen} className="board-col" aria-label={screen}>
                   <h2 className="board-head">
@@ -235,36 +235,43 @@ export default function TodayPage() {
                       return (
                         <li key={s.id} className={`card show-card${s.started ? ' is-past' : ''}`}>
                           <div className="show-poster" style={{ background: s.film.poster?.dominantColor ?? 'var(--surface-2)' }}>
-                            <SafeImage src={mediaUrl(s.film.poster?.url, 160)} alt="" fallback={<span />} />
+                            <SafeImage src={mediaUrl(s.film.poster?.url, 240)} alt="" fallback={<span />} />
                           </div>
                           <div className="show-body">
                             <div className="show-head">
                               <strong className="show-time num">{time(s.startsAt)}</strong>
-                              {status && <span className={`badge ${left <= 0 ? 'badge-danger' : 'badge-warning'}`}>{status}</span>}
                               {s.started && <span className="badge badge-neutral">Started</span>}
                             </div>
-                            <div className="show-film" title={s.film.title}>{s.film.title} <span className="muted">· {s.film.certificate}</span></div>
-                            {s.formats.length > 0 && <div className="muted small">{s.formats.join(' · ')}</div>}
+                            <div className="show-film" title={s.film.title}>{s.film.title}</div>
+                            <div className="muted small">{[s.film.certificate, ...s.formats].join(' · ')}</div>
+                            {(status || s.foodOrders > 0) && (
+                              <div className="row gap-1 show-badges">
+                                {status && <span className={`badge ${left <= 0 ? 'badge-danger' : 'badge-warning'}`}>{status}</span>}
+                                {s.foodOrders > 0 && <span className="badge badge-scope">{s.foodOrders} food</span>}
+                              </div>
+                            )}
+                          </div>
+                          <div className="show-sales">
                             <div className="meter" role="img" aria-label={`${s.sold} of ${s.capacity} seats sold`}>
                               <span style={{ width: `${pct}%` }} />
                               {s.held > 0 && <span className="meter-held" style={{ width: `${Math.round((s.held / s.capacity) * 100)}%` }} />}
                             </div>
                             <div className="show-foot small">
-                              <span><strong className="num">{s.sold}</strong>/{s.capacity}{s.held ? ` · ${s.held} booking` : ''}</span>
-                              {s.foodOrders > 0 && <span className="badge badge-scope">{s.foodOrders} food</span>}
-                            </div>
-                            {forecastFor.get(s.id) && !s.started && (() => {
-                              const f = forecastFor.get(s.id)!;
-                              const tone = paceTone(f.paceIndex);
-                              return (
-                                <button type="button" className={`show-pulse small${tone ? ` ${tone}` : ''}`} onClick={() => setWhy(f)} aria-label={`Why Pulse expects ${f.expected}`}>
-                                  <span>
+                              <span>
+                                <strong className="num">{s.sold}</strong>
+                                <span className="muted num">/{s.capacity} sold{s.held ? ` · ${s.held} booking` : ''}</span>
+                              </span>
+                              {forecastFor.get(s.id) && !s.started && (() => {
+                                const f = forecastFor.get(s.id)!;
+                                const tone = paceTone(f.paceIndex);
+                                return (
+                                  <button type="button" className={`show-pulse${tone ? ` ${tone}` : ''}`} onClick={() => setWhy(f)} aria-label={`Why Pulse expects ${f.expected}`}>
                                     Forecast <strong className="num">{f.expected}</strong>
-                                  </span>
-                                  {tone && <span className="muted">{tone === 'fast' ? 'Selling fast' : tone === 'slow' ? 'Selling slowly' : 'On pace'}</span>}
-                                </button>
-                              );
-                            })()}
+                                    {tone && <span className="muted"> · {tone === 'fast' ? 'fast' : tone === 'slow' ? 'slow' : 'on pace'}</span>}
+                                  </button>
+                                );
+                              })()}
+                            </div>
                           </div>
                         </li>
                       );

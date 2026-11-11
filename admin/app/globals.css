@@ -3422,7 +3422,8 @@ dialog.sheet form {
 /* Today: one column per screen */
 .board {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  /* One column per screen, up to four, at every desktop width: a screen never wraps to its own row. */
+  grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr));
   gap: var(--s3);
   align-items: start;
 }
@@ -3439,19 +3440,34 @@ dialog.sheet form {
   gap: var(--s2);
 }
 .show-card {
-  display: flex;
-  gap: var(--s2);
-  padding: var(--s2);
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  column-gap: 14px;
+  row-gap: 12px;
+  padding: 14px;
 }
 .show-card.is-past {
   opacity: 0.5;
 }
+@media (max-width: 1320px) {
+  .show-card {
+    grid-template-columns: 64px minmax(0, 1fr);
+    column-gap: 12px;
+  }
+  .show-card .show-poster {
+    width: 64px;
+    height: 96px;
+  }
+}
+@media (max-width: 900px) {
+  .board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+/* Posters keep their 2:3 shape at a fixed size: never stretched, squashed or cropped by the card. */
 .show-poster {
-  flex: none;
-  /* A real poster shape: never stretch to the card's height (that crops it to a sliver). */
-  align-self: flex-start;
-  width: 76px;
-  aspect-ratio: 2 / 3;
+  width: 84px;
+  height: 126px;
   border-radius: 8px;
   overflow: hidden;
 }
@@ -3460,6 +3476,18 @@ dialog.sheet form {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+.show-sales {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+}
+.show-sales .meter {
+  margin: 0;
+}
+.show-badges {
+  flex-wrap: wrap;
+  margin-top: auto;
 }
 .show-body {
   display: flex;
@@ -4556,19 +4584,17 @@ dialog.sheet.sheet-narrow {
   border-top: 1px solid var(--border);
 }
 .show-pulse {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 2px 8px;
-  width: 100%;
-  margin-top: 6px;
-  padding: 6px 8px;
+  display: inline-block;
+  width: auto;
+  margin: 0;
+  padding: 3px 8px;
+  white-space: nowrap;
   border: 0;
   border-radius: 8px;
   background: var(--surface-3);
   color: var(--text);
   font: inherit;
+  font-size: 12.5px;
   text-align: left;
   cursor: pointer;
 }
