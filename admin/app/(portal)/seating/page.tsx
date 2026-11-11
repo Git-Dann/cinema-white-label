@@ -7,6 +7,7 @@ import { formatMoney, inputToMinor, minorToInput } from '@/lib/format';
 import { ApiErrorNote, ErrorNote, Loading, PageHeader, ReadOnlyNote, SuccessNote } from '@/components/ui';
 import { Sheet, TileHit } from '@/components/Sheet';
 import { SeatGlyph } from '@/components/SeatGlyph';
+import { PricingSuggestions } from '@/components/pulse-suggestions';
 
 type ApiErr = { message: string; details: string[] } | null;
 const toErr = (e: unknown): ApiErr => ({ message: errorMessage(e), details: errorDetails(e) });
@@ -318,6 +319,7 @@ export default function SeatingPage() {
         )}
       </section>
 
+      <PricingSuggestions />
       <PricingGrid pricing={pricing.data} loading={pricing.loading} error={pricing.error} onSaved={(p) => pricing.setData(p)} />
       {pricing.data && <FeesEditor pricing={pricing.data} onSaved={(p) => pricing.setData(p)} />}
     </>

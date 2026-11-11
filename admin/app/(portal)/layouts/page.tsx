@@ -8,6 +8,7 @@ import { DEFAULT_GENERATOR, emptyLayout, generateLayout } from '@/lib/layout-too
 import { LayoutEditor } from '@/components/LayoutEditor';
 import { ApiErrorNote, ErrorNote, Loading, PageHeader, StatusBadge, SuccessNote } from '@/components/ui';
 import { Sheet, TileHit } from '@/components/Sheet';
+import { ScreenSwaps } from '@/components/pulse-suggestions';
 import { useCinemaScope } from '@/lib/cinema-scope';
 
 type ApiErr = { message: string; details: string[] } | null;
@@ -196,6 +197,7 @@ export default function LayoutsPage() {
         <ApiErrorNote error={formError} />
       </Sheet>
 
+      <ScreenSwaps />
       {list.loading && !list.data && <Loading />}
       {shownVenues.map((v) => (
         <section className="venue-block" key={v.venue.id} aria-labelledby={`venue-${v.venue.id}`}>

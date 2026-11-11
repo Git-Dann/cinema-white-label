@@ -4642,3 +4642,117 @@ dialog.sheet.sheet-narrow {
   display: grid;
   gap: 8px;
 }
+.pulse-alerts,
+.pulse-bundles,
+.pulse-segments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.pulse-alerts li {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.pulse-alerts li > div {
+  display: grid;
+  gap: 2px;
+}
+.pulse-alert-figure {
+  justify-self: start;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.pulse-alerts li.down .pulse-alert-figure {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+.pulse-alerts li.up .pulse-alert-figure {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.pulse-bundles li {
+  display: grid;
+  gap: 6px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.pulse-bundles li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.pulse-bundle-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.pulse-segments {
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: var(--s2);
+}
+.pulse-segments li {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.pulse-segment-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.pulse-segment-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, currentColor 9%, transparent);
+  overflow: hidden;
+}
+.pulse-segment-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.pulse-segment-action {
+  color: var(--text);
+}
+.pulse-intro {
+  margin: calc(-1 * var(--s1)) 0 var(--s2);
+  max-width: 820px;
+}
+.pulse-more {
+  margin-top: var(--s2);
+}
+.pulse-reasons {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+.pulse-empty {
+  display: grid;
+  gap: 6px;
+  max-width: 720px;
+}
+.pulse-swap {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.pulse-swap > div {
+  display: grid;
+  gap: 2px;
+}
+.pulse-swap-arrow {
+  font-size: 20px;
+  color: var(--text-2);
+}
