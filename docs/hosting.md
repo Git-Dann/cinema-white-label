@@ -15,7 +15,7 @@ Production deployments come from `main`, so the platform code must be merged to 
 - The portal also deploys previews for `claude/**` pull request branches.
 - Other branches, including `ci-screenshots`, create no deployment at all.
 
-The `cinema-white-label` project currently builds from the repository root rather than `site`, so the root `vercel.json` carries its rules. `ignoreCommand` still skips builds when a project's folder did not change.
+The `cinema-white-label` project currently builds from the repository root rather than `site`, so the root `vercel.json` carries its rules: it runs `node site/tools/build.mjs` (joins the page's stylesheets into one hashed file), serves `site/`, and caches that file and `site/fonts/` for a year. `ignoreCommand` still skips builds when a project's folder did not change.
 
 ## 1. Database (Supabase)
 
@@ -61,7 +61,7 @@ Deploy, open the portal and sign in with `admin@northlight.example` / `operator-
 
 ## Builds only for what changed
 
-The three Vercel projects (marketing site, API, portal) share one account, and the free plan allows 100 deployments a day. The site and portal `vercel.json` files have an `ignoreCommand` that skips the build when nothing they depend on changed since that project's last deployment (`VERCEL_GIT_PREVIOUS_SHA`, or the previous commit on a first deploy):
+The three Vercel projects (marketing site, API, portal) share one account, and the free plan allows 100 deployments a day. The root (site) and portal `vercel.json` files have an `ignoreCommand` that skips the build when nothing they depend on changed since that project's last deployment (`VERCEL_GIT_PREVIOUS_SHA`, or the previous commit on a first deploy):
 
 | Project | Builds when these change |
 |---|---|
