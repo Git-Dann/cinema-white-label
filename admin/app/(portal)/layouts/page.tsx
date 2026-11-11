@@ -3,10 +3,11 @@
 import { FormEvent, useRef, useState } from 'react';
 import { api, AuditoriumSummary, errorDetails, errorMessage, LayoutVersionDetail, SeatCategoriesResponse, tenantPath, VenueAuditoriums } from '@/lib/api';
 import { useSession, useTenantData } from '@/lib/session';
-import { formatDateTime } from '@/lib/format';
+import { formatDate, formatDateTime } from '@/lib/format';
 import { DEFAULT_GENERATOR, emptyLayout, generateLayout } from '@/lib/layout-tools';
 import { LayoutEditor } from '@/components/LayoutEditor';
 import { ApiErrorNote, ErrorNote, Loading, PageHeader, StatusBadge, SuccessNote } from '@/components/ui';
+import { Sheet, TileHit } from '@/components/Sheet';
 import { useCinemaScope } from '@/lib/cinema-scope';
 
 type ApiErr = { message: string; details: string[] } | null;
@@ -152,51 +153,54 @@ export default function LayoutsPage() {
       <ErrorNote message={msg.error ?? list.error ?? cats.error} />
       <SuccessNote message={msg.ok} />
 
-      {newScreen && (
-        <section className="card" aria-labelledby="ns-title">
-          <h2 id="ns-title" className="h3">
-            New screen
-          </h2>
-          <form onSubmit={createScreen} noValidate>
-            <div className="form-grid cols-3">
-              <div className="field">
-                <label htmlFor="ns-venue">Cinema</label>
-                <select id="ns-venue" value={newScreen.venueId} onChange={(e) => pickVenue(e.target.value)}>
-                  {(list.data ?? []).map((v) => (
-                    <option key={v.venue.id} value={v.venue.id}>
-                      {v.venue.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="field">
-                <label htmlFor="ns-name">Name</label>
-                <input id="ns-name" maxLength={40} value={newScreen.name} onChange={(e) => setNewScreen({ ...newScreen, name: e.target.value })} />
-              </div>
-              <div className="field">
-                <label htmlFor="ns-number">Screen number</label>
-                <input id="ns-number" type="number" min={1} max={99} value={newScreen.screenNumber} onChange={(e) => setNewScreen({ ...newScreen, screenNumber: e.target.value })} />
-              </div>
+      <Sheet
+        open={!!newScreen}
+        narrow
+        title="New screen"
+        subtitle="A starter seat map with 8 rows is created so you can shape it in the editor."
+        onClose={() => setNewScreen(null)}
+        onSubmit={createScreen}
+        footer={
+          <>
+            <button type="submit" className="btn btn-primary" disabled={busy}>
+              {busy ? 'Creating…' : 'Create screen'}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => setNewScreen(null)}>
+              Cancel
+            </button>
+          </>
+        }
+      >
+        {newScreen && (
+          <div className="form-grid">
+            <div className="field span-2">
+              <label htmlFor="ns-venue">Cinema</label>
+              <select id="ns-venue" value={newScreen.venueId} onChange={(e) => pickVenue(e.target.value)}>
+                {(list.data ?? []).map((v) => (
+                  <option key={v.venue.id} value={v.venue.id}>
+                    {v.venue.name}
+                  </option>
+                ))}
+              </select>
             </div>
-            <p className="help mb-2">A starter draft with 8 rows is created so you can shape it in the editor.</p>
-            <ApiErrorNote error={formError} />
-            <div className="row gap-1">
-              <button type="submit" className="btn btn-primary" disabled={busy}>
-                {busy ? 'Creating…' : 'Create screen'}
-              </button>
-              <button type="button" className="btn btn-ghost" onClick={() => setNewScreen(null)}>
-                Cancel
-              </button>
+            <div className="field">
+              <label htmlFor="ns-name">Name</label>
+              <input id="ns-name" maxLength={40} value={newScreen.name} onChange={(e) => setNewScreen({ ...newScreen, name: e.target.value })} />
             </div>
-          </form>
-        </section>
-      )}
+            <div className="field">
+              <label htmlFor="ns-number">Screen number</label>
+              <input id="ns-number" className="input-short" type="number" min={1} max={99} value={newScreen.screenNumber} onChange={(e) => setNewScreen({ ...newScreen, screenNumber: e.target.value })} />
+            </div>
+          </div>
+        )}
+        <ApiErrorNote error={formError} />
+      </Sheet>
 
       {list.loading && !list.data && <Loading />}
       {shownVenues.map((v) => (
         <section className="venue-block" key={v.venue.id} aria-labelledby={`venue-${v.venue.id}`}>
           <h2 id={`venue-${v.venue.id}`} className="h3 section-title">
-            {v.venue.name} <span className="muted small">· {v.auditoriums.length} screen{v.auditoriums.length === 1 ? '' : 's'}</span>
+            {v.venue.name} <span className="muted small">{v.auditoriums.length} screen{v.auditoriums.length === 1 ? '' : 's'}</span>
           </h2>
           {v.auditoriums.length === 0 ? (
             <p className="muted">No screens yet.</p>
@@ -204,12 +208,27 @@ export default function LayoutsPage() {
             <ul className="tile-grid">
               {v.auditoriums.map((a) => {
                 const live = a.versions.find((ver) => ver.status === 'PUBLISHED');
+                // The card opens the draft being worked on, else the live map; older versions stay listed.
+                const latest = a.versions.find((ver) => ver.status === 'DRAFT') ?? live ?? a.versions[0];
+                const draft = a.versions.find((ver) => ver.status === 'DRAFT');
+                const older = a.versions.filter((ver) => ver !== latest);
+                const canOpen = latest ? true : can.canEditLayouts;
                 return (
-                  <li key={a.id} className="card tile">
+                  <li key={a.id} className={`card tile screen-tile${canOpen ? ' tile-click' : ''}`}>
+                    {canOpen && (
+                      <TileHit
+                        label={latest ? `Open ${a.name} seat map` : `Start a seat map for ${a.name}`}
+                        onClick={() => (latest ? open(latest.id) : startFirstDraft(a))}
+                        disabled={opening === (latest?.id ?? a.id)}
+                      />
+                    )}
                     <div className="tile-head">
                       <div>
                         <div className="tile-title">{a.name}</div>
-                        {a.name !== `Screen ${a.screenNumber}` && <div className="muted small">Screen {a.screenNumber}</div>}
+                        <div className="muted small">
+                          {a.name !== `Screen ${a.screenNumber}` ? `Screen ${a.screenNumber} · ` : ''}
+                          {live ? `Live since ${formatDate(live.publishedAt ?? live.createdAt)}` : 'Not live yet'}
+                        </div>
                       </div>
                       {live && (
                         <div className="venue-screens">
@@ -218,28 +237,32 @@ export default function LayoutsPage() {
                         </div>
                       )}
                     </div>
-                    {a.versions.length === 0 ? (
-                      <span className="muted small">No seat map yet</span>
-                    ) : (
-                      <ul className="version-list">
-                        {a.versions.map((ver) => (
-                          <li key={ver.id}>
-                            <button className="version-btn" onClick={() => open(ver.id)} disabled={opening === ver.id} aria-label={`Open ${a.name} version ${ver.version} (${ver.status.toLowerCase()})`}>
-                              <span className="strong">v{ver.version}</span>
-                              <StatusBadge status={ver.status} />
-                              <span className="muted small">{ver.publishedAt ? formatDateTime(ver.publishedAt) : `draft, ${formatDateTime(ver.createdAt)}`}</span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {a.versions.length === 0 && can.canEditLayouts && (
-                      <div className="tile-actions">
-                        <button className="btn btn-sm" onClick={() => startFirstDraft(a)} disabled={opening === a.id}>
-                          Start seat map
-                        </button>
-                      </div>
-                    )}
+                    <div className="screen-foot">
+                      {a.versions.length === 0 ? (
+                        <span className="muted small">{can.canEditLayouts ? 'No seat map yet. Click to start one.' : 'No seat map yet'}</span>
+                      ) : (
+                        <span className="row gap-1">
+                          {live && <StatusBadge status="PUBLISHED" />}
+                          {draft && <span className="badge badge-warning">Draft v{draft.version} in progress</span>}
+                        </span>
+                      )}
+                      {older.length > 0 && (
+                        <details className="screen-versions tile-above">
+                          <summary className="small muted">{older.length} other version{older.length === 1 ? '' : 's'}</summary>
+                          <ul className="version-list">
+                            {older.map((ver) => (
+                              <li key={ver.id}>
+                                <button className="version-btn" onClick={() => open(ver.id)} disabled={opening === ver.id} aria-label={`Open ${a.name} version ${ver.version} (${ver.status.toLowerCase()})`}>
+                                  <span className="strong">v{ver.version}</span>
+                                  <StatusBadge status={ver.status} />
+                                  <span className="muted small">{ver.publishedAt ? formatDateTime(ver.publishedAt) : `draft, ${formatDateTime(ver.createdAt)}`}</span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </details>
+                      )}
+                    </div>
                   </li>
                 );
               })}

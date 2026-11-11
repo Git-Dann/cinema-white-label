@@ -183,6 +183,8 @@ model Venue {
   facilities   String[]
   /// Location-level overrides of tenant feature flags, e.g. { "concessions": true, "seatDelivery": false }.
   features     Json     @default("{}")
+  /// Photo of the cinema shown on its card in the portal and app (MediaAsset of kind VENUE).
+  imageAssetId String?
   createdAt    DateTime @default(now())
 
   auditoriums Auditorium[]
@@ -288,6 +290,7 @@ enum AssetKind {
   TRAILER_THUMBNAIL
   LOGO
   PRODUCT
+  VENUE
 }
 
 /// Bytes of operator uploads. Kept in the database so uploads survive on

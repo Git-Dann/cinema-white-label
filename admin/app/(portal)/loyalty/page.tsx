@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import { Sheet, TileHit } from '@/components/Sheet';
 import { api, errorDetails, errorMessage, LoyaltyProgram, LoyaltyResponse, MembershipEntitlements, MembershipPlan, tenantPath } from '@/lib/api';
 import { useSession, useTenantData } from '@/lib/session';
 import { formatMoney, inputToMinor, minorToInput } from '@/lib/format';
@@ -140,7 +141,7 @@ function PointsSchemeCard({ tenant, canEdit }: { tenant: string; canEdit: boolea
         </p>
       )}
 
-      {loyalty.data && program && !canEdit && (
+      {loyalty.data && program && (
         <dl className="kv">
           <dt>Name</dt>
           <dd>{program.name}</dd>
@@ -152,62 +153,84 @@ function PointsSchemeCard({ tenant, canEdit }: { tenant: string; canEdit: boolea
           <dd>{schemeSummary(program.earnPointsPerPound, program.redeemPointsPerPound, program.minRedeemPoints, program.enabled)}</dd>
         </dl>
       )}
+      {loyalty.data && program && canEdit && (
+        <div className="row gap-1 mt-2">
+          <button
+            className="btn btn-sm"
+            onClick={() => {
+              setForm(toProgramForm(program));
+              setOk(null);
+              setFormError(null);
+            }}
+          >
+            Edit scheme
+          </button>
+        </div>
+      )}
 
-      {loyalty.data && canEdit && shown && (
-        <form onSubmit={save} noValidate>
-          <div className="form-grid cols-3">
-            <div className="field span-2">
-              <label htmlFor="ls-name">Scheme name</label>
-              <input id="ls-name" maxLength={40} value={shown.name} onChange={set('name')} placeholder="Rewards" aria-describedby="ls-name-help" />
-              <p id="ls-name-help" className="help">
-                Shown to customers in the app.
-              </p>
-            </div>
-            <div className="field">
-              <span className="label">Status</span>
-              <label className="switch">
-                <input type="checkbox" checked={shown.enabled} onChange={(e) => edit({ enabled: e.target.checked })} />
-                On
-              </label>
-            </div>
-            <div className="field">
-              <label htmlFor="ls-earn">Points earned per £1</label>
-              <input id="ls-earn" type="number" min={1} max={100} step={1} value={shown.earn} onChange={set('earn')} aria-describedby="ls-earn-help" />
-              <p id="ls-earn-help" className="help">
-                On what customers pay, not counting booking fees.
-              </p>
-            </div>
-            <div className="field">
-              <label htmlFor="ls-redeem">Points needed for £1 off</label>
-              <input id="ls-redeem" type="number" min={1} max={10000} step={1} value={shown.redeem} onChange={set('redeem')} aria-describedby="ls-redeem-help" />
-              <p id="ls-redeem-help" className="help">
-                Points are used in steps of this size.
-              </p>
-            </div>
-            <div className="field">
-              <label htmlFor="ls-min">Minimum points per use</label>
-              <input id="ls-min" type="number" min={0} max={100000} step={1} value={shown.min} onChange={set('min')} aria-describedby="ls-min-help" />
-              <p id="ls-min-help" className="help">
-                0 means no minimum beyond one step.
-              </p>
-            </div>
-            <p className="note span-all" aria-live="polite">
-              {previewText}
-            </p>
-          </div>
-          <ApiErrorNote error={formError} />
-          <div className="row gap-1">
-            <button type="submit" className="btn btn-primary" disabled={busy || (!!program && !form)}>
+      <Sheet
+        open={!!form && canEdit}
+        title={program ? `Edit “${program.name}”` : 'Set up a points scheme'}
+        subtitle={program ? 'Changes apply to purchases from now on.' : 'Customers earn points on what they pay, then use them for money off.'}
+        onClose={cancel}
+        onSubmit={save}
+        footer={
+          <>
+            <button type="submit" className="btn btn-primary" disabled={busy}>
               {busy ? 'Saving…' : program ? 'Save scheme' : 'Set up scheme'}
             </button>
-            {form && (
-              <button type="button" className="btn btn-ghost" onClick={cancel}>
-                {program ? 'Undo changes' : 'Cancel'}
-              </button>
-            )}
-          </div>
-        </form>
-      )}
+            <button type="button" className="btn btn-ghost" onClick={cancel}>
+              Cancel
+            </button>
+          </>
+        }
+      >
+        {shown && (
+          <>
+            <div className="form-grid">
+              <div className="field">
+                <label htmlFor="ls-name">Scheme name</label>
+                <input id="ls-name" maxLength={40} value={shown.name} onChange={set('name')} placeholder="Rewards" aria-describedby="ls-name-help" />
+                <p id="ls-name-help" className="help">
+                  Shown to customers in the app.
+                </p>
+              </div>
+              <div className="field">
+                <span className="label">Status</span>
+                <label className="switch">
+                  <input type="checkbox" checked={shown.enabled} onChange={(e) => edit({ enabled: e.target.checked })} />
+                  On
+                </label>
+              </div>
+              <div className="field">
+                <label htmlFor="ls-earn">Points earned per £1</label>
+                <input id="ls-earn" type="number" min={1} max={100} step={1} value={shown.earn} onChange={set('earn')} aria-describedby="ls-earn-help" />
+                <p id="ls-earn-help" className="help">
+                  On what customers pay, not counting booking fees.
+                </p>
+              </div>
+              <div className="field">
+                <label htmlFor="ls-redeem">Points needed for £1 off</label>
+                <input id="ls-redeem" type="number" min={1} max={10000} step={1} value={shown.redeem} onChange={set('redeem')} aria-describedby="ls-redeem-help" />
+                <p id="ls-redeem-help" className="help">
+                  Points are used in steps of this size.
+                </p>
+              </div>
+              <div className="field">
+                <label htmlFor="ls-min">Minimum points per use</label>
+                <input id="ls-min" type="number" min={0} max={100000} step={1} value={shown.min} onChange={set('min')} aria-describedby="ls-min-help" />
+                <p id="ls-min-help" className="help">
+                  0 means no minimum beyond one step.
+                </p>
+              </div>
+              <p className="note span-2" aria-live="polite">
+                {previewText}
+              </p>
+            </div>
+            <ApiErrorNote error={formError} />
+          </>
+        )}
+      </Sheet>
     </section>
   );
 }
@@ -308,17 +331,6 @@ function MembershipPlansCard({ tenant, canEdit }: { tenant: string; canEdit: boo
     }
   }
 
-  async function toggle(p: MembershipPlan) {
-    setMsg({});
-    try {
-      await api(tenantPath(tenant, `/membership-plans/${p.id}`), { method: 'PUT', body: { active: !p.active } });
-      setMsg({ ok: p.active ? `“${p.name}” turned off. Existing members keep their benefits until their period ends.` : `“${p.name}” turned on.` });
-      plans.reload();
-    } catch (err) {
-      setMsg({ error: errorMessage(err) });
-    }
-  }
-
   async function remove(p: MembershipPlan) {
     if (!window.confirm(`Delete “${p.name}”? This cannot be undone. A plan that anyone has bought cannot be deleted; turn it off instead.`)) return;
     setMsg({});
@@ -338,7 +350,7 @@ function MembershipPlansCard({ tenant, canEdit }: { tenant: string; canEdit: boo
         <h2 id="mp-title" className="h3">
           Membership plans
         </h2>
-        {canEdit && editing !== 'new' && (
+        {canEdit && (
           <button className="btn btn-sm" onClick={() => open('new')}>
             Create plan
           </button>
@@ -347,102 +359,110 @@ function MembershipPlansCard({ tenant, canEdit }: { tenant: string; canEdit: boo
       <ErrorNote message={msg.error ?? plans.error} />
       <SuccessNote message={msg.ok} />
 
-      {editing && canEdit && (
-        <form onSubmit={submit} noValidate className="mb-3" aria-labelledby="mp-form-title">
-          <h3 id="mp-form-title" className="h3">
-            {editing === 'new' ? 'New membership plan' : `Edit “${editing.name}”`}
-          </h3>
-          {editing !== 'new' && <p className="muted small mb-2">Changes to price and benefits apply to new purchases and renewals, and to existing members' benefits from now on.</p>}
-          <div className="form-grid cols-3">
-            <div className="field">
-              <label htmlFor="mp-name">Name</label>
-              <input id="mp-name" maxLength={40} value={form.name} onChange={set('name')} placeholder="Plus" />
-            </div>
-            <div className="field">
-              <label htmlFor="mp-price">Price</label>
-              <div className="money-input">
-                <span aria-hidden="true">£</span>
-                <input id="mp-price" inputMode="decimal" value={form.price} onChange={set('price')} placeholder="6.99" aria-describedby="mp-price-help" />
-              </div>
-              <p id="mp-price-help" className="help">
-                At least £1.00.
-              </p>
-            </div>
-            <div className="field">
-              <label htmlFor="mp-interval">Customers pay every</label>
-              <select id="mp-interval" value={form.interval} onChange={set('interval')}>
-                <option value="month">Month</option>
-                <option value="year">Year</option>
-              </select>
-            </div>
-            <div className="field span-all">
-              <label htmlFor="mp-desc">Description</label>
-              <textarea id="mp-desc" maxLength={200} rows={2} value={form.description} onChange={set('description')} aria-describedby="mp-desc-help" />
-              <p id="mp-desc-help" className="help">
-                {form.description.length}/200 characters. Shown to customers when they choose a plan.
-              </p>
-            </div>
-            <div className="field">
-              <label htmlFor="mp-ticket">Ticket discount (%)</label>
-              <input id="mp-ticket" type="number" min={0} max={100} step={1} value={form.ticketDiscount} onChange={set('ticketDiscount')} />
-            </div>
-            <div className="field">
-              <label htmlFor="mp-food">Food and drink discount (%)</label>
-              <input id="mp-food" type="number" min={0} max={100} step={1} value={form.foodDiscount} onChange={set('foodDiscount')} />
-            </div>
-            <div className="field">
-              <label htmlFor="mp-mult">Points multiplier</label>
-              <select id="mp-mult" value={form.multiplier} onChange={set('multiplier')} aria-describedby="mp-mult-help">
-                {MULTIPLIERS.map((m) => (
-                  <option key={m} value={String(m)}>
-                    {m === 1 ? '1× (normal points)' : `${m}×`}
-                  </option>
-                ))}
-              </select>
-              <p id="mp-mult-help" className="help">
-                Members earn this many times the usual points.
-              </p>
-            </div>
-            <div className="field">
-              <span className="label">Booking fee</span>
-              <label className="switch">
-                <input type="checkbox" checked={form.bookingFeeWaived} onChange={(e) => setForm({ ...form, bookingFeeWaived: e.target.checked })} />
-                Members pay no booking fee
-              </label>
-            </div>
-            <div className="field">
-              <label htmlFor="mp-order">Order</label>
-              <input id="mp-order" type="number" min={0} max={999} step={1} value={form.sortOrder} onChange={set('sortOrder')} aria-describedby="mp-order-help" />
-              <p id="mp-order-help" className="help">
-                Lower numbers show first.
-              </p>
-            </div>
-            <div className="field">
-              <span className="label">Status</span>
-              <label className="switch">
-                <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
-                On sale
-              </label>
-            </div>
-          </div>
-          <ApiErrorNote error={formError} />
-          <div className="row gap-1">
+      <Sheet
+        open={!!editing && canEdit}
+        title={editing === 'new' ? 'New membership plan' : editing ? `Edit “${editing.name}”` : 'Membership plan'}
+        subtitle={editing && editing !== 'new' ? "Price and benefit changes apply to new purchases and renewals, and to existing members' benefits from now on." : undefined}
+        onClose={() => setEditing(null)}
+        onSubmit={submit}
+        footer={
+          <>
             <button type="submit" className="btn btn-primary" disabled={busy}>
               {busy ? 'Saving…' : editing === 'new' ? 'Create plan' : 'Save changes'}
             </button>
             <button type="button" className="btn btn-ghost" onClick={() => setEditing(null)}>
               Cancel
             </button>
+            {editing && editing !== 'new' && (
+              <button type="button" className="btn btn-danger sheet-foot-end" onClick={() => remove(editing)} disabled={busy}>
+                Delete
+              </button>
+            )}
+          </>
+        }
+      >
+        <div className="form-grid">
+          <div className="field">
+            <label htmlFor="mp-name">Name</label>
+            <input id="mp-name" maxLength={40} value={form.name} onChange={set('name')} placeholder="Plus" />
           </div>
-        </form>
-      )}
+          <div className="field">
+            <label htmlFor="mp-price">Price</label>
+            <div className="money-input">
+              <span aria-hidden="true">£</span>
+              <input id="mp-price" inputMode="decimal" value={form.price} onChange={set('price')} placeholder="6.99" aria-describedby="mp-price-help" />
+            </div>
+            <p id="mp-price-help" className="help">
+              At least £1.00.
+            </p>
+          </div>
+          <div className="field">
+            <label htmlFor="mp-interval">Customers pay every</label>
+            <select id="mp-interval" value={form.interval} onChange={set('interval')}>
+              <option value="month">Month</option>
+              <option value="year">Year</option>
+            </select>
+          </div>
+          <div className="field span-2">
+            <label htmlFor="mp-desc">Description</label>
+            <textarea id="mp-desc" maxLength={200} rows={2} value={form.description} onChange={set('description')} aria-describedby="mp-desc-help" />
+            <p id="mp-desc-help" className="help">
+              {form.description.length}/200 characters. Shown to customers when they choose a plan.
+            </p>
+          </div>
+          <div className="field">
+            <label htmlFor="mp-ticket">Ticket discount (%)</label>
+            <input id="mp-ticket" type="number" min={0} max={100} step={1} value={form.ticketDiscount} onChange={set('ticketDiscount')} />
+          </div>
+          <div className="field">
+            <label htmlFor="mp-food">Food and drink discount (%)</label>
+            <input id="mp-food" type="number" min={0} max={100} step={1} value={form.foodDiscount} onChange={set('foodDiscount')} />
+          </div>
+          <div className="field">
+            <label htmlFor="mp-mult">Points multiplier</label>
+            <select id="mp-mult" value={form.multiplier} onChange={set('multiplier')} aria-describedby="mp-mult-help">
+              {MULTIPLIERS.map((m) => (
+                <option key={m} value={String(m)}>
+                  {m === 1 ? '1× (normal points)' : `${m}×`}
+                </option>
+              ))}
+            </select>
+            <p id="mp-mult-help" className="help">
+              Members earn this many times the usual points.
+            </p>
+          </div>
+          <div className="field">
+            <span className="label">Booking fee</span>
+            <label className="switch">
+              <input type="checkbox" checked={form.bookingFeeWaived} onChange={(e) => setForm({ ...form, bookingFeeWaived: e.target.checked })} />
+              Members pay no booking fee
+            </label>
+          </div>
+          <div className="field">
+            <label htmlFor="mp-order">Order</label>
+            <input id="mp-order" type="number" min={0} max={999} step={1} value={form.sortOrder} onChange={set('sortOrder')} aria-describedby="mp-order-help" />
+            <p id="mp-order-help" className="help">
+              Lower numbers show first.
+            </p>
+          </div>
+          <div className="field">
+            <span className="label">Status</span>
+            <label className="switch">
+              <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
+              On sale
+            </label>
+          </div>
+        </div>
+        <ApiErrorNote error={formError} />
+      </Sheet>
 
       {plans.loading && !plans.data && <Loading />}
       {plans.data && plans.data.length === 0 && <p className="muted">No membership plans yet. Memberships are not offered in the app until there is a plan that is on.</p>}
       {plans.data && plans.data.length > 0 && (
         <ul className="tile-grid">
           {plans.data.map((p) => (
-            <li key={p.id} className={`card tile plan-tile${p.active ? '' : ' is-off'}`}>
+            <li key={p.id} className={`card tile plan-tile${p.active ? '' : ' is-off'}${canEdit ? ' tile-click' : ''}`}>
+              {canEdit && <TileHit label={`Edit ${p.name}`} onClick={() => open(p)} />}
               <div className="tile-head">
                 <div>
                   <div className="tile-title">{p.name}</div>
@@ -458,19 +478,6 @@ function MembershipPlansCard({ tenant, canEdit }: { tenant: string; canEdit: boo
               <div className="small">
                 <strong className="num">{count(p.activeMembers)}</strong> <span className="muted">active members</span>
               </div>
-              {canEdit && (
-                <div className="tile-actions">
-                  <button className="btn btn-sm" onClick={() => open(p)} aria-label={`Edit ${p.name}`}>
-                    Edit
-                  </button>
-                  <button className="btn btn-sm" onClick={() => toggle(p)} aria-label={`Turn ${p.active ? 'off' : 'on'} ${p.name}`}>
-                    {p.active ? 'Turn off' : 'Turn on'}
-                  </button>
-                  <button className="btn btn-sm btn-danger" onClick={() => remove(p)} aria-label={`Delete ${p.name}`}>
-                    Delete
-                  </button>
-                </div>
-              )}
             </li>
           ))}
         </ul>

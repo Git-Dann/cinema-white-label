@@ -1,6 +1,7 @@
 import { Controller, Delete, Get, HttpCode, Module, Param, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { Tenant, Venue } from '@prisma/client';
+import { MediaAsset, Tenant, Venue } from '@prisma/client';
+import { imageRef } from '../catalogue/film-dto';
 import { Errors } from '../common/errors';
 import { venueFeatures } from '../commerce/commerce.service';
 import { PrismaService } from '../common/prisma.service';
@@ -14,7 +15,7 @@ function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): num
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-export function venueDto(v: Venue & { auditoriums?: { id: string }[] }, extra: { isFavourite?: boolean; distanceKm?: number | null } = {}) {
+export function venueDto(v: Venue & { auditoriums?: { id: string }[] }, extra: { isFavourite?: boolean; distanceKm?: number | null; image?: MediaAsset | null } = {}) {
   return {
     id: v.id,
     slug: v.slug,
@@ -28,6 +29,7 @@ export function venueDto(v: Venue & { auditoriums?: { id: string }[] }, extra: {
     screenCount: v.auditoriums?.length ?? null,
     isFavourite: extra.isFavourite ?? false,
     distanceKm: extra.distanceKm ?? null,
+    image: imageRef(extra.image),
   };
 }
 
@@ -55,7 +57,9 @@ export class VenuesController {
     const la = lat ? Number(lat) : NaN;
     const lo = lng ? Number(lng) : NaN;
     const hasLoc = Number.isFinite(la) && Number.isFinite(lo);
-    const out = venues.map((v) => venueDto(v, { isFavourite: favs.has(v.id), distanceKm: hasLoc ? Math.round(distanceKm(la, lo, v.latitude, v.longitude) * 10) / 10 : null }));
+    const ids = venues.map((v) => v.imageAssetId).filter((x): x is string => !!x);
+    const photos = ids.length ? await this.prisma.mediaAsset.findMany({ where: { id: { in: ids }, tenantId: tenant.id } }) : [];
+    const out = venues.map((v) => venueDto(v, { image: photos.find((p) => p.id === v.imageAssetId), isFavourite: favs.has(v.id), distanceKm: hasLoc ? Math.round(distanceKm(la, lo, v.latitude, v.longitude) * 10) / 10 : null }));
     if (hasLoc) out.sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0));
     return out;
   }
@@ -66,7 +70,8 @@ export class VenuesController {
     const v = await this.prisma.venue.findFirst({ where: { tenantId: tenant.id, OR: [{ id: venueId }, { slug: venueId }] }, include: { auditoriums: { select: { id: true } } } });
     if (!v) throw Errors.notFound('Cinema');
     const fav = customerId ? !!(await this.prisma.favouriteVenue.findUnique({ where: { customerId_venueId: { customerId, venueId: v.id } } })) : false;
-    return venueDto(v, { isFavourite: fav });
+    const image = v.imageAssetId ? await this.prisma.mediaAsset.findFirst({ where: { id: v.imageAssetId, tenantId: tenant.id } }) : null;
+    return venueDto(v, { isFavourite: fav, image });
   }
 
   @Put('me/favourites/:venueId')

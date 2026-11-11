@@ -5,6 +5,8 @@ import { api, errorDetails, errorMessage, PricingResponse, SeatCategoriesRespons
 import { useSession, useTenantData } from '@/lib/session';
 import { formatMoney, inputToMinor, minorToInput } from '@/lib/format';
 import { ApiErrorNote, ErrorNote, Loading, PageHeader, ReadOnlyNote, SuccessNote } from '@/components/ui';
+import { Sheet, TileHit } from '@/components/Sheet';
+import { SeatGlyph } from '@/components/SeatGlyph';
 
 type ApiErr = { message: string; details: string[] } | null;
 const toErr = (e: unknown): ApiErr => ({ message: errorMessage(e), details: errorDetails(e) });
@@ -70,6 +72,11 @@ export default function SeatingPage() {
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<ApiErr>(null);
   const [msg, setMsg] = useState<{ ok?: string; error?: string }>({});
+  /** Lowest ticket price for a category, e.g. "£8.50", from the prices grid. */
+  const fromPrice = (id: string) => {
+    const all = (pricing.data?.ticketTypes ?? []).map((t) => t.prices[id]).filter((p): p is number => typeof p === 'number');
+    return all.length ? formatMoney(Math.min(...all), pricing.data!.currency) : null;
+  };
 
   function startNew() {
     setEditing('new');
@@ -168,13 +175,31 @@ export default function SeatingPage() {
       <ErrorNote message={msg.error ?? cats.error} />
       <SuccessNote message={msg.ok} />
 
-      {editing && (
-        <section className="card" aria-labelledby="cat-form-title">
-          <h2 id="cat-form-title" className="h3">
-            {editing === 'new' ? 'New seat category' : `Edit ${editing.label}`}
-          </h2>
-          <form onSubmit={submit} noValidate>
-            <div className="form-grid cols-3">
+      <Sheet
+        open={!!editing}
+        title={editing && editing !== 'new' ? editing.label : 'New seat category'}
+        onClose={() => setEditing(null)}
+        onSubmit={submit}
+        footer={
+          <>
+            <button type="submit" className="btn btn-primary" disabled={busy}>
+              {busy ? 'Saving…' : editing === 'new' ? 'Create category' : 'Save changes'}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => setEditing(null)}>
+              Cancel
+            </button>
+            {editing && editing !== 'new' && can.canDeleteSeatCategories && (
+              <button type="button" className="btn btn-danger sheet-foot-end" onClick={() => remove(editing)}>
+                Delete category
+              </button>
+            )}
+          </>
+        }
+      >
+        <div className="cat-preview" aria-hidden="true">
+          <SeatGlyph shape={form.shape} colours={form.customColours ? form.colours.dark : null} badge={form.icon} size={64} />
+        </div>
+            <div className="form-grid">
               <div className="field">
                 <label htmlFor="c-label">Label</label>
                 <input
@@ -261,18 +286,8 @@ export default function SeatingPage() {
                 </div>
               </fieldset>
             )}
-            <ApiErrorNote error={formError} />
-            <div className="row gap-1">
-              <button type="submit" className="btn btn-primary" disabled={busy}>
-                {busy ? 'Saving…' : editing === 'new' ? 'Create category' : 'Save changes'}
-              </button>
-              <button type="button" className="btn btn-ghost" onClick={() => setEditing(null)}>
-                Cancel
-              </button>
-            </div>
-          </form>
-        </section>
-      )}
+        <ApiErrorNote error={formError} />
+      </Sheet>
 
       <section className="venue-block" aria-labelledby="cat-list-title">
         <h2 id="cat-list-title" className="h3 section-title">
@@ -283,30 +298,20 @@ export default function SeatingPage() {
         {cats.data && cats.data.categories.length > 0 && (
           <ul className="tile-grid">
             {cats.data.categories.map((c) => (
-              <li key={c.id} className="card tile cat-tile">
-                <div className="tile-head">
-                  <div>
-                    <div className="tile-title">{c.label}</div>
-                    <div className="muted small"><code>{c.id}</code> · {c.shape}{c.icon ? ` · ${c.icon}` : ''}</div>
-                  </div>
-                  <Swatches colours={c.colours} />
+              <li key={c.id} className={`card tile cat-tile${can.canEditSeatCategories ? ' tile-click' : ''}`}>
+                {can.canEditSeatCategories && <TileHit label={`Edit ${c.label}`} onClick={() => startEdit(c)} />}
+                <div className="cat-seat">
+                  <SeatGlyph shape={c.shape} colours={c.colours?.dark ?? null} badge={c.icon} />
                 </div>
-                {c.description && <div className="small">{c.description}</div>}
-                <div className="muted small">Order in the app: {c.sortOrder}</div>
-                {(can.canEditSeatCategories || can.canDeleteSeatCategories) && (
-                  <div className="tile-actions">
-                    {can.canEditSeatCategories && (
-                      <button className="btn btn-sm" onClick={() => startEdit(c)} aria-label={`Edit ${c.label}`}>
-                        Edit
-                      </button>
-                    )}
-                    {can.canDeleteSeatCategories && (
-                      <button className="btn btn-sm btn-danger" onClick={() => remove(c)} aria-label={`Delete ${c.label}`}>
-                        Delete
-                      </button>
-                    )}
-                  </div>
-                )}
+                <div className="tile-head">
+                  <div className="tile-title">{c.label}</div>
+                  {fromPrice(c.id) && <span className="cat-price">from <strong className="num">{fromPrice(c.id)}</strong></span>}
+                </div>
+                {c.description && <div className="small muted">{c.description}</div>}
+                <div className="cat-foot small">
+                  <span className="muted">{c.colours ? 'Custom colours' : 'Theme colours'}</span>
+                  {c.colours && <Swatches colours={c.colours} />}
+                </div>
               </li>
             ))}
           </ul>

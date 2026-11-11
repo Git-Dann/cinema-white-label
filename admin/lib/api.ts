@@ -252,6 +252,8 @@ export interface Venue {
   phone: string | null;
   facilities: string[];
   screenCount: number | null;
+  /** The cinema's photo, if it has one. */
+  image?: ImageRef | null;
 }
 
 export interface ImageRef {
