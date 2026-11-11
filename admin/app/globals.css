@@ -4195,3 +4195,38 @@ dialog.sheet.sheet-narrow {
 .input-short {
   max-width: 120px;
 }
+
+/* ---------- Connections: panels ---------- */
+.conn-secret {
+  display: grid;
+  gap: 8px;
+  padding: var(--s2);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.conn-checks {
+  display: grid;
+  gap: 10px;
+  margin: 8px 0 var(--s2);
+}
+.conn-detail {
+  margin-bottom: var(--s2);
+}
+.conn-scope-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.conn-log-sheet {
+  margin-top: var(--s2);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--border);
+}
+.conn-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+}
