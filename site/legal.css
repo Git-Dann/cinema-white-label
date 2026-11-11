@@ -1,0 +1,46 @@
+/* Terms, privacy and attributions: one readable column beside a small legal menu, on the site's ground */
+.legal-page main.legal { padding: calc(var(--nav, 72px) + var(--s-8)) 0 var(--s-9, 96px); }
+.legal__wrap { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: var(--s-8); align-items: start; }
+.legal__nav { position: sticky; top: calc(var(--nav, 72px) + var(--s-6)); display: grid; gap: 4px; }
+.legal__nav a { padding: 8px 12px; border-radius: 10px; color: var(--muted); text-decoration: none; }
+.legal__nav a:hover { color: var(--ink); background: rgb(255 255 255 / .05); }
+.legal__nav a[aria-current="page"] { color: var(--ink); background: rgb(147 241 247 / .1); box-shadow: inset 0 0 0 1px rgb(147 241 247 / .25); }
+.legal__body { max-width: 70ch; }
+.legal__eyebrow { color: var(--accent); font-size: var(--t-small); margin-bottom: var(--s-3); }
+.legal__body h1 { font: var(--display-weight) clamp(40px, 5vw, 64px)/1.05 var(--font-display); letter-spacing: var(--display-tracking); margin-bottom: var(--s-5); }
+.legal__lede { font-size: var(--t-lead); line-height: 1.5; color: rgb(255 255 255 / .86); margin-bottom: var(--s-6); }
+.legal__body h2 { font: 500 var(--t-h3, 24px)/1.25 var(--font-text); margin: var(--s-7) 0 var(--s-3); }
+.legal__body p, .legal__body li { color: rgb(255 255 255 / .82); line-height: 1.65; }
+.legal__body p + p { margin-top: var(--s-3); }
+.legal__body ul { margin: var(--s-3) 0 0; padding-left: 1.2em; display: grid; gap: var(--s-2); list-style: disc; }
+.legal__body a { color: var(--accent); text-underline-offset: 3px; }
+.legal__small { margin-top: var(--s-7); font-size: var(--t-small); color: var(--muted) !important; }
+.legal-back { display: inline-flex; align-items: center; gap: 8px; margin-right: var(--s-5); color: var(--muted); text-decoration: none; font-size: var(--t-small); }
+.legal-back:hover { color: var(--ink); }
+/* the privacy table: rows of three, a stack on a phone */
+.legal__table { margin-top: var(--s-4); border-top: 1px solid rgb(255 255 255 / .12); }
+.legal__row { display: grid; grid-template-columns: 1.1fr 1.4fr .8fr; gap: var(--s-4); padding: var(--s-4) 0; border-bottom: 1px solid rgb(255 255 255 / .12); color: rgb(255 255 255 / .82); line-height: 1.55; }
+.legal__row--head { color: var(--muted); font-size: var(--t-small); padding: var(--s-3) 0; }
+/* attributions: cards, TMDB first and wide */
+.credits { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-4); margin-top: var(--s-6); }
+.credit { padding: var(--s-6); border-radius: var(--r-lg); background: #0d0d0d; border: 1px solid rgb(255 255 255 / .1); }
+.credit h2 { margin-top: 0 !important; }
+.credit p { margin-top: var(--s-2); }
+.credit--feature { grid-column: 1 / -1; display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: var(--s-6); align-items: center;
+  background: radial-gradient(80% 140% at 0% 0%, #0f3a44 0%, #0b1e27 55%, #0d0d0d 100%); border-color: rgb(147 241 247 / .25); }
+.credit__mark { display: grid; place-items: center; aspect-ratio: 1; border-radius: 22px; font: 700 28px/1 var(--font-text); letter-spacing: .02em; }
+.credit__mark--tmdb { color: var(--ink); background: rgb(255 255 255 / .06); border: 1px solid rgb(255 255 255 / .14); }
+.credit__notice { padding: var(--s-3) var(--s-4); border-radius: 10px; background: rgb(255 255 255 / .05); font-size: var(--t-small); }
+.legal__footer { padding-top: var(--s-8); border-top: 1px solid rgb(255 255 255 / .08); }
+@media (max-width: 899px) {
+  .legal__wrap { grid-template-columns: minmax(0, 1fr); gap: var(--s-6); }
+  .legal__nav { position: static; display: flex; flex-wrap: wrap; }
+  .legal__row { grid-template-columns: minmax(0, 1fr); gap: var(--s-2); }
+  .legal__row--head { display: none; }
+  .credits { grid-template-columns: minmax(0, 1fr); }
+  .credit--feature { grid-template-columns: minmax(0, 1fr); }
+  .credit__mark { width: 96px; }
+  .legal-back { display: none; }
+}
+.legal-page .nav__actions { margin-left: auto; display: flex; align-items: center; }
+.legal__body h2, .credit h2 { color: var(--ink); }

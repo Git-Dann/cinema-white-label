@@ -326,7 +326,9 @@ main > section.section.section:is(.bg-band, .bg-dots):not(.section--hero) { disp
 .demo__card--offer { grid-template-columns: 1fr; }
 
 /* on the dark page the portal window gets a lit edge, so the product reads as the brightest thing */
-#portal .app.ui { border-color: rgb(255 255 255 / .14); box-shadow: 0 0 0 1px rgb(147 241 247 / .08), 0 40px 120px -40px rgb(147 241 247 / .25); }
+#portal .app.ui { border-color: rgb(255 255 255 / .24); box-shadow: 0 0 0 1px rgb(147 241 247 / .1), 0 40px 120px -40px rgb(147 241 247 / .25); }
+/* the dashboard is as tall as its content (it stretched to the screen's foot, an empty band under the list) */
+@media (min-width: 1024px) { #portal .app.ui.fill { flex: 0 0 auto; } main > section#portal { min-height: 0; } }
 
 /* native: each card shows a whole iPhone, centred in its panel, sized from the panel's height (or its width
    when that is tighter). Everything on the screen is measured in --nw (the phone's width), so the screen
@@ -438,14 +440,13 @@ main > section.section.section:is(.bg-band, .bg-dots):not(.section--hero) { disp
 }
 
 /* questions: eight answers fill one screen on most desktops; on a short desktop window they take two */
-@media (min-width: 1024px) and (max-height: 700px) { #questions { --h: 2; } }
 /* the eight answers in two columns under the heading, so they fit one screen; on a tall window the
    block sits in the middle of the screen */
-@media (min-width: 1024px) and (max-height: 1099px) {
+@media (min-width: 900px) {
   .faq--2 { display: grid; grid-template-columns: 1fr 1fr; column-gap: var(--gutter); }
   .faq--2 > .faq__item:nth-child(2) { padding-top: 0; }
 }
-@media (min-width: 1024px) { #questions > .wrap { height: 100%; display: grid; align-content: center; } }
+
 
 /* ---------- who: chains and independents ---------- */
 .who__card { padding: var(--s-6); gap: var(--s-3); }
@@ -480,17 +481,17 @@ main > section.section.section:is(.bg-band, .bg-dots):not(.section--hero) { disp
 /* Sections grow with their content instead of being exactly one or two screens: a fixed height let a
    section's content run into the next one on short or narrow windows (connect into questions, questions
    into the footer). Each still fills at least its screens, so the full-screen sections look as before. */
-main > :is(section, .section):not(.hero), footer.closing {
+main > :is(section, .section):not(.hero, [data-moment]), footer.closing {
   height: auto !important; display: flex; flex-direction: column;
   min-height: calc(var(--h, 1) * 100vh); min-height: calc(var(--h, 1) * 100svh);
 }
 /* the wrap takes the section's height, so a .fill frame still runs down to the screen's foot */
-main > :is(section, .section):not(.hero) > :is(.wrap, .container), footer.closing > .wrap { flex: 1 0 auto; height: auto; min-height: 0; }
+main > :is(section, .section):not(.hero, [data-moment]) > :is(.wrap, .container), footer.closing > .wrap { flex: 1 0 auto; height: auto; min-height: 0; }
 @media (max-width: 639px) {
-  main > :is(section, .section):not(.hero), footer.closing { min-height: calc(var(--hm, var(--h, 1)) * 100lvh); }
+  main > :is(section, .section):not(.hero, [data-moment]), footer.closing { min-height: calc(var(--hm, var(--h, 1)) * 100lvh); }
 }
 /* the short card sections are only as tall as their content, so no band of empty ground follows them */
-main > section:is(#who, #platform, #seats) { min-height: 0; }
+main > section:is(#who, #platform, #seats, #questions) { min-height: 0; }
 
 /* no pause buttons on the page's moving pictures, at the owner's request (reduced motion still stops them) */
 .loop-pause { display: none !important; }
@@ -576,3 +577,75 @@ main > section:is(#who, #platform, #seats) { min-height: 0; }
 /* connect: on a phone the diagram's frame had no height of its own and showed only the core; give it room
    for the stacked layout */
 @media (max-width: 639px) { main > #connect > .wrap > .connect__frame { flex: none; height: 560px; } }
+
+/* remote: the phone's panel is as tall as the phone it frames (it stretched to the section's height on a
+   tall window, a large empty teal box); the phone's foot is cropped and faded */
+@media (min-width: 1024px) {
+  .remote-grid { align-items: start; }
+  .remote-shot { height: 560px; min-height: 0; overflow: hidden; }
+  .remote-shot .device--remote { -webkit-mask: linear-gradient(#000 82%, transparent); mask: linear-gradient(#000 82%, transparent); }
+}
+
+/* hero spotlight: a soft, eased falloff instead of one linear fade to 72% (it read as a hard-edged
+   hole in the ground); the dot grid it reveals fades the same way */
+.hero-phones.mo-cs > .mo-cs__light {
+  background: radial-gradient(var(--mo-r) circle at var(--mo-x) var(--mo-y),
+    color-mix(in oklab, var(--surface) 70%, transparent) 0%,
+    color-mix(in oklab, var(--surface) 55%, transparent) 22%,
+    color-mix(in oklab, var(--surface) 32%, transparent) 42%,
+    color-mix(in oklab, var(--surface) 14%, transparent) 62%,
+    color-mix(in oklab, var(--surface) 4%, transparent) 80%,
+    transparent 100%);
+}
+.hero-phones.mo-cs > .mo-cs__light::after {
+  -webkit-mask-image: radial-gradient(calc(var(--mo-r) * 0.85) circle at var(--mo-x) var(--mo-y), #000 0%, rgb(0 0 0 / .7) 30%, rgb(0 0 0 / .35) 55%, rgb(0 0 0 / .1) 78%, transparent 100%);
+  mask-image: radial-gradient(calc(var(--mo-r) * 0.85) circle at var(--mo-x) var(--mo-y), #000 0%, rgb(0 0 0 / .7) 30%, rgb(0 0 0 / .35) 55%, rgb(0 0 0 / .1) 78%, transparent 100%);
+}
+
+/* hero lockup on scroll: as the hero leaves the screen the side phones fan out and tilt a little and the
+   centre phone rises, driven by the page's own scroll (no script). Only where scroll timelines exist,
+   from 1024px up, and never under reduced motion; elsewhere the phones stay as they are. */
+@supports (animation-timeline: scroll()) {
+  @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+    .hero-phone { animation: linear both; animation-timeline: scroll(root); animation-range: 0 85vh; }
+    .hero-phone--main { animation-name: lock-main; }
+    .hero-phones__row > .hero-phone--side:first-child { animation-name: lock-left; }
+    .hero-phones__row > .hero-phone--side:last-child { animation-name: lock-right; }
+  }
+}
+@keyframes lock-main { to { translate: 0 -56px; scale: 1.04; } }
+@keyframes lock-left { to { translate: -64px 10px; rotate: -5deg; } }
+@keyframes lock-right { to { translate: 64px 10px; rotate: 5deg; } }
+
+/* ---------- closing: a visual demo panel, then a footer that maps the platform ---------- */
+footer.closing { min-height: 0 !important; }
+.cta-panel {
+  position: relative; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); align-items: center; gap: var(--s-6);
+  overflow: hidden; border-radius: var(--r-lg); border: 1px solid rgb(147 241 247 / .22);
+  background: radial-gradient(90% 120% at 85% 10%, #1b6b6f 0%, #0f4c53 30%, #0a3238 55%, #050f13 100%);
+  box-shadow: 0 40px 120px -50px rgb(147 241 247 / .35);
+}
+.cta-panel__copy { display: grid; gap: var(--s-4); padding: var(--s-8) 0 var(--s-8) var(--s-8); align-content: center; }
+.cta-panel__tag { justify-self: start; }
+.cta-panel__copy h2 { max-width: 14ch; }
+.cta-panel__copy .t-lead { color: rgb(255 255 255 / .82); max-width: 40ch; }
+.cta-panel__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4) var(--s-6); margin-top: var(--s-2); }
+.cta-panel__points { display: flex !important; flex-wrap: wrap; gap: 8px 10px; margin-top: var(--s-3); list-style: none; padding: 0; }
+.cta-panel__points > li { width: auto; flex: 0 0 auto; }
+.cta-panel__points li { padding: 6px 12px 6px 28px; position: relative; border-radius: 99px; background: rgb(255 255 255 / .06); border: 1px solid rgb(255 255 255 / .1); font-size: var(--t-small); color: rgb(255 255 255 / .86); }
+.cta-panel__points li::before { content: ""; position: absolute; left: 11px; top: 50%; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%; background: var(--accent); }
+.cta-panel__visual { align-self: end; margin-top: var(--s-7); }
+.cta-panel__visual img { display: block; width: 100%; height: auto; -webkit-mask: linear-gradient(90deg, transparent, #000 14%), linear-gradient(transparent, #000 10%); -webkit-mask-composite: source-in; mask: linear-gradient(90deg, transparent, #000 14%) intersect, linear-gradient(transparent, #000 10%); }
+@media (max-width: 1023px) {
+  .cta-panel { grid-template-columns: minmax(0, 1fr); }
+  .cta-panel__copy { padding: var(--s-7) var(--s-6) 0; }
+  .cta-panel__visual { margin-top: 0; }
+  .cta-panel__visual img { -webkit-mask: linear-gradient(transparent, #000 12%); mask: linear-gradient(transparent, #000 12%); }
+}
+.closing__cta .close__word { margin-top: var(--s-8); }
+.footer__soon { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 99px; font-size: 11px; line-height: 16px; vertical-align: 1px; color: var(--accent); border: 1px solid rgb(147 241 247 / .35); }
+.footer .footer__col ul { display: grid; gap: var(--s-2); }
+.footer__legal a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+/* the hero's deep ground fades into the page at its foot instead of ending on a hard line */
+.hero.bg-deep { position: relative; }
+.hero.bg-deep::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 180px; z-index: 0; pointer-events: none; background: linear-gradient(transparent, var(--bg, #000)); }
