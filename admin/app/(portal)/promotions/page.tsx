@@ -8,8 +8,6 @@ import { ApiErrorNote, ErrorNote, Loading, PageHeader, ReadOnlyNote, SuccessNote
 import { ScopeNote, useCinemaScope } from '@/lib/cinema-scope';
 import { Sheet, TileHit } from '@/components/Sheet';
 import { OfferBanner } from '@/components/OfferBanner';
-import { SafeImage } from '@/components/SafeImage';
-import { mediaUrl } from '@/lib/api';
 import { MAX_UPLOAD_BYTES, readFileBase64 } from '@/lib/files';
 
 type ApiErr = { message: string; details: string[] } | null;

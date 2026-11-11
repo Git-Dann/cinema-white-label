@@ -4269,6 +4269,8 @@ dialog.sheet.sheet-narrow {
 }
 .plan-tile.tile-click:hover {
   background: color-mix(in srgb, var(--surface-2) 80%, var(--text) 6%);
+}
+
 /* ---------- Offers: banner as the app shows it (components/OfferBanner.tsx) ---------- */
 .offer-banner {
   display: grid;
