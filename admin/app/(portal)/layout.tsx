@@ -33,6 +33,7 @@ const NAV: { group: string | null; items: NavItem[] }[] = [
   ] },
   { group: 'Plan', items: [
     { href: '/insights', label: 'Insights', icon: 'chart', views: H },
+    { href: '/pulse', label: 'Pulse', icon: 'pulse', views: HV },
     { href: '/year-ahead', label: 'Year ahead', icon: 'spark', views: H },
     { href: '/next-weeks', label: 'Next 6 weeks', icon: 'spark', views: HV },
   ] },

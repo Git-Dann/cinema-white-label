@@ -4756,3 +4756,142 @@ dialog.sheet.sheet-narrow {
   font-size: 20px;
   color: var(--text-2);
 }
+.pulse-page-basis {
+  margin-bottom: var(--s2);
+}
+.pulse-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--s3);
+  margin: var(--s3) 0 var(--s4);
+}
+.pulse-steps .card {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+.pulse-steps .h3,
+.pulse-steps p {
+  margin: 0;
+}
+.pulse-step {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 14px;
+}
+.pulse-slots {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.pulse-slots li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pulse-learned {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: var(--s3);
+}
+.pulse-adjust {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.pulse-adjust li {
+  display: grid;
+  grid-template-columns: minmax(110px, 1.1fr) 1fr 52px;
+  grid-template-areas: 'label bar value' 'note note note';
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 2px;
+}
+.pulse-adjust-label {
+  grid-area: label;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pulse-adjust-bar {
+  grid-area: bar;
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, currentColor 7%, transparent);
+}
+.pulse-adjust-bar::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: var(--text-2);
+  opacity: 0.5;
+}
+.pulse-adjust-bar i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+}
+.pulse-adjust-bar i.up {
+  background: var(--success);
+}
+.pulse-adjust-bar i.down {
+  background: var(--warning);
+}
+.pulse-adjust-value {
+  grid-area: value;
+  text-align: right;
+  font-weight: 650;
+  font-size: 14px;
+}
+.pulse-adjust-note {
+  grid-area: note;
+}
+.pulse-curve {
+  margin: 0;
+}
+.pulse-curve svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.pulse-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.pulse-axis {
+  fill: var(--muted);
+  font-size: 11px;
+}
+.pulse-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 8px;
+  color: var(--text-2);
+}
+.pulse-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.pulse-legend i {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+}
