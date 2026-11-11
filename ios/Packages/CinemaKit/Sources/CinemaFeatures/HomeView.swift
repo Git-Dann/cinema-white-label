@@ -343,35 +343,45 @@ struct VoucherCodeSheet: View {
     @Environment(\.palette) private var palette
     @Environment(\.dismiss) private var dismiss
     @State private var copied = false
+    /// The content's height, so the sheet is exactly as tall as what it shows.
+    @State private var contentHeight: CGFloat = 220
 
     var body: some View {
+        // A system sheet left alone: Liquid Glass background, grabber, the system close button
+        // and a system prominent button. Only the button takes the brand tint.
         NavigationStack {
-        VStack(spacing: Spacing.m) {
-            Text(voucher.code)
-                .font(.system(.largeTitle, design: .monospaced).weight(.bold))
-                .foregroundStyle(palette.textPrimary)
-                .textSelection(.enabled)
-                .accessibilityLabel("Code \(voucher.code.map(String.init).joined(separator: " "))")
-            Text("Enter it on the review screen before you pay.")
-                .font(.subheadline)
-                .foregroundStyle(palette.textMuted)
-                .multilineTextAlignment(.center)
-            Button(copied ? "Copied" : "Copy code") {
-                UIPasteboard.general.string = voucher.code
-                copied = true
-                AccessibilityNotification.Announcement("Code copied").post()
+            VStack(spacing: Spacing.s) {
+                Text(voucher.code)
+                    .font(.system(.largeTitle, design: .monospaced).weight(.bold))
+                    .textSelection(.enabled)
+                    .minimumScaleFactor(0.6).lineLimit(1)
+                    .accessibilityLabel("Code \(voucher.code.map(String.init).joined(separator: " "))")
+                Text("Enter it on the review screen before you pay.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                Button {
+                    UIPasteboard.general.string = voucher.code
+                    copied = true
+                    AccessibilityNotification.Announcement("Code copied").post()
+                } label: {
+                    Label(copied ? "Copied" : "Copy code", systemImage: copied ? "checkmark" : "doc.on.doc")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glassProminent)
+                .controlSize(.large)
+                .padding(.top, Spacing.s)
+                .sensoryFeedback(.success, trigger: copied)
             }
-            .buttonStyle(.cinemaPrimary)
-            .sensoryFeedback(.success, trigger: copied)
+            .padding(.horizontal, Spacing.l)
+            .padding(.bottom, Spacing.m)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
+            .navigationTitle(voucher.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button(role: .close) { dismiss() }.tint(.primary) } }
         }
-        .padding(Spacing.xl)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .navigationTitle(voucher.title)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar { ToolbarItem(placement: .topBarTrailing) { Button(role: .close) { dismiss() } } }
-        }
-        .presentationDetents([.medium])
+        // Content plus the navigation bar; never a fixed half-screen with empty space.
+        .presentationDetents([.height(contentHeight + 72)])
         .presentationDragIndicator(.visible)
-        .presentationBackground(palette.backgroundElevated)
     }
 }

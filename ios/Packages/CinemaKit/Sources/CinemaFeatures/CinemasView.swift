@@ -246,7 +246,7 @@ struct VenuePickerSheet: View {
             }
             .navigationTitle("Choose a cinema")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button(role: .close) { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button(role: .close) { dismiss() }.tint(.primary) } }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
