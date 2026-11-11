@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { PulseModule } from './intelligence/pulse.controller';
 import { PromotionsModule } from './promotions/promotions.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AdminModule } from './admin/admin.module';
@@ -13,7 +14,7 @@ import { TenantsModule } from './tenants/tenants.module';
 import { VenuesModule } from './venues/venues.module';
 
 @Module({
-  imports: [ScheduleModule.forRoot(), CommonModule, TenantsModule, CatalogueModule, MediaModule, VenuesModule, BookingModule, AnalyticsModule, AdminModule, PromotionsModule, IntegrationsModule],
+  imports: [ScheduleModule.forRoot(), CommonModule, TenantsModule, CatalogueModule, MediaModule, VenuesModule, BookingModule, AnalyticsModule, AdminModule, PromotionsModule, IntegrationsModule, PulseModule],
   controllers: [HealthController],
 })
 export class AppModule {}

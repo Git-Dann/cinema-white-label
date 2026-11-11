@@ -2784,6 +2784,277 @@
           "Admin"
         ]
       }
+    },
+    "/v1/admin/t/{tenant}/pulse/forecasts": {
+      "get": {
+        "operationId": "PulseAdminController_forecasts",
+        "parameters": [
+          {
+            "name": "venueId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "ISO date or time; default now",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Default 14 days after from; at most 42",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Pulse"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/pulse/pricing": {
+      "get": {
+        "operationId": "PulseAdminController_pricing",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Pulse"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/pulse/screens": {
+      "get": {
+        "operationId": "PulseAdminController_screens",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Pulse"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/pulse/staffing": {
+      "get": {
+        "operationId": "PulseAdminController_staffing",
+        "parameters": [
+          {
+            "name": "venueId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "description": "YYYY-MM-DD in the cinema time zone",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Pulse"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/pulse/food": {
+      "get": {
+        "operationId": "PulseAdminController_food",
+        "parameters": [
+          {
+            "name": "venueId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "description": "YYYY-MM-DD in the cinema time zone",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Pulse"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/pulse/baskets": {
+      "get": {
+        "operationId": "PulseAdminController_baskets",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Pulse"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/pulse/loyalty": {
+      "get": {
+        "operationId": "PulseAdminController_loyalty",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Pulse"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/pulse/anomalies": {
+      "get": {
+        "operationId": "PulseAdminController_anomalies",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Pulse"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/pulse/model": {
+      "get": {
+        "operationId": "PulseAdminController_model",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Pulse"
+        ]
+      }
+    },
+    "/v1/t/{tenant}/me/recommendations": {
+      "get": {
+        "operationId": "PulseCustomerController_recommendations",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Pulse"
+        ]
+      }
+    },
+    "/v1/t/{tenant}/films/{filmId}/also-booked": {
+      "get": {
+        "operationId": "PulseCustomerController_alsoBooked",
+        "parameters": [
+          {
+            "name": "filmId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Pulse"
+        ]
+      }
     }
   },
   "info": {

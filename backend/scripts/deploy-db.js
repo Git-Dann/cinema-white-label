@@ -86,6 +86,12 @@ function main(env = process.env) {
       console.log(`deploy-db: gave ${await ensureFixtureVenueImages(prisma)} demo cinemas their photo.`);
       const { ensureFixturePromotionImages } = require('../dist/fixtures/promotion-images');
       console.log(`deploy-db: gave ${await ensureFixturePromotionImages(prisma)} demo offers a banner photo.`);
+      // Pulse: roll up finished screenings, and labelled demo history for the demo operators.
+      const { rollupOutcomes, ensureDemoHistory } = require('../dist/intelligence/outcomes');
+      for (const t of await prisma.tenant.findMany({ select: { id: true, slug: true } })) {
+        console.log(`deploy-db: ${t.slug}: ${await rollupOutcomes(prisma, t.id, new Date())} show outcomes rolled up.`);
+      }
+      console.log(`deploy-db: ${await ensureDemoHistory(prisma)} demo show outcomes added.`);
       await prisma.$disconnect();
       return;
     }

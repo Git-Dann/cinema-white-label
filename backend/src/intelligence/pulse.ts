@@ -349,3 +349,10 @@ export function forecast(show: ForecastInput, ctx: FilmContext, model: PulseMode
     drivers: drivers.sort((a, b) => Math.abs(Math.log(b.effect || 1)) - Math.abs(Math.log(a.effect || 1))),
   };
 }
+
+/** Model expectation for a show from the prior and learned multipliers only (no pace). */
+export function expectedFromModel(show: ShowFeatures, ctx: FilmContext | undefined, model: PulseModel): number {
+  let mu = ctx ? prior(show, ctx).mu : show.capacity * SLOT_BASE[show.slot];
+  for (const d of DIMENSIONS) mu *= model.multipliers[d][keyOf(d, show)]?.m ?? 1;
+  return Math.min(show.capacity, mu);
+}

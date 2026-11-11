@@ -1,4 +1,5 @@
 import { Controller, Get, Headers, Module, Param, Query, UseGuards } from '@nestjs/common';
+import { refreshBankHolidays, rollupOutcomes } from '../intelligence/outcomes';
 import { ApiExcludeController, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Tenant } from '@prisma/client';
 import { Clock } from '../common/clock';
@@ -47,8 +48,10 @@ export class CronController {
     const results: Record<string, unknown> = {};
     for (const t of await this.prisma.tenant.findMany({ select: { id: true, slug: true } })) {
       const films = tmdbDemoEnabled() ? await importTmdbDemoCatalogue(this.prisma, t.id, httpTmdbClient(), now) : null;
-      results[t.slug] = { films, screenings: await ensureScreeningHorizon(this.prisma, t.id, now) };
+      results[t.slug] = { films, screenings: await ensureScreeningHorizon(this.prisma, t.id, now), outcomes: await rollupOutcomes(this.prisma, t.id, now) };
     }
+    // Bank holidays for Pulse (gov.uk, Open Government Licence); a failed fetch keeps the cache.
+    results.bankHolidays = await refreshBankHolidays(this.prisma).catch(() => 'unchanged');
     return results;
   }
 }

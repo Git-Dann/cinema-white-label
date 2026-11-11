@@ -16,7 +16,7 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 60,
-      "includeFiles": "{dist/**,prisma/schema.prisma,../shared/fixtures/artwork/**}"
+      "includeFiles": "{dist/**,prisma/schema.prisma,../shared/fixtures/artwork/**,../shared/fixtures/calendar/**}"
     }
   },
   "rewrites": [
