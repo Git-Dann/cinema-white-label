@@ -740,3 +740,26 @@ html:not([data-motion="off"]) .btn:hover, html:not([data-motion="off"]) .btn--xl
   .cmp__d { display: none; }
   .cmp__m { display: inline; }
 }
+
+/* desktop Product dropdown: a floating card under the floating bar, the same inset, glass and corner language,
+   with an invisible bridge across the gap so the pointer can travel from the word into the card */
+@media (min-width: 1024px) {
+  .nav > .nav__bar .nav__menu {
+    top: calc(100% + 8px); left: 0; right: 0; border-radius: 28px;
+    background: #0a0c0e; border: 1px solid rgb(255 255 255 / .1);
+    box-shadow: 0 1px 0 rgb(255 255 255 / .04) inset, 0 28px 64px -24px rgb(0 0 0 / .7);
+    padding: 28px 0 32px;
+  }
+  .nav > .nav__bar .nav__menu::before { content: ""; position: absolute; left: 0; right: 0; top: -10px; height: 10px; }
+  .nav > .nav__bar .nav__menu > .wrap { width: auto; max-width: none; padding-inline: 28px; }
+  .nav > .nav__bar .menu-card { padding: 8px; margin: -8px; border-radius: 20px; transition: background-color .2s ease; }
+  .nav > .nav__bar .menu-card:hover, .nav > .nav__bar .menu-card:focus-visible { background: rgb(255 255 255 / .05); }
+  .nav > .nav__bar .menu-card { align-content: start; }
+  .nav > .nav__bar .menu-card .panel { border-radius: 14px; }
+}
+/* narrow desktops: the release card's lines stay on one line each */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .menu-rel { width: 90%; padding: 12px; gap: 8px; }
+  .menu-rel p { font-size: 11px; white-space: nowrap; gap: 8px; }
+  .menu-rel__sw i { width: 18px; height: 18px; }
+}
