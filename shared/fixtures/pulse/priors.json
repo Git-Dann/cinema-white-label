@@ -1,0 +1,182 @@
+{
+  "schema": "seatfold-pulse-priors/1",
+  "generated": "2026-11-11",
+  "derivation": "docs/pulse-data-sources.md, section 'Derived priors'",
+  "notice": "Derived figures only; no raw third-party data. Every value carries its source, licence and a usage flag. 'usage' values: 'open' = open licence permits commercial reuse with attribution; 'quote-with-attribution' = published statistic quoted with credit, no explicit open licence, written confirmation from the publisher requested before we show it to operators or ship it as a default; 'literature' = a number reported in a published paper, used as a starting prior and cited. Pulse must treat all of these as weak priors and shrink towards the operator's own sales as data arrives.",
+  "sources": {
+    "bfi-yb-2024-boxoffice": {
+      "title": "BFI Statistical Yearbook 2024, 'The UK box office in 2023' data tables (ODS)",
+      "url": "https://core-cms.bfi.org.uk/media/43652/download",
+      "underlyingSource": "Cinema Advertising Association (CAA), Comscore",
+      "attribution": "Source: BFI Statistical Yearbook 2024 (CAA, Comscore)",
+      "licence": "BFI copyright. No open licence stated on the yearbook page; BFI website terms say content is for personal and non-commercial use unless expressly authorised.",
+      "usage": "quote-with-attribution"
+    },
+    "bfi-yb-2024-topfilms": {
+      "title": "BFI Statistical Yearbook 2024, 'Top films in 2023' data tables 1-3 (ODS)",
+      "url": "https://core-cms.bfi.org.uk/media/43651/download",
+      "underlyingSource": "Comscore, BFI RSU analysis",
+      "attribution": "Source: BFI Statistical Yearbook 2024 (Comscore, BFI RSU analysis)",
+      "licence": "As bfi-yb-2024-boxoffice.",
+      "usage": "quote-with-attribution"
+    },
+    "bfi-yb-2024-exhibition": {
+      "title": "BFI Statistical Yearbook 2024, 'Exhibition' data table 1 (ODS)",
+      "url": "https://core-cms.bfi.org.uk/media/43653/download",
+      "underlyingSource": "BFI, Comscore, CAA, ONS, Barb",
+      "attribution": "Source: BFI Statistical Yearbook 2024 (BFI, Comscore, CAA, ONS, Barb)",
+      "licence": "As bfi-yb-2024-boxoffice.",
+      "usage": "quote-with-attribution"
+    },
+    "bfi-yb-2024-audiences": {
+      "title": "BFI Statistical Yearbook 2024, 'Audiences' figure 1 (ODS)",
+      "url": "https://core-cms.bfi.org.uk/media/43722/download",
+      "underlyingSource": "CAA Film Monitor",
+      "attribution": "Source: BFI Statistical Yearbook 2024 (CAA Film Monitor)",
+      "licence": "As bfi-yb-2024-boxoffice.",
+      "usage": "quote-with-attribution"
+    },
+    "moretti-2011": {
+      "title": "Moretti, E. (2011) Social Learning and Peer Effects in Consumption: Evidence from Movie Sales. Review of Economic Studies 78(1), 356-393. Working paper: NBER w13832 (2008).",
+      "url": "https://www.nber.org/papers/w13832",
+      "licence": "Figures quoted from the paper (US data, ACNielsen-EDI, 1982-2000, 4,992 films).",
+      "usage": "literature"
+    },
+    "gilchrist-sands-2016": {
+      "title": "Gilchrist, D. S. and Sands, E. G. (2016) Something to Talk About: Social Spillovers in Movie Consumption. Journal of Political Economy 124(5).",
+      "url": "https://doi.org/10.1086/688177",
+      "licence": "Figures quoted from the paper abstract and summaries; full text not read (publisher and author PDF blocked to our fetcher).",
+      "usage": "literature"
+    },
+    "mestyan-2013": {
+      "title": "Mestyan, M., Yasseri, T. and Kertesz, J. (2013) Early Prediction of Movie Box Office Success Based on Wikipedia Activity Big Data. PLOS ONE 8(8): e71226.",
+      "url": "https://doi.org/10.1371/journal.pone.0071226",
+      "licence": "CC BY 4.0 article.",
+      "usage": "literature"
+    }
+  },
+  "seasonality": {
+    "description": "UK cinema admissions by calendar month. Shares sum to 1 within each year. COVID-affected years 2020 and 2021 excluded. dailyRateIndex = (mean monthly share / days in month) / (1/365), so 1.0 means an average day; use as the month component of the slot prior, then let operator data override.",
+    "source": "bfi-yb-2024-boxoffice",
+    "table": "Table 2: Monthly UK cinema admissions (millions), 2019-2023",
+    "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    "monthlyShare": {
+      "2019": [0.0778, 0.0693, 0.0648, 0.0909, 0.0943, 0.0790, 0.1057, 0.0886, 0.0625, 0.0926, 0.0693, 0.1051],
+      "2022": [0.0698, 0.0945, 0.0716, 0.0920, 0.0963, 0.1014, 0.1133, 0.0792, 0.0554, 0.0784, 0.0690, 0.0792],
+      "2023": [0.0696, 0.0744, 0.0663, 0.0930, 0.0777, 0.0720, 0.1424, 0.1181, 0.0599, 0.0728, 0.0607, 0.0930],
+      "mean": [0.0724, 0.0794, 0.0676, 0.0920, 0.0894, 0.0841, 0.1205, 0.0953, 0.0592, 0.0813, 0.0663, 0.0925]
+    },
+    "dailyRateIndex": {
+      "mean2019_2022_2023": [0.853, 1.035, 0.795, 1.119, 1.053, 1.023, 1.418, 1.122, 0.721, 0.957, 0.807, 1.089],
+      "only2019": [0.917, 0.904, 0.763, 1.106, 1.111, 0.961, 1.244, 1.044, 0.760, 1.090, 0.843, 1.238]
+    },
+    "caveats": [
+      "Observed seasonality mixes demand with the release slate (Einav 2007): July 2023 is inflated by Barbie and Oppenheimer. Prefer the 2019 row or the mean, and never treat a single year as structural.",
+      "National figures; a venue's own history should replace this within one year of trading."
+    ]
+  },
+  "filmLegs": {
+    "description": "Ratio of final UK and Ireland gross to opening weekend gross (Fri-Sun plus previews). Higher means longer run. Use as a prior for the film's total-run shape before any sales exist; replace with the pace and decay fitted on live sales.",
+    "source": "bfi-yb-2024-topfilms",
+    "table": "Tables 1-3: top 20 films, top 20 UK qualifying, top 20 UK independent, 2023 (48 distinct films); gross as at 4 February 2024",
+    "overall": { "n": 48, "p25": 2.86, "median": 3.67, "p75": 5.06 },
+    "byOpeningSize": {
+      "openingAtLeast5m": { "n": 16, "p25": 2.73, "median": 3.33, "p75": 5.20 },
+      "opening1mTo5m": { "n": 13, "p25": 3.09, "median": 3.87, "p75": 4.36 },
+      "openingUnder1m": { "n": 19, "p25": 3.00, "median": 4.00, "p75": 5.29, "precisionWarning": "Openings under GBP 1m are rounded to GBP 0.1m in the source, so ratios are coarse." }
+    },
+    "byFilmGroup": {
+      "note": "Groups assigned by us (Seatfold) from title knowledge, not by BFI. Members are listed in the report.",
+      "familyAnimation": { "n": 7, "median": 5.22, "min": 3.35, "max": 6.56 },
+      "franchiseActionSuperhero": { "n": 14, "median": 2.95, "min": 2.07, "max": 3.91 },
+      "adultDramaComedy": { "n": 8, "median": 4.27, "min": 2.29, "max": 5.45 }
+    },
+    "caveats": [
+      "One year only (2023) and only films in the top-20 lists, so long-tail titles and event cinema are not represented.",
+      "Survivorship: films that made the top 20 tend to have held well."
+    ]
+  },
+  "weeklyDecay": {
+    "description": "Week-on-week decline in log weekly sales. A slope of -0.926 means weekly sales fall to exp(-0.926) = 0.40 of the previous week. Use to initialise the decay multiplier by surprise tercile, where surprise = actual opening vs Pulse's pre-release forecast.",
+    "source": "moretti-2011",
+    "market": "US, national weekly sales, 1982-2000, 4,992 films, first 8 weeks; dependent variable log(sales + 1)",
+    "logSlopePerWeek": {
+      "average": -0.926,
+      "negativeSurprise": -1.25,
+      "positiveSurprise": -0.63,
+      "byTercile": { "mostNegative": -1.32, "middle": -0.98, "mostPositive": -0.47 }
+    },
+    "impliedWeekOnWeekRetention": {
+      "average": 0.40,
+      "negativeSurprise": 0.29,
+      "positiveSurprise": 0.53,
+      "byTercile": { "mostNegative": 0.27, "middle": 0.38, "mostPositive": 0.63 }
+    },
+    "caveats": [
+      "US data from an era with longer theatrical windows; the log(sales + 1) form overstates decline for films that leave screens. Treat as an outer bound and expect UK wide releases to retain more (UK top films' week-2 drops are commonly 35-55% ex previews, from the BFI weekend report of 6-8 Nov 2026, read for verification only).",
+      "Weather-driven opening surprises do not change later decay (Moretti); Pulse should compute surprise after removing its own weather adjustment."
+    ]
+  },
+  "momentum": {
+    "description": "Extra viewers in later weekends per 100 extra opening-weekend viewers caused by an exogenous shock (weather). Use only to justify not over-correcting forecasts after a weather-hit opening.",
+    "source": "gilchrist-sands-2016",
+    "perHundredExtraOpening": { "weekend2": 50, "weekend3": 30 },
+    "verification": "Abstract-level; full tables not read."
+  },
+  "releaseWidth": {
+    "description": "Median UK and Ireland gross by number of sites at widest point of release (WPR), 2023. Use as a coarse film prior when TMDB popularity is missing (for example, independent and event titles).",
+    "source": "bfi-yb-2024-boxoffice",
+    "table": "Table 6 (updated 3 July 2026)",
+    "medianGrossGBPBySites": {
+      ">700": 27438507,
+      "600-699": 7098425,
+      "500-599": 3157768,
+      "400-499": 954094,
+      "300-399": 539521,
+      "200-299": 184791,
+      "100-199": 121258,
+      "50-99": 85572,
+      "10-49": 16531,
+      "<10": 2593
+    },
+    "releasesBySites": { ">700": 13, "600-699": 37, "500-599": 25, "400-499": 21, "300-399": 25, "200-299": 37, "100-199": 66, "50-99": 82, "10-49": 391, "<10": 203 }
+  },
+  "regionalCatchment": {
+    "description": "Admissions per head of population and average ticket price by ISBA TV region, 2023. Use as the catchment prior for a new venue before it has sales history (admissions per head x catchment population x the venue's expected share).",
+    "source": "bfi-yb-2024-exhibition",
+    "table": "Exhibition Table 1",
+    "byRegion": {
+      "London": { "admissionsPerHead": 2.19, "avgTicketGBP": 9.11, "screensPer100k": 7.56 },
+      "Northern Ireland": { "admissionsPerHead": 2.09, "avgTicketGBP": 7.11, "screensPer100k": 11.69 },
+      "Central Scotland": { "admissionsPerHead": 2.04, "avgTicketGBP": 7.68, "screensPer100k": 7.57 },
+      "East of England": { "admissionsPerHead": 1.81, "avgTicketGBP": 7.88, "screensPer100k": 6.55 },
+      "South and South East": { "admissionsPerHead": 1.80, "avgTicketGBP": 7.94, "screensPer100k": 6.65 },
+      "North East": { "admissionsPerHead": 1.73, "avgTicketGBP": 7.31, "screensPer100k": 6.17 },
+      "North West": { "admissionsPerHead": 1.72, "avgTicketGBP": 7.51, "screensPer100k": 6.84 },
+      "West": { "admissionsPerHead": 1.66, "avgTicketGBP": 7.65, "screensPer100k": 7.43 },
+      "South West": { "admissionsPerHead": 1.62, "avgTicketGBP": 6.72, "screensPer100k": 7.30 },
+      "Yorkshire": { "admissionsPerHead": 1.61, "avgTicketGBP": 7.58, "screensPer100k": 6.63 },
+      "Northern Scotland": { "admissionsPerHead": 1.60, "avgTicketGBP": 7.31, "screensPer100k": 6.97 },
+      "Wales": { "admissionsPerHead": 1.59, "avgTicketGBP": 6.75, "screensPer100k": 6.90 },
+      "Midlands": { "admissionsPerHead": 1.58, "avgTicketGBP": 7.64, "screensPer100k": 5.73 },
+      "Border": { "admissionsPerHead": 1.22, "avgTicketGBP": 6.79, "screensPer100k": 6.70 },
+      "UK": { "admissionsPerHead": 1.81, "avgTicketGBP": 7.93, "screensPer100k": 6.96 }
+    },
+    "caveats": ["Average ticket price is regional box office divided by admissions, so it blends discounts, children and premium formats."]
+  },
+  "audienceAge": {
+    "description": "Share of cinemagoers by age band (people who went at least once that year). Use for loyalty segmentation sanity checks and catchment weighting with ONS Census 2021 age profiles.",
+    "source": "bfi-yb-2024-audiences",
+    "table": "Audiences Figure 1",
+    "bands": ["7-14", "15-24", "25-34", "35-44", "45-54", "55+"],
+    "share": {
+      "2019": [0.15, 0.20, 0.17, 0.16, 0.12, 0.21],
+      "2023": [0.12, 0.19, 0.20, 0.17, 0.11, 0.21]
+    }
+  },
+  "hypeSignal": {
+    "description": "Pre-release Wikipedia pageviews as a hype signal. Literature value only here; our own UK calibration is described in the report.",
+    "source": "mestyan-2013",
+    "finding": "Linear model on pageviews, editors, edits and theatre count gave cross-validated R2 of about 0.77 for US opening-weekend revenue about one month before release (312 films, 2010). Pageviews alone performed about as well as theatre count alone."
+  }
+}
