@@ -1,7 +1,7 @@
 'use client';
 
 import { PageHeader } from '@/components/ui';
-import { tenantPath, VenueToday } from '@/lib/api';
+import { ShiftRow, tenantPath, VenueToday } from '@/lib/api';
 import { useCinemaScope } from '@/lib/cinema-scope';
 import { useSession, useTenantData } from '@/lib/session';
 import { SLATE, START, weekDate, weekdayLabel } from '@/lib/slate';
@@ -33,6 +33,13 @@ export default function MyWeekPage() {
   const site = venue ?? venues[0] ?? null;
   const tz = site?.timeZone ?? 'Europe/London';
   const today = useTenantData<VenueToday>(site ? tenantPath(tenant, `/venues/${site.id}/today`) : null);
+  // Real shifts arrive from a connected rota system (Connections). Until then the page shows a labelled sample.
+  const rota = useTenantData<ShiftRow[]>(site ? tenantPath(tenant, `/shifts?venueId=${site.id}`) : null);
+  const { me } = useSession();
+  const real = (rota.data ?? []).filter((s) => new Date(s.endsAt) > new Date());
+  const mine = real.filter((s) => s.staffEmail && s.staffEmail.toLowerCase() === me.email.toLowerCase());
+  const shown = mine.length ? mine : real;
+  const dayTime = (iso: string) => new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: tz }).format(new Date(iso));
   const shows = (today.data?.shows ?? []).filter((s) => !s.started).slice(0, 6);
   const time = (iso: string) => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: tz }).format(new Date(iso));
   const next = SLATE.find((r) => r.week > 0 && r.pull >= 0.7);
@@ -40,10 +47,31 @@ export default function MyWeekPage() {
 
   return (
     <>
-      <PageHeader title="My week" description={`Sam · ${site?.name ?? 'your cinema'}`} actions={<span className="badge badge-sample">Sample shifts</span>} />
+      <PageHeader
+        title="My week"
+        description={`${real.length ? (mine.length ? me.name : 'The team') : 'Sam'} · ${site?.name ?? 'your cinema'}`}
+        actions={real.length ? <span className="badge badge-success">From {real[0].source}</span> : <span className="badge badge-sample">Sample shifts · connect your rota</span>}
+      />
 
       <section aria-labelledby="mw-shifts">
-        <h2 id="mw-shifts" className="h3 section-title">Your shifts</h2>
+        <h2 id="mw-shifts" className="h3 section-title">{real.length && !mine.length ? 'Shifts at this cinema' : 'Your shifts'}</h2>
+        {real.length > 0 ? (
+          <ul className="tile-grid">
+            {shown.slice(0, 12).map((s) => (
+              <li key={s.id} className="card tile">
+                <div className="tile-head">
+                  <div>
+                    <div className="tile-title">{dayTime(s.startsAt)}</div>
+                    <div className="muted small num">{time(s.startsAt)} to {time(s.endsAt)}</div>
+                  </div>
+                  {!mine.length && <span className="badge badge-neutral">{s.staffName}</span>}
+                </div>
+                <div>{s.role}</div>
+                {s.note && <p className="mw-note small">{s.note}</p>}
+              </li>
+            ))}
+          </ul>
+        ) : (
         <ul className="tile-grid">
           {SHIFTS.map((s) => (
             <li key={s.day} className={`card tile${s.note ? ' mw-busy' : ''}`}>
@@ -59,6 +87,7 @@ export default function MyWeekPage() {
             </li>
           ))}
         </ul>
+        )}
         <p className="muted small mw-foot">Shifts come from your rota app. Swap requests go through your manager.</p>
       </section>
 

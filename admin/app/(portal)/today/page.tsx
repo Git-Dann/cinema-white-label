@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { ErrorNote, Loading, PageHeader } from '@/components/ui';
 import { SafeImage } from '@/components/SafeImage';
-import { mediaUrl, tenantPath, VenueToday } from '@/lib/api';
+import { mediaUrl, ShiftRow, tenantPath, VenueToday } from '@/lib/api';
 import { useCinemaScope } from '@/lib/cinema-scope';
 import { useSession, useTenantData } from '@/lib/session';
 
@@ -33,6 +33,8 @@ export default function TodayPage() {
   const date = localDay(offset, tz);
   const today = useTenantData<VenueToday>(site ? tenantPath(tenant, `/venues/${site.id}/today?date=${date}`) : null);
   const d = today.data;
+  const rota = useTenantData<ShiftRow[]>(site ? tenantPath(tenant, `/shifts?venueId=${site.id}&from=${date}T00:00:00Z&to=${date}T23:59:59Z`) : null);
+  const onShift = rota.data ?? [];
   const time = (iso: string) => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: tz }).format(new Date(iso));
 
   const next = useMemo(() => d?.shows.find((s) => !s.started) ?? null, [d]);
@@ -84,6 +86,24 @@ export default function TodayPage() {
               <div className="stat-value num">{busiest ? time(busiest.startsAt) : '–'}</div>
               <div className="muted small">{busiest ? `${busiest.film.title} · ${Math.round(busiest.occupancy * 100)}% full` : 'No shows'}</div>
             </div>
+          </section>
+
+          <section className="card onshift" aria-labelledby="onshift-h">
+            <div className="row between">
+              <h2 id="onshift-h" className="h3">On shift</h2>
+              <span className="muted small">{onShift.length ? `From ${onShift[0].source}` : 'Connect your rota in Connections to see who is working'}</span>
+            </div>
+            {onShift.length > 0 && (
+              <ul className="onshift-list">
+                {onShift.map((s) => (
+                  <li key={s.id}>
+                    <strong>{s.staffName}</strong>
+                    <span className="muted small">{s.role}</span>
+                    <span className="small num">{time(s.startsAt)}–{time(s.endsAt)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
           {d.shows.length === 0 ? (

@@ -1,3 +1,4 @@
+import { WebhookService } from '../integrations/webhooks.service';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Prisma, Tenant } from '@prisma/client';
 import { AuditoriumLayout } from '@cinema/contracts';
@@ -86,6 +87,7 @@ export class BookingsService {
     private readonly commerce: CommerceService,
     private readonly loyalty: LoyaltyService,
     private readonly memberships: MembershipService,
+    private readonly webhooks: WebhookService,
   ) {}
 
   private async loadHoldContext(tenant: Tenant, customerId: string, holdId: string) {
@@ -276,6 +278,7 @@ export class BookingsService {
     }
 
     this.events.publish({ screeningId: hold.screeningId, changes: hold.seatIds.map((seatId) => ({ seatId, state: 'sold' as const })) });
+    await this.webhooks.emitBooking(tenant.id, 'booking.confirmed', booking.id);
     return this.get(tenant.id, customerId, booking.id);
   }
 
@@ -453,6 +456,7 @@ export class BookingsService {
       return seats.map((x) => x.seatId);
     });
     this.events.publish({ screeningId: b.screeningId, changes: seatIds.map((seatId) => ({ seatId, state: 'available' as const })) });
+    await this.webhooks.emitBooking(tenant.id, 'booking.refunded', b.id);
     return this.get(tenant.id, customerId, b.id);
   }
 

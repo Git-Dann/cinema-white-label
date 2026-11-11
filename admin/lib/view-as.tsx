@@ -23,6 +23,7 @@ export const HOME: Record<ViewAs, string> = { 'head-office': '/', venue: '/today
 /** Views a real role may use: nobody previews a view above their own. */
 export function viewsFor(role: string): ViewAs[] {
   if (role === 'VENUE_MANAGER') return ['venue', 'floor'];
+  if (role === 'REPORTING') return ['head-office'];
   return ['head-office', 'venue', 'floor'];
 }
 
