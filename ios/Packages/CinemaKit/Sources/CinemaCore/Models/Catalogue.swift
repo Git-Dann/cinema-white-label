@@ -52,6 +52,61 @@ public struct Film: Codable, Sendable, Hashable, Identifiable {
     public var backdrop: ImageRef?
     public var trailers: [Trailer]
     public var attributions: [String]
+    /// Title artwork (transparent PNG). Optional: older servers and cached payloads have none.
+    public var logo: ImageRef?
+    /// Cast in billing order, with photo and short biography where known.
+    public var people: [Person]?
+    public var crew: [CrewMember]?
+    public var about: About?
+    public var contentAdvice: ContentAdvice?
+
+    public struct Person: Codable, Sendable, Hashable, Identifiable {
+        public var id: String
+        public var name: String
+        public var character: String?
+        public var biography: String?
+        public var photo: ImageRef?
+    }
+
+    public struct CrewMember: Codable, Sendable, Hashable {
+        public var name: String
+        public var job: String
+        public init(name: String, job: String) { self.name = name; self.job = job }
+    }
+
+    public struct About: Codable, Sendable, Hashable {
+        public var originalTitle: String?
+        public var spokenLanguages: [String]
+        public var originCountries: [String]
+        public var productionCompanies: [String]
+        public var status: String?
+        public var budget: Int?
+        public var keywords: [String]
+    }
+
+    /// Parents Guide: the certificate and what it means, then BBFC advice by category.
+    public struct ContentAdvice: Codable, Sendable, Hashable {
+        public var certificate: String
+        public var meaning: String?
+        public var items: [Item]
+
+        public struct Item: Codable, Sendable, Hashable, Identifiable {
+            public enum Level: String, Codable, Sendable { case strong = "Strong", moderate = "Moderate", mild = "Mild", contains = "Contains" }
+            public var category: String
+            public var level: Level
+            public var text: String
+            public var id: String { category }
+        }
+    }
+
+    /// Crew grouped by job in display order, e.g. ("Director", ["Name"]), ("Screenplay", ["A", "B"]).
+    public var crewByJob: [(job: String, names: [String])] {
+        var out: [(job: String, names: [String])] = []
+        for c in crew ?? [] {
+            if let i = out.firstIndex(where: { $0.job == c.job }) { out[i].names.append(c.name) } else { out.append((c.job, [c.name])) }
+        }
+        return out
+    }
 }
 
 public struct Venue: Codable, Sendable, Hashable, Identifiable {

@@ -29,7 +29,9 @@ struct FilmDetailView: View {
                     facts
                     ShowtimesSection(film: film).id("showtimes")
                     trailers
-                    credits
+                    if let people = film.people, !people.isEmpty { CastCarousel(people: people) }
+                    if let advice = film.contentAdvice { ParentsGuideCarousel(advice: advice) }
+                    about
                 }
                 .padding(.bottom, Spacing.section)
             }
@@ -256,15 +258,21 @@ struct FilmDetailView: View {
         }
     }
 
-    private var credits: some View {
-        var rows: [(label: String, value: String)] = []
-        if let d = film.director { rows.append(("Director", d)) }
-        if !film.cast.isEmpty { rows.append(("Starring", film.cast.joined(separator: ", "))) }
-        if !film.genres.isEmpty { rows.append(("Genres", film.genres.joined(separator: ", "))) }
-        if !film.attributions.isEmpty { rows.append(("Artwork", film.attributions.joined(separator: "; "))) }
-        return VStack(alignment: .leading, spacing: Spacing.header) {
-            SectionHeader("About")
-            DetailRows(rows).pagePadding()
+    /// About: crew, dates and facts, genres and keywords. Older payloads without details
+    /// still show director, cast and genres here.
+    private var about: some View {
+        let tz = app.config.tenant.timeZone
+        let release = app.formatters.date(fromLocal: film.releaseDate, timeZone: tz).map { app.formatters.longDate($0, timeZone: tz) } ?? film.releaseDate
+        var shown = film
+        if (shown.crew ?? []).isEmpty, let d = film.director { shown.crew = [.init(name: d, job: "Director")] }
+        return VStack(alignment: .leading, spacing: Spacing.section) {
+            if (film.people ?? []).isEmpty, !film.cast.isEmpty {
+                VStack(alignment: .leading, spacing: Spacing.header) {
+                    SectionHeader("Starring")
+                    DetailRows([("Cast", film.cast.joined(separator: ", "))]).pagePadding()
+                }
+            }
+            FilmAboutSection(film: shown, releaseDate: release, runtime: app.formatters.runtime(film.runtimeMinutes))
         }
     }
 }
