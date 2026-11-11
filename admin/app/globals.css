@@ -4230,3 +4230,43 @@ dialog.sheet.sheet-narrow {
   gap: 8px;
   margin-top: auto;
 }
+
+/* ---------- Membership plans: price and a benefit checklist ---------- */
+.plan-price .num {
+  font-size: 1.75rem;
+  letter-spacing: -0.01em;
+}
+.plan-benefits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+.plan-benefits li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.plan-benefits li::before {
+  content: '';
+  flex: none;
+  width: 14px;
+  height: 8px;
+  border-left: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  transform: translateY(-3px) rotate(-45deg);
+}
+.plan-foot {
+  margin-top: auto;
+  padding-top: var(--s1);
+  border-top: 1px solid var(--border);
+}
+/* Plans sit inside the Membership plans card, so lift them a step. */
+.plan-tile {
+  background: var(--surface-2);
+}
+.plan-tile.tile-click:hover {
+  background: color-mix(in srgb, var(--surface-2) 80%, var(--text) 6%);
+}
