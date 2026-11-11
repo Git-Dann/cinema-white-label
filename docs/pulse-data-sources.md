@@ -244,7 +244,21 @@ No openly licensed UK concession dataset was found. The only UK figures located 
 
 See the "Pageviews calibration" result appended below. Method: for each of the 48 top 2023 UK films with an English Wikipedia article, we fetched daily user pageviews (CC0) from October 2022 to February 2024, found the peak day (a proxy for release, because the Wikidata release-date lookup was rate limited), summed views from 35 to 7 days before the peak, and regressed log UK opening weekend gross on log pre-release views.
 
-PAGEVIEWS_RESULT_PLACEHOLDER
+Result (42 of 48 films matched; misses: Dungeons & Dragons, Magic Mike's Last Dance, Love Again, The Canterville Ghost, Rise of the Footsoldier, because our article title guess was wrong or the API kept returning 429; the Love Actually re-release was not attempted):
+
+| Model (log opening weekend GBP) | Slope(s) | In-sample R2 | Leave-one-out R2 | Residual SD (log) |
+|---|---|---|---|---|
+| log pageviews, days -35 to -7 | 0.70 | 0.72 | 0.68 | 0.84 |
+| log pageviews, last 7 days before peak | 0.62 | 0.75 | 0.72 | 0.79 |
+| log sites at widest release | 2.25 | 0.61 | 0.55 | 0.99 |
+| log pageviews (-35 to -7) + log sites | 0.49 and 1.16 | 0.81 | 0.77 | 0.70 |
+| pageviews only, wide releases (600+ sites, n = 29) | 0.60 | 0.73 | 0.69 | n/a |
+
+Reading: doubling pre-release English Wikipedia interest goes with a UK opening about 1.6 times larger on its own, or about 1.4 times larger once release width is accounted for. A month out, pageviews alone predict UK openings better than release width alone, and together they explain about three quarters of the variation out of sample, close to Mestyan et al.'s US figure.
+
+Caveats: small sample of successful 2023 films (survivorship); the peak day is a proxy for release and sometimes reflects the US release or a streaming launch (Saltburn and How to Have Sex peaked on 30 December 2023, after UK release); widest-release sites are only known after the fact. Treat the 0.5 to 0.7 elasticity as a starting prior for the hype term, shrunk and refitted on each operator's films once we hold real UK release dates (Wikidata P577 with UK qualifier, or the operator's own booking feed).
+
+Licence position: pageviews CC0; opening grosses from the BFI yearbook (quote-with-attribution); the fitted slopes are our own derived statistics.
 
 ## 4. Methods and evidence
 

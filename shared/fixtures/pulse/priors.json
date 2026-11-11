@@ -48,6 +48,12 @@
       "licence": "Figures quoted from the paper abstract and summaries; full text not read (publisher and author PDF blocked to our fetcher).",
       "usage": "literature"
     },
+    "wikimedia-pageviews": {
+      "title": "Wikimedia Analytics API, per-article daily user pageviews, en.wikipedia",
+      "url": "https://wikimedia.org/api/rest_v1/metrics/pageviews/",
+      "licence": "CC0 1.0 (Wikimedia Analytics access policy)",
+      "usage": "open"
+    },
     "mestyan-2013": {
       "title": "Mestyan, M., Yasseri, T. and Kertesz, J. (2013) Early Prediction of Movie Box Office Success Based on Wikipedia Activity Big Data. PLOS ONE 8(8): e71226.",
       "url": "https://doi.org/10.1371/journal.pone.0071226",
@@ -175,8 +181,23 @@
     }
   },
   "hypeSignal": {
-    "description": "Pre-release Wikipedia pageviews as a hype signal. Literature value only here; our own UK calibration is described in the report.",
-    "source": "mestyan-2013",
-    "finding": "Linear model on pageviews, editors, edits and theatre count gave cross-validated R2 of about 0.77 for US opening-weekend revenue about one month before release (312 films, 2010). Pageviews alone performed about as well as theatre count alone."
+    "description": "Pre-release English Wikipedia pageviews as a hype signal for the film multiplier. Elasticity = change in log UK opening weekend gross per unit change in log pageviews summed over days -35 to -7 before the pageview peak (peak used as a release-date proxy).",
+    "literature": {
+      "source": "mestyan-2013",
+      "finding": "Pageviews, editors, edits and theatre count gave cross-validated R2 of about 0.77 for US opening-weekend revenue about one month before release (312 films, 2010)."
+    },
+    "ukCalibration2023": {
+      "sources": ["wikimedia-pageviews", "bfi-yb-2024-topfilms"],
+      "n": 42,
+      "elasticityPageviewsOnly": 0.70,
+      "elasticityPageviewsControllingForSites": 0.49,
+      "elasticitySitesControllingForPageviews": 1.16,
+      "leaveOneOutR2": { "pageviewsOnly": 0.68, "sitesOnly": 0.55, "both": 0.77 },
+      "residualSdLog": { "pageviewsOnly": 0.84, "both": 0.70 },
+      "usage": "derived by Seatfold from CC0 pageviews and quote-with-attribution BFI figures; weak prior only",
+      "caveats": [
+        "2023 top films only (survivorship), peak-day release proxy, widest-release sites known only after the fact, global English Wikipedia rather than UK audience."
+      ]
+    }
   }
 }
