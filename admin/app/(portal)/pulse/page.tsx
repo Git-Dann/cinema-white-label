@@ -13,16 +13,16 @@ import { useSession, useTenantData } from '@/lib/session';
 type Row = PulseModelView['multipliers']['venue'][number];
 
 const GROUPS: { key: keyof PulseModelView['multipliers']; title: string; noun: string; limit: number }[] = [
-  { key: 'venue', title: 'Your cinemas', noun: 'cinema', limit: 8 },
-  { key: 'dayOfWeek', title: 'Days of the week', noun: 'day', limit: 7 },
+  { key: 'venue', title: 'Your cinemas', noun: 'cinema', limit: 6 },
   { key: 'slot', title: 'Times of day', noun: 'time', limit: 6 },
-  { key: 'filmWeekBand', title: 'Weeks since release', noun: 'week', limit: 6 },
+  { key: 'dayOfWeek', title: 'Days of the week', noun: 'day', limit: 7 },
+  { key: 'filmWeekBand', title: 'Weeks since release', noun: 'week', limit: 7 },
   { key: 'film', title: 'Films', noun: 'film', limit: 8 },
 ];
 
 const sentence = (r: Row) => {
   const d = Math.round((r.multiplier - 1) * 100);
-  if (Math.abs(d) < 3) return 'In line with the norm';
+  if (Math.abs(d) < 3) return 'in line with the norm';
   return `${Math.abs(d)}% ${d > 0 ? 'above' : 'below'} the norm`;
 };
 
@@ -35,14 +35,14 @@ function Adjustments({ rows }: { rows: Row[] }) {
         const v = Math.log(r.multiplier) / span;
         return (
           <li key={r.key}>
-            <span className="pulse-adjust-label">{r.label}</span>
+            <span className="pulse-adjust-label" title={`${r.label}: ${sentence(r)}, from ${r.shows.toLocaleString('en-GB')} shows`}>
+              {r.label}
+              <span className="muted small"> · {r.shows.toLocaleString('en-GB')}</span>
+            </span>
             <span className="pulse-adjust-bar" aria-hidden="true">
               <i className={v >= 0 ? 'up' : 'down'} style={v >= 0 ? { left: '50%', width: `${v * 50}%` } : { right: '50%', width: `${-v * 50}%` }} />
             </span>
             <span className="pulse-adjust-value num">×{r.multiplier.toFixed(2)}</span>
-            <span className="muted small pulse-adjust-note">
-              {sentence(r)} · {r.shows.toLocaleString('en-GB')} shows
-            </span>
           </li>
         );
       })}
@@ -102,60 +102,34 @@ export default function PulsePage() {
   const { tenant } = useSession();
   const res = useTenantData<PulseModelView>(tenantPath(tenant, '/pulse/model'));
   const m = res.data;
-  const demo = (m?.basis.demoShows ?? 0) > 0;
-  const fri = m?.curves.bySlot.find((c) => c.slot === 'fri-sat-evening');
-  const dayBefore = fri ? fri.values[m!.curves.hoursBefore.indexOf(24)] : null;
 
   return (
     <>
-      <PageHeader title="Pulse" description="How Seatfold forecasts every show, and what it has learned about your cinemas" />
+      <PageHeader title="Pulse" description="How Seatfold forecasts every show, and what it has learned about your cinemas" actions={m && <PulseBasisLine basis={m.basis} />} />
       <ErrorNote message={res.error} />
       {res.loading && !m ? (
         <Loading />
       ) : m ? (
         <>
-          <PulseBasisLine basis={m.basis} className="pulse-page-basis" />
-          {demo && (
-            <p className="note small">
-              This is demo history, made up to show how Pulse works. Once your own shows have played, Pulse learns from them instead and this notice goes away.
-            </p>
-          )}
-
-          <section className="pulse-steps" aria-label="How Pulse works">
-            <div className="card">
-              <span className="pulse-step">1</span>
-              <h2 className="h3">Starts from a normal show</h2>
-              <p className="small muted">Every show begins from how full a typical UK screen is at that time, then allows for the film's week of release, its genre, the format and holidays.</p>
-              <ul className="pulse-slots small">
-                {Object.entries(m.priors.slotBase).map(([k, v]) => (
-                  <li key={k}>
-                    <span>{m.curves.bySlot.find((c) => c.slot === k)?.label ?? k}</span>
-                    <strong className="num">{Math.round(v * 100)}%</strong>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="card">
-              <span className="pulse-step">2</span>
-              <h2 className="h3">Learns your cinemas</h2>
-              <p className="small muted">
-                It compares what really sold with what a normal show would sell, and learns where you run above or below. It only trusts a pattern once it has seen enough shows, so one odd night never swings it.
-              </p>
-            </div>
-            <div className="card">
-              <span className="pulse-step">3</span>
-              <h2 className="h3">Watches sales come in</h2>
-              <p className="small muted">
-                As a show sells, Pulse compares it with how a show like it usually sells by that point, and trusts the live sales more the closer it gets.
-                {dayBefore != null && ` A Friday or Saturday evening has usually sold ${Math.round(dayBefore * 100)}% of its seats by the day before.`}
-              </p>
-            </div>
+          <section className="card ins-card pulse-section" aria-labelledby="pulse-start">
+            <header className="ins-head">
+              <h2 id="pulse-start" className="h3">Starting point</h2>
+              <span className="muted small">How full a typical UK screen is, before anything Pulse learns about you</span>
+            </header>
+            <ul className="pulse-slots">
+              {Object.entries(m.priors.slotBase).map(([k, v]) => (
+                <li key={k}>
+                  <span className="stat-label">{m.curves.bySlot.find((c) => c.slot === k)?.label ?? k}</span>
+                  <strong className="num">{Math.round(v * 100)}%</strong>
+                </li>
+              ))}
+            </ul>
           </section>
 
           <section className="pulse-section" aria-labelledby="pulse-learned">
             <header className="pulse-section-head">
               <h2 id="pulse-learned" className="h3">What Pulse has learned</h2>
-              <span className="muted small">×1.00 is the UK norm for the same kind of show</span>
+              <span className="muted small">×1.00 is the norm for the same kind of show · number of shows learned from beside each name</span>
             </header>
             <div className="pulse-learned">
               {GROUPS.map((g) => {

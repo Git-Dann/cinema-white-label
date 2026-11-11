@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { ErrorNote, Loading, PageHeader } from '@/components/ui';
 import { num } from '@/components/insights';
 import { TileHit } from '@/components/Sheet';
-import { ConfidenceChip, ForecastBar, ForecastSheet, PaceChip, paceFallback, paceText, PulseBasisLine } from '@/components/pulse';
+import { ConfidenceChip, ForecastBar, ForecastSheet, PaceChip, paceText, PulseBasisLine } from '@/components/pulse';
 import { PulseForecast, PulseForecasts, tenantPath } from '@/lib/api';
 import { useCinemaScope } from '@/lib/cinema-scope';
 import { useSession, useTenantData } from '@/lib/session';
@@ -48,7 +48,7 @@ function ProgrammeForecast({ venueId }: { venueId: string }) {
   const days = res.data?.daily.slice().sort((a, b) => a.date.localeCompare(b.date)) ?? [];
   const current = day && days.some((d) => d.date === day) ? day : days[0]?.date ?? null;
   const shows = (res.data?.forecasts ?? []).filter((f) => f.localDate === current);
-  const total = days.reduce((a, d) => ({ expected: a.expected + d.expected, capacity: a.capacity + d.capacity, shows: a.shows + d.shows }), { expected: 0, capacity: 0, shows: 0 });
+  const total = days.reduce((a, d) => ({ expected: a.expected + d.expected, capacity: a.capacity + d.capacity, shows: a.shows + d.shows, soldNow: a.soldNow + d.soldNow }), { expected: 0, capacity: 0, shows: 0, soldNow: 0 });
   const fast = (res.data?.forecasts ?? []).filter((f) => (f.paceIndex ?? 0) >= 1.3).length;
   const slow = (res.data?.forecasts ?? []).filter((f) => f.paceIndex != null && f.paceIndex <= 0.7).length;
   const today = days.find((d) => d.date === current);
@@ -75,6 +75,11 @@ function ProgrammeForecast({ venueId }: { venueId: string }) {
               </div>
             </div>
             <div className="stat-card">
+              <div className="stat-label">Sold so far</div>
+              <div className="stat-value num">{num(total.soldNow)}</div>
+              <div className="muted small">{Math.round((total.soldNow / Math.max(1, total.expected)) * 100)}% of the expected audience</div>
+            </div>
+            <div className="stat-card">
               <div className="stat-label">Selling fast</div>
               <div className="stat-value num">{fast}</div>
               <div className="muted small">Shows well ahead of a usual show at this point</div>
@@ -95,6 +100,7 @@ function ProgrammeForecast({ venueId }: { venueId: string }) {
           {today && (
             <p className="muted small nw-day-line">
               {dayName(today.date)}: about <strong className="num">{num(today.expected)}</strong> of {num(today.capacity)} seats across {today.shows} shows, {num(today.soldNow)} sold so far.
+              {shows.length > 0 && shows.every((f) => f.paceBasis === 'untimed') && ' These sales have no booking times, so pace is not shown.'}
             </p>
           )}
           <ul className="tile-grid nw-shows">
@@ -123,7 +129,7 @@ function ProgrammeForecast({ venueId }: { venueId: string }) {
                 </div>
                 <div className="nw-show-foot small">
                   <ConfidenceChip level={f.confidence} />
-                  <span className="muted">{paceText(f.paceIndex) ?? paceFallback(f.paceBasis)}</span>
+                  {paceText(f.paceIndex) && <span className="muted">{paceText(f.paceIndex)}</span>}
                 </div>
               </li>
             ))}

@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/ui';
 import { useSession, useTenantData } from '@/lib/session';
 import { PulseAnomalies, PulseBaskets, PulseLoyalty, tenantPath } from '@/lib/api';
-import { PulseBasisLine } from '@/components/pulse';
 import { ErrorNote, Loading } from '@/components/ui';
 import { Bars, build, Funnel, Heatmap, Kpi, Mix, num, pct, Range, RANGES, TrendChart, RangePicker } from '@/components/insights';
 
@@ -22,10 +21,14 @@ function PulsePanels() {
     <section className="pulse-section" aria-labelledby="ins-pulse">
       <header className="pulse-section-head">
         <h2 id="ins-pulse" className="h3">From Pulse</h2>
-        <span className="muted small">Worked out from your bookings, refreshed through the day</span>
+        <p className="pulse-basis small">
+          <span className="pulse-mark" aria-hidden="true" />
+          <span className="muted">Worked out from your bookings and food orders</span>
+          {[alerts.data?.basis, baskets.data?.basis, loyalty.data?.basis].some((b) => b && ((b.demoShows ?? 0) > 0 || (b.demoOrders ?? 0) > 0 || (b.demoCustomers ?? 0) > 0)) && <span className="badge badge-sample">Demo history</span>}
+        </p>
       </header>
       <div className="insights-grid">
-        <section className="card ins-card" aria-labelledby="ins-alerts">
+        <section className="card ins-card span-2" aria-labelledby="ins-alerts">
           <header className="ins-head">
             <h2 id="ins-alerts" className="h3">Days that broke from the forecast</h2>
             <span className="muted small">{alerts.data ? `Last ${alerts.data.days} cinema-days` : ''}</span>
@@ -52,10 +55,10 @@ function PulsePanels() {
               ))}
             </ul>
           )}
-          <PulseBasisLine basis={alerts.data?.basis} />
+          {alerts.data && alerts.data.anomalies.length > 0 && alerts.data.anomalies.length < 3 && <p className="muted small">Every other day landed close to what Pulse expected.</p>}
         </section>
 
-        <section className="card ins-card" aria-labelledby="ins-bundles">
+        <section className="card ins-card span-2" aria-labelledby="ins-bundles">
           <header className="ins-head">
             <h2 id="ins-bundles" className="h3">Bought together</h2>
             <span className="muted small">Bundle ideas from food orders</span>
@@ -87,7 +90,6 @@ function PulsePanels() {
               ))}
             </ul>
           )}
-          <PulseBasisLine basis={baskets.data?.basis} />
         </section>
 
         <section className="card ins-card span-2" aria-labelledby="ins-segments">
@@ -111,14 +113,22 @@ function PulsePanels() {
                   <div className="pulse-segment-bar" aria-hidden="true">
                     <span style={{ width: `${(g.share / maxShare) * 100}%` }} />
                   </div>
-                  <span className="muted small">{g.description}</span>
-                  <span className="small pulse-segment-action">{g.action}</span>
+                  <span className="small pulse-segment-action" title={g.description}>{g.action}</span>
                 </li>
               ))}
+              {loyalty.data && (
+                <li className="pulse-segment-risk">
+                  <div className="pulse-segment-head">
+                    <strong>At risk</strong>
+                    <span className="num">
+                      {loyalty.data.atRisk.customers.toLocaleString('en-GB')} <span className="muted small">· {Math.round(loyalty.data.atRisk.share * 100)}%</span>
+                    </span>
+                  </div>
+                  <span className="small pulse-segment-action">{loyalty.data.atRisk.note}</span>
+                </li>
+              )}
             </ul>
           )}
-          {loyalty.data && <p className="muted small">At risk: {loyalty.data.atRisk.note}</p>}
-          <PulseBasisLine basis={loyalty.data?.basis} />
         </section>
       </div>
     </section>

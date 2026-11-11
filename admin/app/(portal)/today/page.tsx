@@ -116,6 +116,10 @@ export default function TodayPage() {
             )}
           </section>
 
+          <header className="pulse-section-head">
+            <h2 className="h3">Pulse forecast</h2>
+            <PulseBasisLine basis={staffing.data?.basis ?? food.data?.basis} />
+          </header>
           <div className="today-pulse">
             <section className="card ins-card" aria-labelledby="staff-h">
               <header className="ins-head">
@@ -127,24 +131,53 @@ export default function TodayPage() {
                   <p className="small today-pulse-summary">
                     {staffing.data.rota.connected ? staffing.data.summary : 'Connect your rota in Connections to compare who is on with what the day needs. Until then this shows what the day needs.'}
                   </p>
-                  <ol className="staff-grid" aria-label="Half-hour windows">
-                    {staffing.data.windows.filter((w) => w.arrivals > 0 || w.short).map((w) => (
-                      <li key={w.from} className={w.short ? 'short' : undefined} title={w.short ?? undefined}>
-                        <span className="num staff-time">{w.from}</span>
-                        <span className="small">
-                          Tills <strong className="num">{w.tillsNeeded}</strong>
-                          {staffing.data!.rota.connected && <span className="muted num">/{w.tillsRostered}</span>}
-                        </span>
-                        <span className="small">
-                          Ushers <strong className="num">{w.ushersNeeded}</strong>
-                          {staffing.data!.rota.connected && <span className="muted num">/{w.ushersRostered}</span>}
-                        </span>
-                        <span className="muted small num">{w.arrivals} arriving</span>
-                      </li>
-                    ))}
-                  </ol>
-                  <p className="muted small">Needed{staffing.data.rota.connected ? ' / on shift' : ''}. Most people arrive in the half hour before their film.</p>
-                  <PulseBasisLine basis={staffing.data.basis} />
+                  {(() => {
+                    const rows = staffing.data.windows.filter((w) => w.arrivals > 0 || w.short);
+                    const on = staffing.data.rota.connected;
+                    return (
+                      <div className="table-wrap">
+                        <table className="table staff-strip">
+                          <thead>
+                            <tr>
+                              <th scope="row">From</th>
+                              {rows.map((w) => (
+                                <th key={w.from} scope="col" className={w.short ? 'short' : undefined} title={w.short ?? undefined}>
+                                  {w.from}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <th scope="row">Arriving</th>
+                              {rows.map((w) => (
+                                <td key={w.from} className={`num${w.short ? ' short' : ''}`}>{w.arrivals}</td>
+                              ))}
+                            </tr>
+                            <tr>
+                              <th scope="row">Tills{on ? ' needed / on' : ' needed'}</th>
+                              {rows.map((w) => (
+                                <td key={w.from} className={`num${w.short ? ' short' : ''}`}>
+                                  {w.tillsNeeded}
+                                  {on && <span className={w.tillsRostered < w.tillsNeeded ? 'warn' : 'muted'}> / {w.tillsRostered}</span>}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr>
+                              <th scope="row">Ushers{on ? ' needed / on' : ' needed'}</th>
+                              {rows.map((w) => (
+                                <td key={w.from} className={`num${w.short ? ' short' : ''}`}>
+                                  {w.ushersNeeded}
+                                  {on && <span className={w.ushersRostered < w.ushersNeeded ? 'warn' : 'muted'}> / {w.ushersRostered}</span>}
+                                </td>
+                              ))}
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })()}
+                  <p className="muted small">Half-hour windows; shaded ones are short. Most people arrive in the half hour before their film.</p>
                 </>
               ) : (
                 <ErrorNote message={staffing.error} />
@@ -177,7 +210,6 @@ export default function TodayPage() {
                       ))}
                     </ul>
                   </details>
-                  <PulseBasisLine basis={food.data.basis} />
                 </>
               ) : (
                 <ErrorNote message={food.error} />
@@ -199,7 +231,7 @@ export default function TodayPage() {
                     {list.map((s) => {
                       const pct = Math.round(s.occupancy * 100);
                       const left = s.capacity - s.sold - s.held;
-                      const status = left <= 0 ? 'Sold out' : pct >= 70 ? 'Selling fast' : null;
+                      const status = left <= 0 ? 'Sold out' : pct >= 85 ? 'Nearly full' : null;
                       return (
                         <li key={s.id} className={`card show-card${s.started ? ' is-past' : ''}`}>
                           <div className="show-poster" style={{ background: s.film.poster?.dominantColor ?? 'var(--surface-2)' }}>
@@ -229,7 +261,7 @@ export default function TodayPage() {
                                   <span>
                                     Forecast <strong className="num">{f.expected}</strong>
                                   </span>
-                                  <span className="muted">{tone === 'fast' ? 'Selling fast' : tone === 'slow' ? 'Selling slowly' : tone === 'even' ? 'On pace' : 'Too early to tell'}</span>
+                                  {tone && <span className="muted">{tone === 'fast' ? 'Selling fast' : tone === 'slow' ? 'Selling slowly' : 'On pace'}</span>}
                                 </button>
                               );
                             })()}

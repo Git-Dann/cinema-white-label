@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ErrorNote, Loading } from '@/components/ui';
-import { Sheet, TileHit } from '@/components/Sheet';
+import { Sheet } from '@/components/Sheet';
 import { PulseBasisLine } from '@/components/pulse';
 import { PulsePriceSuggestion, PulsePricing, PulseScreens, tenantPath } from '@/lib/api';
 import { useCinemaScope } from '@/lib/cinema-scope';
@@ -36,7 +36,7 @@ export function PricingSuggestions() {
         <PulseBasisLine basis={res.data?.basis} />
       </header>
       <p className="muted small pulse-intro">
-        Pulse flags single shows where a different price should sell more or earn more. Nothing changes on its own: use these to set a price below or to create an offer.
+        Single shows where a different price should sell more or earn more. Nothing changes on its own.
         {res.data ? ` Raises stay within ${res.data.caps.maxRaisePercent}%, discounts within ${res.data.caps.maxDiscountPercent}%.` : ''}
       </p>
       <ErrorNote message={res.error} />
@@ -59,29 +59,54 @@ export function PricingSuggestions() {
               </button>
             ))}
           </div>
-          <ul className="tile-grid">
-            {shown.map((s) => (
-              <li key={s.screeningId} className="card tile tile-click">
-                <TileHit label={`Why Pulse suggests ${actionText(s)} for ${s.film.title}`} onClick={() => setOpen(s)} />
-                <div className="tile-head">
-                  <div>
-                    <div className="tile-title">{s.film.title}</div>
-                    <div className="muted small">
-                      {when(s.localDate, s.localTime)} · {s.screen.name}
-                    </div>
-                  </div>
-                  <span className={`badge ${s.action === 'raise' ? 'badge-success' : 'badge-warning'}`}>{actionText(s)}</span>
-                </div>
-                <div className="meter" role="img" aria-label={`Forecast ${Math.round(s.forecast.occupancy * 100)}% full`}>
-                  <span style={{ width: `${Math.min(100, s.forecast.occupancy * 100)}%` }} />
-                </div>
-                <div className="small">{s.reasons[0]}</div>
-                <div className="muted small">
-                  {s.venue.name} · forecast {s.forecast.expected} of {s.forecast.capacity}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="card">
+            <div className="table-wrap">
+              <table className="table pulse-price-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Show</th>
+                    <th scope="col">Cinema</th>
+                    <th scope="col">Forecast</th>
+                    <th scope="col">Suggestion</th>
+                    <th scope="col">
+                      <span className="visually-hidden">Details</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shown.map((s) => (
+                    <tr key={s.screeningId} className="row-click" onClick={() => setOpen(s)}>
+                      <td>
+                        <strong>{s.film.title}</strong>
+                        <div className="muted small">
+                          {when(s.localDate, s.localTime)} · {s.screen.name}
+                        </div>
+                      </td>
+                      <td className="small">{s.venue.name}</td>
+                      <td>
+                        <div className="pulse-price-fc">
+                          <div className="meter" role="img" aria-label={`Forecast ${Math.round(s.forecast.occupancy * 100)}% full`}>
+                            <span style={{ width: `${Math.min(100, s.forecast.occupancy * 100)}%` }} />
+                          </div>
+                          <span className="small num">
+                            {Math.round(s.forecast.occupancy * 100)}% <span className="muted">· {s.forecast.expected} of {s.forecast.capacity}</span>
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`badge ${s.action === 'raise' ? 'badge-success' : 'badge-warning'}`}>{actionText(s)}</span>
+                      </td>
+                      <td className="actions">
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={(e) => (e.stopPropagation(), setOpen(s))} aria-label={`Why Pulse suggests ${actionText(s)} for ${s.film.title}`}>
+                          Why
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
           {list.length > SHOWN && (
             <button className="btn btn-ghost btn-sm pulse-more" onClick={() => setAll(!all)}>
               {all ? 'Show fewer' : `Show all ${list.length}`}
@@ -136,10 +161,7 @@ export function ScreenSwaps() {
       {res.loading && !res.data ? (
         <Loading />
       ) : swaps.length === 0 ? (
-        <div className="card pulse-empty">
-          <strong>Every show fits its screen</strong>
-          <span className="muted small">Pulse checks the next two weeks for a show forecast to sell out while a bigger screen nearby sits half empty. When it finds one, it appears here with the seats you would gain.</span>
-        </div>
+        <p className="muted small pulse-empty">Every show fits its screen for the next two weeks. When a show is forecast to sell out while a bigger screen nearby sits half empty, it appears here.</p>
       ) : (
         <ul className="tile-grid wide">
           {swaps.map((s) => (
