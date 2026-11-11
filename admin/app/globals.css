@@ -3448,7 +3448,9 @@ dialog.sheet form {
 }
 .show-poster {
   flex: none;
-  width: 44px;
+  /* A real poster shape: never stretch to the card's height (that crops it to a sliver). */
+  align-self: flex-start;
+  width: 76px;
   aspect-ratio: 2 / 3;
   border-radius: 8px;
   overflow: hidden;
