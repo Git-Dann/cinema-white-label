@@ -44,7 +44,7 @@ export default function OverviewPage() {
                 <li key={a.id}>
                   <div>
                     <div className="audit-action">{actionLabel(a.action)}</div>
-                    <div className="audit-detail">{auditSummary(a.action, a.data) || a.entityType}</div>
+                    <div className="audit-detail">{auditSummary(a.action, a.data)}</div>
                   </div>
                   <time className="audit-time" dateTime={a.createdAt}>
                     {formatDateTime(a.createdAt)}

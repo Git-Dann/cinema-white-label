@@ -4018,6 +4018,8 @@ dialog.sheet form {
 .side-nav {
   flex: 1 1 auto;
   min-height: 0;
+  /* The nav fills the sidebar's height; keep its groups packed at the top, not spread down it. */
+  align-content: start;
   overflow-y: auto;
   margin-right: -4px;
   padding-right: 4px;
