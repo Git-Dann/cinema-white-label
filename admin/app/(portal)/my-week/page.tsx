@@ -1,13 +1,15 @@
 'use client';
 
 import { PageHeader } from '@/components/ui';
+import { tenantPath, VenueToday } from '@/lib/api';
 import { useCinemaScope } from '@/lib/cinema-scope';
+import { useSession, useTenantData } from '@/lib/session';
 import { SLATE, START, weekDate, weekdayLabel } from '@/lib/slate';
 
 /*
- * My week: what floor staff see. No forecasts or revenue, just their shifts,
- * a heads-up on busy nights and what's coming. Sample data; real shifts would
- * come from the operator's rota tool.
+ * My week: what floor staff see. No forecasts or revenue: their shifts (sample; real
+ * shifts come from the operator's rota tool), today's shows from live bookings, the
+ * team briefing and what's coming. Laid out as cards, not one long list.
  */
 
 const at = (day: number) => new Date(START.getTime() + day * 86400_000);
@@ -26,33 +28,60 @@ const BRIEFING = [
 ];
 
 export default function MyWeekPage() {
+  const { tenant } = useSession();
   const { venue, venues } = useCinemaScope();
-  const site = venue?.name ?? venues[0]?.name ?? 'your cinema';
+  const site = venue ?? venues[0] ?? null;
+  const tz = site?.timeZone ?? 'Europe/London';
+  const today = useTenantData<VenueToday>(site ? tenantPath(tenant, `/venues/${site.id}/today`) : null);
+  const shows = (today.data?.shows ?? []).filter((s) => !s.started).slice(0, 6);
+  const time = (iso: string) => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: tz }).format(new Date(iso));
   const next = SLATE.find((r) => r.week > 0 && r.pull >= 0.7);
   const opening = next ? new Date(weekDate(next.week).getTime() + 4 * 86400_000) : null;
 
   return (
     <>
-      <PageHeader title="My week" description={`Sam · ${site}`} actions={<span className="badge badge-sample">Sample</span>} />
-      <div className="mw">
-        <section className="card mw-card" aria-labelledby="mw-shifts">
-          <h2 id="mw-shifts" className="h3">Your shifts</h2>
-          <ul className="mw-shifts">
-            {SHIFTS.map((s) => (
-              <li key={s.day} className={s.note ? 'busy' : undefined}>
-                <div className="mw-when">
-                  <strong>{weekdayLabel(at(s.day))}</strong>
-                  <span>{s.time}</span>
+      <PageHeader title="My week" description={`Sam · ${site?.name ?? 'your cinema'}`} actions={<span className="badge badge-sample">Sample shifts</span>} />
+
+      <section aria-labelledby="mw-shifts">
+        <h2 id="mw-shifts" className="h3 section-title">Your shifts</h2>
+        <ul className="tile-grid">
+          {SHIFTS.map((s) => (
+            <li key={s.day} className={`card tile${s.note ? ' mw-busy' : ''}`}>
+              <div className="tile-head">
+                <div>
+                  <div className="tile-title">{weekdayLabel(at(s.day))}</div>
+                  <div className="muted small num">{s.time}</div>
                 </div>
-                <div className="mw-role">{s.role}</div>
-                {s.note && <div className="mw-note">🔥 {s.note}</div>}
-              </li>
-            ))}
-          </ul>
-          <p className="muted small">Shifts come from your rota app. Swap requests go through your manager.</p>
+                {s.note && <span className="badge badge-warning">Busy</span>}
+              </div>
+              <div>{s.role}</div>
+              {s.note && <p className="mw-note small">{s.note}</p>}
+            </li>
+          ))}
+        </ul>
+        <p className="muted small mw-foot">Shifts come from your rota app. Swap requests go through your manager.</p>
+      </section>
+
+      <div className="mw-cols">
+        <section className="card" aria-labelledby="mw-today">
+          <h2 id="mw-today" className="h3">Still to come today</h2>
+          {shows.length === 0 ? (
+            <p className="muted">No more shows today.</p>
+          ) : (
+            <ul className="mw-shows">
+              {shows.map((s) => (
+                <li key={s.id}>
+                  <strong className="num">{time(s.startsAt)}</strong>
+                  <span className="mw-show-film">{s.film.title}</span>
+                  <span className="muted small">{s.screen}</span>
+                  <span className="small num">{Math.round(s.occupancy * 100)}% full</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
-        <section className="card mw-card" aria-labelledby="mw-brief">
+        <section className="card" aria-labelledby="mw-brief">
           <h2 id="mw-brief" className="h3">Team briefing</h2>
           <ul className="mw-brief">
             {BRIEFING.map((b) => (
@@ -62,7 +91,7 @@ export default function MyWeekPage() {
         </section>
 
         {next && opening && (
-          <section className="card mw-card" aria-labelledby="mw-coming">
+          <section className="card" aria-labelledby="mw-coming">
             <h2 id="mw-coming" className="h3">Coming up</h2>
             <p>
               <strong>{next.title}</strong> opens {weekdayLabel(opening)}. It will be one of the busiest weekends of the year, so extra shifts will be offered first to people who ask.

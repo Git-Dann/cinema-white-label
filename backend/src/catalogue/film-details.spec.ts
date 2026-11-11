@@ -37,7 +37,7 @@ describe('film details', () => {
     expect(d.cast.map((c) => [c.name, c.character, c.biography, c.birthday])).toEqual([['A', 'Lead', 'Bio A.', '1970-01-02'], ['B', null, null, undefined]]);
     expect(d.crew).toEqual([{ name: 'D', job: 'Director' }, { name: 'P1', job: 'Producer' }, { name: 'P2', job: 'Producer' }]);
     expect(d.about).toMatchObject({ originalTitle: null, budget: null });
-    expect(readDetails({})).toEqual({ cast: [], crew: [], about: null, advice: [] });
+    expect(readDetails({})).toEqual({ cast: [], crew: [], about: null, advice: [], adviceSource: 'provider' });
     expect(readDetails(null).cast).toEqual([]);
   });
 

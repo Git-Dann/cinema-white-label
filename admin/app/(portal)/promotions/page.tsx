@@ -153,11 +153,11 @@ export default function PromotionsPage() {
   return (
     <>
       <PageHeader
-        title="Promotions"
+        title="Offers"
         description="Offers on the app home screen, in the Offers section. Changes show in the app straight away; no release needed."
-        actions={canEdit && <button className="btn btn-primary" onClick={() => open('new')}>Create promotion</button>}
+        actions={canEdit && <button className="btn btn-primary" onClick={() => open('new')}>Create offer</button>}
       />
-      {!canEdit && <ReadOnlyNote>Only operator admins and content editors can change promotions.</ReadOnlyNote>}
+      {!canEdit && <ReadOnlyNote>Only operator admins and content editors can change offers.</ReadOnlyNote>}
       <ErrorNote message={msg.error ?? promotions.error} />
       <SuccessNote message={msg.ok} />
 
@@ -278,73 +278,53 @@ export default function PromotionsPage() {
         </section>
       )}
 
-      <section className="card" aria-label="Promotions list">
+      <section aria-label="Offers">
         {promotions.loading && !promotions.data && <Loading />}
-        {promotions.data && shown.length === 0 && <p className="muted">{scope.venue ? `No promotions for ${scope.venue.name} yet.` : 'No promotions yet. The Offers section stays hidden in the app until there is one.'}</p>}
+        {promotions.data && shown.length === 0 && <p className="muted">{scope.venue ? `No offers for ${scope.venue.name} yet.` : 'No offers yet. The Offers section stays hidden in the app until there is one.'}</p>}
         {shown.length > 0 && (
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th scope="col">Promotion</th>
-                  <th scope="col">Button</th>
-                  <th scope="col">Where</th>
-                  <th scope="col">When</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">
-                    <span className="visually-hidden">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {shown.map((p) => {
-                  const s = status(p);
-                  return (
-                    <tr key={p.id}>
-                      <td>
-                        <span className="strong">{p.title}</span>
-                        <div className="muted small">{p.body}</div>
-                      </td>
-                      <td className="small">
-                        {p.action === 'none' ? (
-                          <span className="muted">None</span>
-                        ) : (
-                          <>
-                            {p.ctaLabel}
-                            <div className="muted">
-                              {p.action === 'voucher' && <code>{p.voucherCode}</code>}
-                              {p.action === 'film' && filmTitle(p.filmId)}
-                              {p.action === 'link' && <span className="break">{p.linkUrl}</span>}
-                            </div>
-                          </>
-                        )}
-                      </td>
-                      <td className="small">{venueName(p.venueId)}</td>
-                      <td className="small nowrap">{schedule(p)}</td>
-                      <td>
-                        <span className={`badge badge-${s.tone}`}>{s.label}</span>
-                      </td>
-                      <td className="actions">
-                        {canEdit && (
-                          <>
-                            <button className="btn btn-sm" onClick={() => open(p)} aria-label={`Edit ${p.title}`}>
-                              Edit
-                            </button>
-                            <button className="btn btn-sm" onClick={() => toggle(p)} aria-label={`Turn ${p.active ? 'off' : 'on'} ${p.title}`}>
-                              {p.active ? 'Turn off' : 'Turn on'}
-                            </button>
-                            <button className="btn btn-sm btn-danger" onClick={() => remove(p)} aria-label={`Delete ${p.title}`}>
-                              Delete
-                            </button>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <ul className="tile-grid wide">
+            {shown.map((p) => {
+              const s = status(p);
+              return (
+                <li key={p.id} className={`card tile${p.active ? '' : ' is-off'}`}>
+                  <div className="offer-preview">
+                    <div className="offer-preview-title">{p.title}</div>
+                    <div className="offer-preview-body">{p.body}</div>
+                    {p.action !== 'none' && <span className="offer-preview-cta">{p.ctaLabel}</span>}
+                  </div>
+                  <div className="tile-head">
+                    <span className={`badge badge-${s.tone}`}>{s.label}</span>
+                  </div>
+                  <dl className="tile-meta">
+                    <dt>Button</dt>
+                    <dd>
+                      {p.action === 'none' && <span className="muted">None</span>}
+                      {p.action === 'voucher' && <>Shows code <code>{p.voucherCode}</code></>}
+                      {p.action === 'film' && <>Opens {filmTitle(p.filmId)}</>}
+                      {p.action === 'link' && <span className="break">{p.linkUrl}</span>}
+                    </dd>
+                    <dt>Where</dt>
+                    <dd>{venueName(p.venueId)}</dd>
+                    <dt>When</dt>
+                    <dd>{schedule(p)}</dd>
+                  </dl>
+                  {canEdit && (
+                    <div className="tile-actions">
+                      <button className="btn btn-sm" onClick={() => open(p)} aria-label={`Edit ${p.title}`}>
+                        Edit
+                      </button>
+                      <button className="btn btn-sm" onClick={() => toggle(p)} aria-label={`Turn ${p.active ? 'off' : 'on'} ${p.title}`}>
+                        {p.active ? 'Turn off' : 'Turn on'}
+                      </button>
+                      <button className="btn btn-sm btn-danger" onClick={() => remove(p)} aria-label={`Delete ${p.title}`}>
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         )}
       </section>
     </>

@@ -318,67 +318,58 @@ export default function VouchersPage() {
         </section>
       )}
 
-      <section className="card" aria-label="Vouchers list">
+      <section aria-label="Vouchers">
         {vouchers.loading && !vouchers.data && <Loading />}
         {vouchers.data && shown.length === 0 && <p className="muted">{scope.venue ? `No vouchers for ${scope.venue.name} yet.` : 'No vouchers yet.'}</p>}
         {shown.length > 0 && (
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th scope="col">Code</th>
-                  <th scope="col">Discount</th>
-                  <th scope="col">Applies to</th>
-                  <th scope="col">Valid at</th>
-                  <th scope="col">Redemptions</th>
-                  <th scope="col">Validity</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">
-                    <span className="visually-hidden">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {shown.map((v) => (
-                  <tr key={v.id}>
-                    <td>
-                      <code className="strong">{v.code}</code>
-                      <div className="muted small">{v.description}</div>
-                    </td>
-                    <td className="nowrap">
-                      {voucherValue(v)}
-                      {v.minSpendMinor > 0 && <div className="muted small">Min spend {formatMoney(v.minSpendMinor, 'GBP')}</div>}
-                    </td>
-                    <td>{APPLIES[v.appliesTo]}</td>
-                    <td className="small">{v.venueId ? <span className="badge badge-scope">{scope.label(v.venueId)}</span> : 'All cinemas'}</td>
-                    <td className="num nowrap">
-                      {v.redemptions} / {v.maxRedemptions ?? 'unlimited'}
-                    </td>
-                    <td className="small">{validity(v)}</td>
-                    <td>
-                      <span className={`badge ${v.active ? 'badge-success' : 'badge-neutral'}`}>{v.active ? 'Active' : 'Inactive'}</span>
-                    </td>
-                    <td className="actions">
-                      {can.canEditVouchers && (
-                        <>
-                          <button className="btn btn-sm" onClick={() => startEdit(v)} aria-label={`Edit ${v.code}`}>
-                            Edit
-                          </button>
-                          <button
-                            className={`btn btn-sm${v.active ? ' btn-danger' : ''}`}
-                            onClick={() => update(v, { active: !v.active }, `${v.code} ${v.active ? 'deactivated' : 'activated'}.`)}
-                            aria-label={`${v.active ? 'Deactivate' : 'Activate'} ${v.code}`}
-                          >
-                            {v.active ? 'Deactivate' : 'Activate'}
-                          </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="tile-grid">
+            {shown.map((v) => {
+              const used = v.maxRedemptions ? Math.min(100, Math.round((v.redemptions / v.maxRedemptions) * 100)) : null;
+              return (
+                <li key={v.id} className={`card tile voucher-tile${v.active ? '' : ' is-off'}`}>
+                  <div className="tile-head">
+                    <div>
+                      <div className="voucher-value">{voucherValue(v)}</div>
+                      <code className="voucher-code">{v.code}</code>
+                    </div>
+                    <span className={`badge ${v.active ? 'badge-success' : 'badge-neutral'}`}>{v.active ? 'Active' : 'Off'}</span>
+                  </div>
+                  {v.description && <div className="small">{v.description}</div>}
+                  <dl className="tile-meta">
+                    <dt>On</dt>
+                    <dd>{APPLIES[v.appliesTo]}{v.minSpendMinor > 0 ? ` · min ${formatMoney(v.minSpendMinor, 'GBP')}` : ''}</dd>
+                    <dt>Where</dt>
+                    <dd>{v.venueId ? <span className="badge badge-scope">{scope.label(v.venueId)}</span> : 'All cinemas'}</dd>
+                    <dt>When</dt>
+                    <dd>{validity(v)}</dd>
+                    <dt>Used</dt>
+                    <dd className="num">
+                      {v.redemptions} {v.maxRedemptions ? `of ${v.maxRedemptions}` : 'times, no limit'}
+                    </dd>
+                  </dl>
+                  {used !== null && (
+                    <div className="meter" role="img" aria-label={`${used}% of uses taken`}>
+                      <span style={{ width: `${used}%` }} />
+                    </div>
+                  )}
+                  {can.canEditVouchers && (
+                    <div className="tile-actions">
+                      <button className="btn btn-sm" onClick={() => startEdit(v)} aria-label={`Edit ${v.code}`}>
+                        Edit
+                      </button>
+                      <button
+                        className={`btn btn-sm${v.active ? ' btn-danger' : ''}`}
+                        onClick={() => update(v, { active: !v.active }, `${v.code} ${v.active ? 'deactivated' : 'activated'}.`)}
+                        aria-label={`${v.active ? 'Deactivate' : 'Activate'} ${v.code}`}
+                      >
+                        {v.active ? 'Deactivate' : 'Activate'}
+                      </button>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         )}
       </section>
     </>

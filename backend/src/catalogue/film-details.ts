@@ -56,7 +56,8 @@ export interface FilmAbout {
   keywords: string[];
 }
 
-export type AdviceLevel = 'Strong' | 'Moderate' | 'Mild' | 'Contains';
+export const ADVICE_LEVELS = ['Strong', 'Moderate', 'Mild', 'Contains'] as const;
+export type AdviceLevel = (typeof ADVICE_LEVELS)[number];
 
 export interface ContentAdvice {
   category: string;
@@ -70,6 +71,8 @@ export interface FilmDetails {
   crew: CrewMember[];
   about: FilmAbout | null;
   advice: ContentAdvice[];
+  /** Where the advice came from: the provider feed, or typed in by the operator (kept on refresh). */
+  adviceSource?: 'provider' | 'operator';
 }
 
 export const EMPTY_DETAILS: FilmDetails = { cast: [], crew: [], about: null, advice: [] };
@@ -87,6 +90,7 @@ export function readDetails(raw: unknown): FilmDetails {
     crew: Array.isArray(d.crew) ? d.crew : [],
     about: d.about ?? null,
     advice: Array.isArray(d.advice) ? d.advice : [],
+    adviceSource: d.adviceSource === 'operator' ? 'operator' : 'provider',
   };
 }
 
@@ -132,7 +136,7 @@ export function buildFilmDetails(m: any, people: Map<number, PersonInfo>): FilmD
     keywords: (m.keywords?.keywords ?? []).slice(0, 10).map((k: any) => k.name),
   };
 
-  return { cast, crew, about, advice: contentAdvice(m) };
+  return { cast, crew, about, advice: contentAdvice(m), adviceSource: 'provider' };
 }
 
 /**

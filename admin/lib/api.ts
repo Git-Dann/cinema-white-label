@@ -297,6 +297,22 @@ export interface Film {
   poster: ImageRef | null;
   backdrop: ImageRef | null;
   assets: FilmAsset[];
+  /** Parents Guide: certificate meaning and content advice (from the provider, or typed in here). */
+  contentAdvice?: {
+    certificate: string;
+    meaning: string | null;
+    items: ContentAdviceItem[];
+    source: 'provider' | 'operator';
+    moreInfoUrl: string;
+  };
+  people?: { id: string; name: string; character: string | null }[];
+}
+
+export type AdviceLevel = 'Strong' | 'Moderate' | 'Mild' | 'Contains';
+export interface ContentAdviceItem {
+  category: string;
+  level: AdviceLevel;
+  text: string;
 }
 
 // ---- Seating, pricing, food and drink, vouchers, layouts ----
@@ -498,4 +514,33 @@ export interface MembershipPlan {
   sortOrder: number;
   /** Customers whose paid period has not ended. */
   activeMembers: number;
+}
+
+/** One cinema's shows on a day (GET /venues/:id/today). */
+export interface VenueToday {
+  venue: { id: string; name: string; timeZone: string };
+  date: string;
+  totals: { shows: number; capacity: number; sold: number; foodOrders: number };
+  shows: {
+    id: string;
+    startsAt: string;
+    endsAt: string;
+    screen: string;
+    formats: string[];
+    film: { id: string; title: string; certificate: string; poster: ImageRef | null };
+    capacity: number;
+    sold: number;
+    held: number;
+    occupancy: number;
+    foodOrders: number;
+    started: boolean;
+  }[];
+}
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  createdAt: string;
 }

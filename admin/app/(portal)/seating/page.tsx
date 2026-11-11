@@ -274,60 +274,42 @@ export default function SeatingPage() {
         </section>
       )}
 
-      <section className="card" aria-labelledby="cat-list-title">
-        <h2 id="cat-list-title" className="h3">
+      <section className="venue-block" aria-labelledby="cat-list-title">
+        <h2 id="cat-list-title" className="h3 section-title">
           Seat categories
         </h2>
         {cats.loading && !cats.data && <Loading />}
         {cats.data && cats.data.categories.length === 0 && <p className="muted">No seat categories yet.</p>}
         {cats.data && cats.data.categories.length > 0 && (
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th scope="col">Category</th>
-                  <th scope="col">Shape</th>
-                  <th scope="col">Icon</th>
-                  <th scope="col">Colours</th>
-                  <th scope="col">Order</th>
-                  <th scope="col">
-                    <span className="visually-hidden">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {cats.data.categories.map((c) => (
-                  <tr key={c.id}>
-                    <td>
-                      <div className="strong">{c.label}</div>
-                      <div className="muted small">
-                        <code>{c.id}</code>
-                        {c.description ? ` · ${c.description}` : ''}
-                      </div>
-                    </td>
-                    <td>{c.shape}</td>
-                    <td className="small">{c.icon ?? <span className="muted">None</span>}</td>
-                    <td>
-                      <Swatches colours={c.colours} />
-                    </td>
-                    <td className="num">{c.sortOrder}</td>
-                    <td className="actions">
-                      {can.canEditSeatCategories && (
-                        <button className="btn btn-sm" onClick={() => startEdit(c)} aria-label={`Edit ${c.label}`}>
-                          Edit
-                        </button>
-                      )}
-                      {can.canDeleteSeatCategories && (
-                        <button className="btn btn-sm btn-danger" onClick={() => remove(c)} aria-label={`Delete ${c.label}`}>
-                          Delete
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="tile-grid">
+            {cats.data.categories.map((c) => (
+              <li key={c.id} className="card tile cat-tile">
+                <div className="tile-head">
+                  <div>
+                    <div className="tile-title">{c.label}</div>
+                    <div className="muted small"><code>{c.id}</code> · {c.shape}{c.icon ? ` · ${c.icon}` : ''}</div>
+                  </div>
+                  <Swatches colours={c.colours} />
+                </div>
+                {c.description && <div className="small">{c.description}</div>}
+                <div className="muted small">Order in the app: {c.sortOrder}</div>
+                {(can.canEditSeatCategories || can.canDeleteSeatCategories) && (
+                  <div className="tile-actions">
+                    {can.canEditSeatCategories && (
+                      <button className="btn btn-sm" onClick={() => startEdit(c)} aria-label={`Edit ${c.label}`}>
+                        Edit
+                      </button>
+                    )}
+                    {can.canDeleteSeatCategories && (
+                      <button className="btn btn-sm btn-danger" onClick={() => remove(c)} aria-label={`Delete ${c.label}`}>
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 

@@ -440,55 +440,40 @@ function MembershipPlansCard({ tenant, canEdit }: { tenant: string; canEdit: boo
       {plans.loading && !plans.data && <Loading />}
       {plans.data && plans.data.length === 0 && <p className="muted">No membership plans yet. Memberships are not offered in the app until there is a plan that is on.</p>}
       {plans.data && plans.data.length > 0 && (
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th scope="col">Plan</th>
-                <th scope="col">Price</th>
-                <th scope="col">Benefits</th>
-                <th scope="col">Active members</th>
-                <th scope="col">Status</th>
-                <th scope="col">
-                  <span className="visually-hidden">Actions</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {plans.data.map((p) => (
-                <tr key={p.id}>
-                  <td>
-                    <span className="strong">{p.name}</span>
-                    {p.description && <div className="muted small">{p.description}</div>}
-                  </td>
-                  <td className="nowrap">
-                    {formatMoney(p.priceMinor, 'GBP')} a {INTERVALS[p.interval]}
-                  </td>
-                  <td className="small">{benefits(p.entitlements)}</td>
-                  <td className="num">{count(p.activeMembers)}</td>
-                  <td>
-                    <span className={`badge ${p.active ? 'badge-success' : 'badge-neutral'}`}>{p.active ? 'On' : 'Off'}</span>
-                  </td>
-                  <td className="actions">
-                    {canEdit && (
-                      <>
-                        <button className="btn btn-sm" onClick={() => open(p)} aria-label={`Edit ${p.name}`}>
-                          Edit
-                        </button>
-                        <button className="btn btn-sm" onClick={() => toggle(p)} aria-label={`Turn ${p.active ? 'off' : 'on'} ${p.name}`}>
-                          {p.active ? 'Turn off' : 'Turn on'}
-                        </button>
-                        <button className="btn btn-sm btn-danger" onClick={() => remove(p)} aria-label={`Delete ${p.name}`}>
-                          Delete
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ul className="tile-grid">
+          {plans.data.map((p) => (
+            <li key={p.id} className={`card tile plan-tile${p.active ? '' : ' is-off'}`}>
+              <div className="tile-head">
+                <div>
+                  <div className="tile-title">{p.name}</div>
+                  <div className="plan-price">
+                    <span className="num">{formatMoney(p.priceMinor, 'GBP')}</span>
+                    <span className="muted small"> a {INTERVALS[p.interval]}</span>
+                  </div>
+                </div>
+                <span className={`badge ${p.active ? 'badge-success' : 'badge-neutral'}`}>{p.active ? 'On' : 'Off'}</span>
+              </div>
+              {p.description && <div className="muted small">{p.description}</div>}
+              <div className="small">{benefits(p.entitlements)}</div>
+              <div className="small">
+                <strong className="num">{count(p.activeMembers)}</strong> <span className="muted">active members</span>
+              </div>
+              {canEdit && (
+                <div className="tile-actions">
+                  <button className="btn btn-sm" onClick={() => open(p)} aria-label={`Edit ${p.name}`}>
+                    Edit
+                  </button>
+                  <button className="btn btn-sm" onClick={() => toggle(p)} aria-label={`Turn ${p.active ? 'off' : 'on'} ${p.name}`}>
+                    {p.active ? 'Turn off' : 'Turn on'}
+                  </button>
+                  <button className="btn btn-sm btn-danger" onClick={() => remove(p)} aria-label={`Delete ${p.name}`}>
+                    Delete
+                  </button>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
       )}
     </section>
   );
