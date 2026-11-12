@@ -5,6 +5,12 @@ import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Tenant } from '@prisma/client';
 import { AdminGuard, CurrentTenant, CustomerGuard, CustomerId, TenantGuard } from '../common/tenant-context';
 import { PulseService } from './pulse.service';
+import { ASK_MODEL, askConfigured, PulseAssistant } from './assistant';
+
+const askBody = z.object({
+  question: z.string().trim().min(2).max(1000),
+  history: z.array(z.object({ role: z.enum(['user', 'assistant']), text: z.string().max(4000) })).max(12).optional(),
+});
 
 const simulateBody = z.object({
   venueId: z.string().min(1),
@@ -26,7 +32,23 @@ const simulateBody = z.object({
 @Controller('v1/admin/t/:tenant/pulse')
 @UseGuards(AdminGuard)
 export class PulseAdminController {
-  constructor(private readonly pulse: PulseService) {}
+  private readonly assistant: PulseAssistant;
+  constructor(private readonly pulse: PulseService) {
+    this.assistant = new PulseAssistant(pulse);
+  }
+
+  /** Whether Ask Pulse (the AI layer's conversational side) is switched on. Pulse works either way. */
+  @Get('ask')
+  askStatus() {
+    return { configured: askConfigured(), model: askConfigured() ? ASK_MODEL : null };
+  }
+
+  /** Ask Pulse a question. Claude answers by calling Pulse's own endpoints; every figure comes from them. */
+  @Post('ask')
+  @HttpCode(200)
+  ask(@CurrentTenant() t: Tenant, @Body(new ZodPipe(askBody)) b: z.infer<typeof askBody>) {
+    return this.assistant.ask(t, b.question, b.history ?? []);
+  }
 
   @Get('forecasts')
   @ApiQuery({ name: 'venueId', required: false })

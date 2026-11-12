@@ -15,6 +15,7 @@ export const Errors = {
   validation: (message: string, details?: Record<string, unknown>) => new DomainError(HttpStatus.UNPROCESSABLE_ENTITY, 'validation_failed', message, details),
   unauthorised: () => new DomainError(HttpStatus.UNAUTHORIZED, 'unauthorised', 'Authentication required'),
   forbidden: () => new DomainError(HttpStatus.FORBIDDEN, 'forbidden', 'You do not have access to this resource'),
+  unavailable: (message: string) => new DomainError(HttpStatus.SERVICE_UNAVAILABLE, 'unavailable', message),
   seatsUnavailable: (seatIds: string[]) =>
     new DomainError(HttpStatus.CONFLICT, 'seats_unavailable', 'Some seats are no longer available', { seatIds }),
   holdExpired: () => new DomainError(HttpStatus.GONE, 'hold_expired', 'Your seat reservation has expired'),

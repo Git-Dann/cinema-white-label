@@ -4973,3 +4973,48 @@ dialog.sheet.sheet-narrow {
 .pulse-axis {
   font-size: 13px;
 }
+
+/* Ask Pulse (components/pulse-ask.tsx) */
+.ask-pulse {
+  display: grid;
+  gap: var(--s2);
+  margin: 0 0 var(--s3);
+  padding: var(--s3);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.ask-pulse .ai-kicker {
+  margin: 0;
+}
+.ask-turns {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s2);
+}
+.ask-turns li {
+  display: grid;
+  gap: 6px;
+  max-width: 820px;
+}
+.ask-turns li p {
+  margin: 0;
+  line-height: 1.55;
+}
+.ask-turns li.user {
+  justify-self: end;
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+.ask-form {
+  display: flex;
+  gap: var(--s1);
+}
+.ask-form input {
+  flex: 1;
+}
+.ask-suggest {
+  flex-wrap: wrap;
+}

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { PulseBrief, tenantPath } from '@/lib/api';
+import { AskPulse } from '@/components/pulse-ask';
 import { useSession, useTenantData } from '@/lib/session';
 import { AiPanel, PulseAiPanel, aiInsightsFor, Bars, build, forecastFor, Kpi, Mix, num, Range, RANGES, RangePicker, TrendChart } from '@/components/insights';
 
@@ -43,6 +44,7 @@ export function PerformancePreview() {
       </header>
 
       {ai && (brief.data && brief.data.items.length > 0 ? <PulseAiPanel brief={brief.data} /> : !brief.loading && <AiPanel key={range} insights={insights} />)}
+      {ai && <AskPulse />}
 
       <div className="stat-grid insights-kpis">
         {data.kpis.map((k, i) => (

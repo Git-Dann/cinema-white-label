@@ -4,6 +4,8 @@ import { PrismaClient } from '@prisma/client';
 import { api, createApp, guest, T } from './harness';
 import { leadCurveFrom, refreshBankHolidays, rollupOutcomes, rng } from '../src/intelligence/outcomes';
 import { InterestFetcher, refreshInterest } from '../src/intelligence/interest';
+import { PulseAssistant } from '../src/intelligence/assistant';
+import { PulseService } from '../src/intelligence/pulse.service';
 
 describe('Pulse (integration)', () => {
   let app: INestApplication;
@@ -215,5 +217,56 @@ describe('Pulse (integration)', () => {
       expect(i.confidence).toBeLessThanOrEqual(100);
     }
     await api(app, kestrel).get(`${A}/brief`).expect(403);
+  });
+
+  it('Ask Pulse stays off without a key and says so, while Pulse keeps working', async () => {
+    const before = process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
+    try {
+      expect((await api(app, admin).get(`${A}/ask`).expect(200)).body).toEqual({ configured: false, model: null });
+      const r = await api(app, admin).post(`${A}/ask`).send({ question: 'What should I do this week?' }).expect(503);
+      expect(r.body.code ?? r.body.error?.code).toBe('unavailable');
+      await api(app, admin).get(`${A}/brief`).expect(200);
+    } finally {
+      if (before !== undefined) process.env.ANTHROPIC_API_KEY = before;
+    }
+  });
+
+  it('Ask Pulse answers through Pulse tools only, validating every tool input', async () => {
+    const tenant = await prisma.tenant.findUniqueOrThrow({ where: { slug: 'northlight' } });
+    const seen: any[] = [];
+    let call = 0;
+    const fake = {
+      beta: {
+        messages: {
+          create: async (req: any) => {
+            seen.push(req);
+            call++;
+            if (call === 1) {
+              return { model: 'fake', stop_reason: 'tool_use', usage: { input_tokens: 10, output_tokens: 5, cache_read_input_tokens: 0 }, content: [
+                { type: 'tool_use', id: 't1', name: 'pulse_brief', input: {} },
+                { type: 'tool_use', id: 't2', name: 'pulse_simulate', input: { venueId: 'x', date: 'nope', change: { kind: 'remove' } } },
+              ] };
+            }
+            return { model: 'fake', stop_reason: 'end_turn', usage: { input_tokens: 20, output_tokens: 8, cache_read_input_tokens: 15 }, content: [{ type: 'text', text: 'Hold steady this week.' }] };
+          },
+        },
+      },
+    };
+    const assistant = new PulseAssistant(app.get(PulseService), fake as any);
+    const r = await assistant.ask(tenant, 'What should I do this week?');
+    expect(r.answer).toBe('Hold steady this week.');
+    expect(r.toolCalls.map((c) => c.name)).toEqual(['pulse_brief', 'pulse_simulate']);
+    expect(r.usage).toEqual({ inputTokens: 30, outputTokens: 13, cacheReadTokens: 15 });
+    // Both tool results go back in one user message; the bad input comes back as an error, not a crash.
+    const results = seen[1].messages[seen[1].messages.length - 1].content;
+    expect(results).toHaveLength(2);
+    expect(JSON.parse(results[0].content).items).toBeDefined();
+    expect(JSON.parse(results[1].content).error).toBe('Invalid input');
+    expect(seen[0].model).toBe('claude-opus-5-5');
+    expect(seen[0].tools.map((t: any) => t.name)).toEqual(['pulse_brief', 'pulse_venues', 'pulse_forecasts', 'pulse_simulate', 'pulse_accuracy', 'pulse_learned']);
+    expect(await assistant.runTool(tenant, 'drop_tables', {})).toEqual({ error: 'Unknown tool drop_tables' });
+    const venues: any = await assistant.runTool(tenant, 'pulse_venues', {});
+    expect(venues[0].screens.length).toBeGreaterThan(0);
   });
 });

@@ -559,6 +559,13 @@ export class PulseService {
     };
   }
 
+  /** Cinemas and their screens, for Ask Pulse to turn names into ids. */
+  async venuesForAsk(t: Tenant) {
+    const ctx = await this.context(t);
+    const screens = await this.prisma.auditorium.findMany({ where: { tenantId: t.id }, select: { id: true, name: true, venueId: true, layouts: { where: { status: 'PUBLISHED' }, select: { seatCount: true }, take: 1 } } });
+    return [...ctx.venues.entries()].map(([id, v]) => ({ id, name: v.name, screens: screens.filter((a) => a.venueId === id).map((a) => ({ id: a.id, name: a.name, seats: a.layouts[0]?.seatCount ?? 0 })) }));
+  }
+
   /** How accurate Pulse would have been over recent weeks it had not seen, against two baselines. */
   async accuracy(t: Tenant) {
     const ctx = await this.context(t);
