@@ -133,7 +133,7 @@ Checked 12 November 2026.
 - **X (not used).** Read access is paid only.
 - **TikTok (not used).** The Research API is for non-commercial academic research.
 - **Threads (not used yet).** Public keyword search needs the `threads_keyword_search` permission through Meta app review; without it, search covers only the signed-in user's own posts. Data-use terms for public posts were not found. Apply once Seatfold has a live production app.
-- **Wikipedia edits (CC0).** The Wikimedia Analytics API (`metrics/edits/per-page`) is CC0 ("Data provided by the API is available under the CC0 1.0 license", access policy page). Mestyán et al. used edits and editors alongside page views. A UK test against 2023 openings is running; Pulse does not use edits until it shows they add something beyond page views.
+- **Wikipedia edits (CC0).** The Wikimedia Analytics API (`metrics/edits/per-page`) is CC0 ("Data provided by the API is available under the CC0 1.0 license", access policy page). Mestyán et al. used edits and editors alongside page views. Tested on 42 UK 2023 openings (leave-one-out R² on log opening gross, edits from 35 to 7 days before release): page views alone 0.683, views plus edits 0.682, views plus release width (sites) 0.770, views plus edits plus sites 0.762. Edits track views closely (correlation 0.90 on the log scale) and add nothing once views and release width are known, so Pulse does not use them. Recheck if the sample grows or if Pulse ever loses page views.
 
 #### Letterboxd, IMDb datasets, OMDb, MovieLens
 
