@@ -58,6 +58,10 @@ describe('Pulse (integration)', () => {
     }
     const loyalty = (await api(app, admin).get(`${A}/loyalty`).expect(200)).body;
     expect(loyalty.basis.demoCustomers).toBeGreaterThan(0);
+    // Enough repeat visitors to fit BG/NBD: every parameter positive, and a forecast of visits.
+    expect(loyalty.model.kind).toBe('BG/NBD');
+    expect(Object.values(loyalty.model.params).every((v: any) => v > 0)).toBe(true);
+    expect(loyalty.model.expectedVisitsNext13Weeks).toBeGreaterThan(0);
     expect(JSON.stringify(loyalty)).not.toContain('@');
     const baskets = (await api(app, admin).get(`${A}/baskets`).expect(200)).body;
     expect(baskets.rules.length).toBeGreaterThan(0);

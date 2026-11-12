@@ -49,7 +49,8 @@ export function demoCustomers(now: Date, count = 400, seed = 23): CustomerHistor
     const kind = r();
     const gap = kind < 0.15 ? 10 : kind < 0.45 ? 28 : kind < 0.7 ? 60 : 120;
     const family = r() < 0.25;
-    const lapsedFor = r() < 0.25 ? gap * (2 + r() * 4) : r() * gap;
+    // A quarter have stopped coming: silent for 4 to 10 times their usual gap, longer than chance explains.
+    const lapsedFor = r() < 0.25 ? gap * (4 + r() * 6) : r() * gap;
     const visits = [];
     let t = now.getTime() - lapsedFor * DAY;
     const n = 1 + Math.floor(r() * (kind < 0.15 ? 18 : 8));

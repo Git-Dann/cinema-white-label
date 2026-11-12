@@ -1,3 +1,5 @@
+import { BgParams, expectedVisits, pAlive, rfmFrom } from './bgnbd';
+
 export interface Visit {
   at: Date;
   spendMinor: number;
@@ -15,7 +17,7 @@ export const SEGMENT_INFO: Record<Segment, { description: string; action: string
   Regulars: { description: 'Steady visitors who come back on their usual rhythm.', action: 'Keep them: points boosts on quieter nights.' },
   'Family matinee': { description: 'Mostly family films in the daytime.', action: 'School holiday offers and kids combos.' },
   New: { description: 'First visit in the last 30 days.', action: 'A welcome offer for a second visit.' },
-  Lapsing: { description: 'Overdue against their own usual gap between visits.', action: 'A personal nudge with a film they would like.' },
+  Lapsing: { description: 'Likely to have stopped coming, given how often they used to visit.', action: 'A personal nudge with a film they would like.' },
   Lost: { description: 'No visit for six months or more.', action: 'A win-back offer for a big release.' },
   Occasional: { description: 'Visit now and then.', action: 'Tell them what is on that suits them.' },
 };
@@ -41,11 +43,19 @@ export interface CustomerScore {
   visits: number;
   /** Days since last visit ÷ their median gap between visits (2 or more = at risk). Null with one visit. */
   churnRisk: number | null;
+  /** BG/NBD probability the customer is still active (null when the operator model is not fitted). */
+  pAlive: number | null;
+  /** BG/NBD expected visits in the next 13 weeks. */
+  expectedVisits90: number | null;
   segment: Segment;
 }
 
-/** Recency, frequency and spend scores (1 to 5, within this operator's customers), segments and churn risk. */
-export function scoreCustomers(customers: CustomerHistory[], now: Date): CustomerScore[] {
+/**
+ * Recency, frequency and spend scores (1 to 5, within this operator's customers), segments and
+ * churn risk. With a fitted BG/NBD model, "Lapsing" means a repeat visitor whose chance of still
+ * being active has fallen below a half; without one, the older rule (twice their usual gap) applies.
+ */
+export function scoreCustomers(customers: CustomerHistory[], now: Date, bg?: BgParams | null): CustomerScore[] {
   const rows = customers.filter((c) => c.visits.length).map((c) => {
     const vs = [...c.visits].sort((a, b) => a.at.getTime() - b.at.getTime());
     const last = vs[vs.length - 1].at;
@@ -62,14 +72,18 @@ export function scoreCustomers(customers: CustomerHistory[], now: Date): Custome
     const R = quintile(rec, -r.daysSinceLast);
     const F = quintile(fre, r.freq);
     const M = quintile(mon, r.spend);
+    const rfm = rfmFrom(r.vs.map((v) => v.at), now);
+    const alive = bg ? Math.round(pAlive(bg, rfm) * 1000) / 1000 : null;
+    const expected = bg ? Math.round(expectedVisits(bg, rfm, 13) * 100) / 100 : null;
+    const lapsing = bg ? r.vs.length >= 2 && (alive ?? 1) < 0.5 : (r.churnRisk ?? 0) >= 2;
     let segment: Segment = 'Occasional';
     if (r.daysSinceLast >= 180) segment = 'Lost';
     else if (r.vs.length === 1 && r.daysSinceLast <= 30) segment = 'New';
-    else if ((r.churnRisk ?? 0) >= 2) segment = 'Lapsing';
+    else if (lapsing) segment = 'Lapsing';
     else if (R >= 4 && F >= 4 && M >= 4) segment = 'Champions';
     else if (r.vs.length >= 2 && r.family >= 0.5) segment = 'Family matinee';
     else if (F >= 3 && R >= 3) segment = 'Regulars';
-    return { customerId: r.c.customerId, recency: R, frequency: F, monetary: M, daysSinceLast: r.daysSinceLast, visits: r.vs.length, churnRisk: r.churnRisk, segment };
+    return { customerId: r.c.customerId, recency: R, frequency: F, monetary: M, daysSinceLast: r.daysSinceLast, visits: r.vs.length, churnRisk: r.churnRisk, pAlive: alive, expectedVisits90: expected, segment };
   });
 }
 

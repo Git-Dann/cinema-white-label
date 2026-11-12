@@ -13,6 +13,7 @@ import { interestStrength, median } from './interest';
 import { backtest, BacktestResult, calibrateRanges } from './backtest';
 import { Change, DEFAULT_CHOICE, NightShow, simulate } from './choice';
 import { filmRun, FilmRun, weeklyRows } from './filmrun';
+import { BgParams, fitBgNbd, rfmFrom } from './bgnbd';
 import { attachRates, MixItem, prepForShow, productMix } from './food';
 import { CustomerHistory, scoreCustomers, segmentSummary } from './loyalty';
 import { DEMO_TENANTS, loadBankHolidays } from './outcomes';
@@ -57,6 +58,8 @@ interface Ctx {
 @Injectable()
 export class PulseService {
   private cache = new Map<string, Ctx>();
+  private readonly bgCache = new Map<string, { key: string; at: number; params: BgParams }>();
+
   constructor(private readonly prisma: PrismaService, private readonly clock: Clock) {}
 
   invalidate(tenantId: string) {
@@ -418,13 +421,31 @@ export class PulseService {
       demo = extra.length;
       customers = [...customers, ...extra];
     }
-    const scores = scoreCustomers(customers, now);
-    const atRisk = scores.filter((s) => (s.churnRisk ?? 0) >= 2 && s.daysSinceLast < 180);
+    // BG/NBD needs enough repeat visitors to fit; until then the simple overdue rule applies.
+    const repeaters = customers.filter((c) => c.visits.filter((v) => v.at.getTime() <= now.getTime()).length >= 2).length;
+    let bg: BgParams | null = null;
+    if (customers.length >= 50 && repeaters >= 20) {
+      const key = `${t.id}:${customers.length}:${repeaters}`;
+      const hit = this.bgCache.get(t.id);
+      if (hit && hit.key === key && now.getTime() - hit.at < MODEL_TTL) bg = hit.params;
+      else {
+        const past = customers.map((c) => c.visits.map((v) => v.at).filter((d) => d.getTime() <= now.getTime())).filter((v) => v.length > 0);
+        bg = fitBgNbd(past.map((v) => rfmFrom(v, now)));
+        this.bgCache.set(t.id, { key, at: now.getTime(), params: bg });
+      }
+    }
+    const scores = scoreCustomers(customers, now, bg);
+    const atRisk = scores.filter((s) => s.segment === 'Lapsing');
     return {
       basis: { liveCustomers: live, demoCustomers: demo, note: demo ? `Based on ${live} real customers and ${demo} demo customers.` : `Based on ${live} customers who booked in the last 500 days.` },
       customers: scores.length,
       segments: segmentSummary(scores),
-      atRisk: { customers: atRisk.length, share: scores.length ? Math.round((atRisk.length / scores.length) * 1000) / 1000 : 0, note: 'Overdue by at least twice their usual gap between visits, but seen in the last six months.' },
+      atRisk: {
+        customers: atRisk.length,
+        share: scores.length ? Math.round((atRisk.length / scores.length) * 1000) / 1000 : 0,
+        note: bg ? 'Repeat visitors who are now more likely than not to have stopped coming, given how often they used to visit.' : 'Overdue by at least twice their usual gap between visits, but seen in the last six months.',
+      },
+      model: bg ? { kind: 'BG/NBD', params: bg, expectedVisitsNext13Weeks: Math.round(scores.reduce((a, s) => a + (s.expectedVisits90 ?? 0), 0)) } : { kind: 'rule', params: null, expectedVisitsNext13Weeks: null },
     };
   }
 
