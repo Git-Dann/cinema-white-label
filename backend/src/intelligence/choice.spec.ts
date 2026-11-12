@@ -22,7 +22,7 @@ describe('Choice model', () => {
     const same = simulate(night, { kind: 'add', show: show('n', 'f1', 0.5, 80) });
     const other = simulate(night, { kind: 'add', show: show('n', 'f2', 0.5, 80) });
     expect(same.change.admissions).toBeGreaterThan(0);
-    expect(other.change.admissions).toBeGreaterThan(same.change.admissions * 2);
+    expect(other.change.admissions).toBeGreaterThan(same.change.admissions * 1.5);
     expect(same.takenFromOthers).toBeGreaterThan(other.takenFromOthers);
     expect(same.assumptions.length).toBeGreaterThanOrEqual(3);
   });

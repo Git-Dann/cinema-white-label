@@ -657,12 +657,36 @@ export interface PulsePriceSuggestion extends PulseShowRef {
   percent: number;
   reasons: string[];
   forecast: { expected: number; capacity: number; occupancy: number; paceIndex: number | null };
+  /** From the night's choice model: what the change should do that night, food included. */
+  impact: { admissions: number; ticketMinor: number; foodMinor: number; totalMinor: number };
 }
 
 export interface PulsePricing {
   basis: PulseBasis;
   caps: { maxRaisePercent: number; maxDiscountPercent: number };
+  /** Price ideas checked, and how many were dropped because they would not earn more. */
+  checked: number;
+  rejected: number;
   suggestions: PulsePriceSuggestion[];
+}
+
+export interface PulseBriefItem {
+  id: string;
+  kind: string;
+  title: string;
+  detail: string;
+  impactMinor: number | null;
+  admissions: number | null;
+  confidence: number;
+  action: { label: string; href: string };
+}
+
+export interface PulseBrief {
+  basis: PulseBasis;
+  generatedAt: string;
+  horizonDays: number;
+  totalImpactMinor: number;
+  items: PulseBriefItem[];
 }
 
 export interface PulseScreenSwap {

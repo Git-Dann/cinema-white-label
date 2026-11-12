@@ -197,15 +197,43 @@ export class PulseService {
     return { basis: this.basis(ctx.model), from: from.toISOString(), to: to.toISOString(), daily: [...daily.values()], forecasts: rows.map((r) => ({ ...r.summary, ...r.forecast })) };
   }
 
+  /**
+   * Price ideas for single shows, each checked with the night's choice model before it is
+   * offered: only changes that should earn more (tickets plus food) are suggested. The rest are
+   * counted, so the page can say how many ideas were checked and rejected.
+   */
   async pricing(t: Tenant) {
     const ctx = await this.context(t);
     const now = this.clock.now();
     const rows = await this.upcoming(t, ctx, now, new Date(now.getTime() + 7 * DAY));
+    const { night, perHead } = await this.nights(t, rows);
+    let checked = 0;
     const suggestions = rows.flatMap((r) => {
       const s = priceSuggestion(r.forecast, r.input.hoursBefore);
-      return s ? [{ ...r.summary, ...s, forecast: { expected: r.forecast.expected, capacity: r.forecast.capacity, occupancy: r.forecast.occupancy, paceIndex: r.forecast.paceIndex } }] : [];
+      if (!s) return [];
+      checked++;
+      const percent = s.action === 'raise' ? s.percent : -s.percent;
+      const sim = simulate(night(r.summary.venue.id, r.summary.localDate), { kind: 'price', showId: r.screening.id, percent }, DEFAULT_CHOICE);
+      const food = sim.change.admissions * perHead(r.summary.venue.id).food;
+      const impactMinor = sim.change.revenueMinor + food;
+      if (impactMinor <= 0) return [];
+      return [{ ...r.summary, ...s, impact: { admissions: sim.change.admissions, ticketMinor: sim.change.revenueMinor, foodMinor: food, totalMinor: impactMinor }, forecast: { expected: r.forecast.expected, capacity: r.forecast.capacity, occupancy: r.forecast.occupancy, paceIndex: r.forecast.paceIndex } }];
     });
-    return { basis: this.basis(ctx.model), caps: PRICE_CAPS, suggestions };
+    return { basis: this.basis(ctx.model), caps: PRICE_CAPS, checked, rejected: checked - suggestions.length, suggestions: suggestions.sort((a, b) => b.impact.totalMinor - a.impact.totalMinor) };
+  }
+
+  /** Night-level inputs for the choice model, with each cinema's spend per head from the last 90 days. */
+  private async nights(t: Tenant, rows: Awaited<ReturnType<PulseService['upcoming']>>) {
+    const now = this.clock.now();
+    const spend = await this.prisma.showOutcome.groupBy({ by: ['venueId'], where: { tenantId: t.id, startsAt: { gte: new Date(now.getTime() - 90 * DAY) } }, _sum: { ticketRevenueMinor: true, foodRevenueMinor: true, admissions: true } });
+    const perHead = (venueId: string) => {
+      const x = spend.find((r) => r.venueId === venueId)?._sum;
+      const n = x?.admissions ?? 0;
+      return { ticket: n ? Math.round((x!.ticketRevenueMinor ?? 0) / n) : 1000, food: n ? Math.round((x!.foodRevenueMinor ?? 0) / n) : 400 };
+    };
+    const night = (venueId: string, date: string): NightShow[] =>
+      rows.filter((r) => r.summary.venue.id === venueId && r.summary.localDate === date).map((r) => ({ id: r.screening.id, filmId: r.screening.filmId, start: r.screening.startsAt.getTime(), capacity: r.forecast.capacity, demand: r.forecast.demand, priceMinor: perHead(venueId).ticket }));
+    return { night, perHead };
   }
 
   async screens(t: Tenant) {
@@ -418,6 +446,117 @@ export class PulseService {
     }
     const list = [...days.values()].map((d) => ({ ...d, forecast: Math.round(d.forecast) }));
     return { basis: this.basis(ctx.model), days: list.length, anomalies: anomalies(list) };
+  }
+
+  /**
+   * The Pulse brief: the week's best moves for the AI layer, each with a simulated impact,
+   * a confidence and a link to act. Deterministic; the AI layer narrates it, never invents it.
+   * Items without a measured money impact (staffing gaps, members drifting away, films that
+   * deserve more shows) carry impactMinor null and are left out of the total.
+   */
+  async brief(t: Tenant) {
+    const ctx = await this.context(t);
+    const now = this.clock.now();
+    const rows = await this.upcoming(t, ctx, now, new Date(now.getTime() + 7 * DAY));
+    const { perHead } = await this.nights(t, rows);
+    const conf = (c: PulseForecast['confidence']) => (c === 'high' ? 85 : c === 'medium' ? 65 : 40);
+    const day = (ymd: string) => new Intl.DateTimeFormat('en-GB', { weekday: 'long', timeZone: 'UTC' }).format(new Date(`${ymd}T12:00:00Z`));
+    type Item = { id: string; kind: string; title: string; detail: string; impactMinor: number | null; admissions: number | null; confidence: number; action: { label: string; href: string }; evidence: Record<string, unknown> };
+    const items: Item[] = [];
+
+    // Prices: only ideas the night's choice model says pay, tickets and food together.
+    for (const p of (await this.pricing(t)).suggestions) {
+      const r = rows.find((x) => x.screening.id === p.screeningId);
+      items.push({
+        id: `price:${p.screeningId}`,
+        kind: 'Pricing',
+        title: `${p.action === 'raise' ? `Raise ${p.film.title} by ${p.percent}%` : `Try ${p.percent}% off ${p.film.title}`} on ${day(p.localDate)} at ${p.localTime}`,
+        detail: `${p.reasons[0]} Pulse expects ${p.impact.admissions >= 0 ? `${p.impact.admissions} more` : `${-p.impact.admissions} fewer`} admissions that night at ${p.venue.name}, with food included.`,
+        impactMinor: p.impact.totalMinor,
+        admissions: p.impact.admissions,
+        confidence: r ? conf(r.forecast.confidence) : 50,
+        action: { label: 'Review price', href: '/seating' },
+        evidence: { screeningId: p.screeningId, simulate: { venueId: p.venue.id, date: p.localDate, change: { kind: 'price', screeningId: p.screeningId, percent: p.action === 'raise' ? p.percent : -p.percent } } },
+      });
+    }
+    // Screen swaps from the next three days.
+    for (const s of (await this.screens(t)).swaps) {
+      const ph = perHead(s.venue.id);
+      items.push({
+        id: `swap:${s.from.screeningId}`,
+        kind: 'Screens',
+        title: `Swap ${s.from.filmTitle} and ${s.to.filmTitle} on ${day(s.localDate)} at ${s.localTime}`,
+        detail: `${s.reason} At ${s.venue.name}.`,
+        impactMinor: s.extraAdmissions * (ph.ticket + ph.food),
+        admissions: s.extraAdmissions,
+        confidence: 70,
+        action: { label: 'Open screens', href: '/layouts' },
+        evidence: { from: s.from, to: s.to },
+      });
+    }
+    // Films with strong audience interest but a thin programme.
+    const showsByFilm = new Map<string, number>();
+    for (const r of rows) showsByFilm.set(r.screening.filmId, (showsByFilm.get(r.screening.filmId) ?? 0) + 1);
+    const avgShows = showsByFilm.size ? [...showsByFilm.values()].reduce((a, x) => a + x, 0) / showsByFilm.size : 0;
+    for (const [filmId, n] of showsByFilm) {
+      const fc = ctx.films.get(filmId);
+      if (!fc?.interest || fc.interest.strength < 1.4 || n > avgShows * 0.75) continue;
+      items.push({
+        id: `interest:${filmId}`,
+        kind: 'Programme',
+        title: `Give ${fc.film.title} more shows next week`,
+        detail: `Its audience interest is ${(fc.interest.views / fc.interest.typical).toFixed(1)} times the typical film you show, but it has ${n} shows in the next 7 days against an average of ${Math.round(avgShows)}.${fc.interest.source === 'demo' ? ' (Demo figures.)' : ''}`,
+        impactMinor: null,
+        admissions: null,
+        confidence: fc.interest.source === 'demo' ? 50 : 60,
+        action: { label: 'Plan shows', href: '/next-weeks' },
+        evidence: { filmId, shows: n, averageShows: avgShows, interest: fc.interest },
+      });
+    }
+    // Staffing gaps today and tomorrow.
+    for (const venueId of ctx.venues.keys()) {
+      for (const offset of [0, 1]) {
+        const date = localParts(new Date(now.getTime() + offset * DAY), ctx.venues.get(venueId)!.timeZone).ymd;
+        const st = await this.staffing(t, venueId, date);
+        if (!st.rota.connected || !st.gaps.length) continue;
+        items.push({
+          id: `staff:${venueId}:${date}`,
+          kind: 'Staffing',
+          title: `${st.gaps.length} half-hour${st.gaps.length === 1 ? '' : 's'} short at ${st.venue.name} ${offset === 0 ? 'today' : 'tomorrow'}`,
+          detail: `From ${st.gaps[0].from}, the forecast needs more on tills or doors than the rota has. ${st.expectedAdmissions} people expected.`,
+          impactMinor: null,
+          admissions: null,
+          confidence: 70,
+          action: { label: 'Open today', href: '/today' },
+          evidence: { venueId, date, gaps: st.gaps },
+        });
+      }
+    }
+    // Members drifting away.
+    const loyalty = await this.loyalty(t);
+    if (loyalty.atRisk.customers > 0) {
+      items.push({
+        id: 'members:at-risk',
+        kind: 'Members',
+        title: `Win back ${loyalty.atRisk.customers} customers drifting away`,
+        detail: `${loyalty.atRisk.note}`,
+        impactMinor: null,
+        admissions: null,
+        confidence: loyalty.basis.demoCustomers ? 50 : 70,
+        action: { label: 'Open loyalty', href: '/loyalty' },
+        evidence: { atRisk: loyalty.atRisk },
+      });
+    }
+    const order = (i: Item) => (i.impactMinor ?? -1);
+    const ranked = items.sort((a, b) => order(b) - order(a));
+    const top = [...ranked.filter((i) => i.impactMinor !== null).slice(0, 4), ...ranked.filter((i) => i.impactMinor === null).slice(0, 3)];
+    return {
+      basis: this.basis(ctx.model),
+      generatedAt: now.toISOString(),
+      horizonDays: 7,
+      totalImpactMinor: top.reduce((a, i) => a + (i.impactMinor ?? 0), 0),
+      items: top,
+    };
   }
 
   /** How accurate Pulse would have been over recent weeks it had not seen, against two baselines. */

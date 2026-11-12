@@ -28,10 +28,17 @@ export interface ChoiceParams {
 }
 
 /**
- * Working values until the behaviour research lands (docs/research/pulse-behaviour-evidence.md).
- * Every simulation reports them so nobody mistakes an assumption for a measurement.
+ * Defaults from docs/research/pulse-behaviour-evidence.md (section 1 and 5):
+ * - lambdaCross 0.5: Einav (2007) nested logit puts the films-versus-not-going correlation at
+ *   σ = 0.52, so 1 − σ ≈ 0.48 (range 0.40 to 0.75).
+ * - lambdaFilm 0.3: an assumption, informed by 62 to 75% of UK customers choosing the film
+ *   before the cinema (Competition Commission 2013 survey, p.22).
+ * - priceElasticity −0.7: market-level response, because the nest already moves people
+ *   between shows; a single show on its own is closer to −2.
+ * Every simulation lists them, so nobody mistakes an assumption for a measurement. Each
+ * operator's own values will be fitted from their history (planned: Einav two-stage fit).
  */
-export const DEFAULT_CHOICE: ChoiceParams = { lambdaFilm: 0.35, lambdaCross: 0.75, sessionMinutes: 150, priceElasticity: -0.7, spillToSameFilm: 0.5 };
+export const DEFAULT_CHOICE: ChoiceParams = { lambdaFilm: 0.3, lambdaCross: 0.5, sessionMinutes: 150, priceElasticity: -0.7, spillToSameFilm: 0.5 };
 
 export interface NightShow {
   id: string;

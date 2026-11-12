@@ -16,6 +16,7 @@ import { useSession, useTenantData } from '@/lib/session';
 const when = (ymd: string, time: string) => `${new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${ymd}T12:00:00Z`))}, ${time}`;
 const actionText = (s: PulsePriceSuggestion) => (s.action === 'raise' ? `Raise ${s.percent}%` : `Off-peak, ${s.percent}% off`);
 const SHOWN = 8;
+const gbp = (minor: number) => `£${(minor / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })}`;
 
 export function PricingSuggestions() {
   const { tenant } = useSession();
@@ -36,14 +37,19 @@ export function PricingSuggestions() {
         <PulseBasisLine basis={res.data?.basis} />
       </header>
       <p className="muted small pulse-intro">
-        Single shows where a different price should sell more or earn more. Nothing changes on its own.
+        Single shows where a different price should earn more, tickets and food together, once Pulse has checked what it does to the rest of the night. Nothing changes on its own.
         {res.data ? ` Raises stay within ${res.data.caps.maxRaisePercent}%, discounts within ${res.data.caps.maxDiscountPercent}%.` : ''}
+        {res.data && res.data.rejected > 0 && res.data.suggestions.length > 0 ? ` ${res.data.rejected} of ${res.data.checked} ideas were dropped because they would not earn more.` : ''}
       </p>
       <ErrorNote message={res.error} />
       {res.loading && !res.data ? (
         <Loading />
       ) : inScope.length === 0 ? (
-        <p className="muted">No suggestions right now: every show is priced about right for how it is selling.</p>
+        <p className="muted">
+          {res.data && res.data.checked > 0
+            ? `Pulse checked ${res.data.checked} price ideas for the next 7 days. None would earn more once the full-price sales they cost are counted, so leave prices as they are.`
+            : 'No suggestions right now: every show is priced about right for how it is selling.'}
+        </p>
       ) : (
         <>
           <div className="chips page-chips" role="group" aria-label="Show">
@@ -68,6 +74,7 @@ export function PricingSuggestions() {
                     <th scope="col">Cinema</th>
                     <th scope="col">Forecast</th>
                     <th scope="col">Suggestion</th>
+                    <th scope="col" className="num-col">That night</th>
                     <th scope="col">
                       <span className="visually-hidden">Details</span>
                     </th>
@@ -95,6 +102,13 @@ export function PricingSuggestions() {
                       </td>
                       <td>
                         <span className={`badge ${s.action === 'raise' ? 'badge-success' : 'badge-warning'}`}>{actionText(s)}</span>
+                      </td>
+                      <td className="num-col small">
+                        <strong className="num">+{gbp(s.impact.totalMinor)}</strong>
+                        <div className="muted num">
+                          {s.impact.admissions >= 0 ? '+' : ''}
+                          {s.impact.admissions} seats
+                        </div>
                       </td>
                       <td className="actions">
                         <button type="button" className="btn btn-ghost btn-sm" onClick={(e) => (e.stopPropagation(), setOpen(s))} aria-label={`Why Pulse suggests ${actionText(s)} for ${s.film.title}`}>

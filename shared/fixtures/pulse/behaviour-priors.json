@@ -1,0 +1,1546 @@
+{
+  "schema": "seatfold-pulse-behaviour-priors/1",
+  "generated": "2026-11-11",
+  "derivation": "docs/research/pulse-behaviour-evidence.md",
+  "notice": "Behaviour parameters for Pulse with their sources. No raw third-party data. 'usage': open = open licence or explicit reuse permission, cite the source; quote-with-attribution = published figure without an open licence, cite it and ask before showing it to operators as a default; literature = number reported in a paper, used as a cited starting prior; derived = Seatfold arithmetic on cited figures; assumption = no source found, replace with operator data. 'range' is a plausible interval, not a statistical confidence interval. All values are weak priors; shrink towards each operator's own data as it arrives.",
+  "sources": {
+    "einav-2007": {
+      "title": "Einav, L. (2007) Seasonality in the U.S. motion picture industry. RAND Journal of Economics 38(1), 127-145.",
+      "url": "http://web.stanford.edu/~leinav/pubs/RAND2007.pdf",
+      "access": "read",
+      "licence": "Figures quoted from the paper (US weekly national box office 1985-1999).",
+      "usage": "literature"
+    },
+    "davis-2001": {
+      "title": "Davis, P. (2001 working paper; published 2006, RAND Journal of Economics 37(4), 964-982) Spatial competition in retail markets: movie theaters.",
+      "url": "http://web.mit.edu/pjdavis/www/papers/movies.pdf",
+      "access": "read (working paper)",
+      "licence": "Figures quoted from the paper (US theatres 1996-1997).",
+      "usage": "literature"
+    },
+    "cc-2013": {
+      "title": "Competition Commission (2013) Cineworld/City Screen Inquiry: a research report prepared by GfK NOP. 21,797 online interviews, 25 UK cinemas.",
+      "url": "https://assets.publishing.service.gov.uk/media/5329dde2e5274a2268000213/report.pdf",
+      "access": "read",
+      "licence": "Published on GOV.UK; Open Government Licence v3.0 applies by GOV.UK default (no licence line in the PDF itself).",
+      "usage": "open"
+    },
+    "cnc-2026": {
+      "title": "CNC (2026) Les pratiques cinématographiques des Français en 2026. CinExpert survey (Vertigo), 15+.",
+      "url": "https://www.cnc.fr/documents/36995/2526340/Les+pratiques+cin%C3%A9matographiques+des+Fran%C3%A7ais+en+2026.pdf",
+      "access": "read",
+      "licence": "Reproduction authorised with the credit 'source CNC' (p.36).",
+      "usage": "open"
+    },
+    "cnc-2025-public": {
+      "title": "CNC (2025) Le public du cinéma en 2024. CinExpert survey (Vertigo), 3+.",
+      "url": "https://www.cnc.fr/documents/36995/2328824/Le+public+du+cin%C3%A9ma+en+2024.pdf",
+      "access": "read",
+      "licence": "Reproduction authorised with the credit 'source CNC'.",
+      "usage": "open"
+    },
+    "ho-rysman-wang-2020": {
+      "title": "Ho, C.-Y., Rysman, M. and Wang, Y. (2020) Demand for Performance Goods: Import Quotas in the Chinese Movie Market. NBER conference paper.",
+      "url": "https://conference.nber.org/conf_papers/f133054.pdf",
+      "access": "read",
+      "licence": "Figures quoted from the paper.",
+      "usage": "literature"
+    },
+    "ho-liang-weinberg-yan-2018": {
+      "title": "Ho, J., Liang, Y., Weinberg, C. and Yan, J. (2018) An empirical study of uniform and differential pricing in the movie theatrical market. Journal of Marketing Research 55, 414-431.",
+      "url": "https://conference.nber.org/conf_papers/f133054.pdf",
+      "access": "secondary (via Ho, Rysman and Wang 2020, p.38; original not opened)",
+      "licence": "Figure quoted second hand.",
+      "usage": "literature"
+    },
+    "deroos-mckenzie-2014": {
+      "title": "de Roos, N. and McKenzie, J. (2014) Cheap Tuesdays and the demand for cinema. International Journal of Industrial Organization 33, 93-109.",
+      "url": "https://doi.org/10.1016/j.ijindorg.2014.02.004",
+      "access": "secondary (elasticity via Ho, Rysman and Wang 2020, p.38); abstract",
+      "licence": "Figure quoted second hand.",
+      "usage": "literature"
+    },
+    "dalton-leung-2013": {
+      "title": "Dalton, J. and Leung, T. C. (2013) Strategic Decision-Making in Hollywood Release Gaps. MPRA Paper 52439.",
+      "url": "https://mpra.ub.uni-muenchen.de/52439/1/MPRA_paper_52439.pdf",
+      "access": "read",
+      "licence": "Figures quoted from the paper (17 countries, no UK).",
+      "usage": "literature"
+    },
+    "duan-gu-whinston-2008": {
+      "title": "Duan, W., Gu, B. and Whinston, A. B. (2008) The dynamics of online word-of-mouth and product sales: an empirical investigation of the movie industry. Journal of Retailing 84(2), 233-242.",
+      "url": "https://open.bu.edu/server/api/core/bitstreams/184a2ad3-5e93-46e2-a0d8-2ad522fb7cc4/content",
+      "access": "read (accepted manuscript)",
+      "licence": "Manuscript CC BY-NC-ND 4.0; only the reported figures are used, with citation.",
+      "usage": "literature"
+    },
+    "dellarocas-2004": {
+      "title": "Dellarocas, C., Awad, N. F. and Zhang, X. (2004 working paper; published as Dellarocas, Zhang and Awad 2007, Journal of Interactive Marketing 21(4), 23-45) Exploring the value of online reviews ... revenue forecasting.",
+      "url": "https://fravia.deadbsd.org/ccs.mit.edu/dell/papers/movieratings.pdf",
+      "access": "read (working paper on an unofficial mirror)",
+      "licence": "Figures quoted from the working paper.",
+      "usage": "literature"
+    },
+    "moon-2010": {
+      "title": "Moon, S., Bergey, P. K. and Iacobucci, D. (2010) Dynamic Effects Among Movie Ratings, Movie Revenues, and Viewer Satisfaction. Journal of Marketing 74(1), 108-121.",
+      "url": "https://cdn.vanderbilt.edu/vu-web/owen/files/publications/MovieRatings-JM2010.pdf",
+      "access": "read",
+      "licence": "Figures quoted from the paper.",
+      "usage": "literature"
+    },
+    "moul-2007": {
+      "title": "Moul, C. C. (2007) Measuring Word of Mouth's Impact on Theatrical Movie Admissions. Journal of Economics & Management Strategy 16(4), 859-892.",
+      "url": "https://doi.org/10.1111/j.1530-9134.2007.00160.x",
+      "access": "abstract",
+      "licence": "Figure from the abstract.",
+      "usage": "literature"
+    },
+    "gilchrist-sands-2016": {
+      "title": "Gilchrist, D. S. and Sands, E. G. (2016) Something to Talk About: Social Spillovers in Movie Consumption. JPE 124(5), 1339-1382.",
+      "url": "https://doi.org/10.1086/688177",
+      "access": "abstract",
+      "licence": "Figure from the abstract; full text blocked.",
+      "usage": "literature"
+    },
+    "price-2019": {
+      "title": "Price, S., Perry, R., Mantell, O., Trinder, J. and Pitts, S. (2019) Spontaneity and planning in arts attendance: insights from qualitative interviews and the Audience Finder database. Cultural Trends 28(2-3), 220-238.",
+      "url": "https://eprints.whiterose.ac.uk/147759/1/08_07_2019_Spontaneit.pdf",
+      "access": "read",
+      "licence": "CC BY 4.0.",
+      "usage": "open"
+    },
+    "blom-2020": {
+      "title": "Blom, D., Pendavingh, R. and Spieksma, F. (2020) Filling a theatre in times of corona. arXiv:2010.01981.",
+      "url": "https://arxiv.org/pdf/2010.01981",
+      "access": "read",
+      "licence": "arXiv distribution licence; reported figures used with citation.",
+      "usage": "literature"
+    },
+    "dcm-redc-2025": {
+      "title": "Digital Cinema Media and REDC (2025) Cinema: A Family Favourite. Survey of c.1,300 UK parents, September 2025.",
+      "url": "https://www.dcm.co.uk/uploads/documents/Cinema_-_A_Family_Favourite_%28DCM_x_REDC%29.pdf",
+      "access": "read",
+      "licence": "Industry publication, no open licence.",
+      "usage": "quote-with-attribution"
+    },
+    "dcms-ps-2025": {
+      "title": "DCMS (2025) Participation Survey 2024/25 annual publication, main report (England, adults 16+).",
+      "url": "https://www.gov.uk/government/statistics/participation-survey-2024-25-annual-publication/main-report-for-the-participation-survey-april-2024-to-march-2025",
+      "access": "read",
+      "licence": "Open Government Licence v3.0 (stated on the page).",
+      "usage": "open"
+    },
+    "oneday-2026": {
+      "title": "One Day Independent Research (2026) Cinema visit drivers. 1,000 UK cinemagoers aged 18-55, April 2026.",
+      "url": "https://oneday.agency/research/cinema-visit-drivers",
+      "access": "secondary (agency web page, no method published)",
+      "licence": "No licence; quote with attribution.",
+      "usage": "quote-with-attribution"
+    },
+    "dessy-gambaro-2008": {
+      "title": "Dessy, O. and Gambaro, M. (2008) Demand for movies in Europe and the effects of multiplex diffusion: a panel approach. DEMM working paper 2008-025, University of Milan.",
+      "url": "https://ideas.repec.org/p/mil/wpdepa/2008-025.html",
+      "access": "secondary (abstract summary; PDF empty)",
+      "licence": "Figure from the abstract.",
+      "usage": "literature"
+    },
+    "nationalcinemaday-2022": {
+      "title": "Cinema First / Comscore (2022) National Cinema Day, Saturday 3 September 2022, GBP 3 tickets: just over 1.46 million UK admissions; later press: about three times a normal day.",
+      "url": "https://celluloidjunkie.com/wire/audiences-flock-to-the-big-screen-to-celebrate-national-cinema-day/",
+      "access": "secondary (press)",
+      "licence": "Press figures.",
+      "usage": "quote-with-attribution"
+    },
+    "yi-kim-chung-2024": {
+      "title": "Yi, G., Kim, M. and Chung, H. S. (2024) The Revenue Impact of Differential Seat Pricing and Competition in the Movie Theater Market. Review of Industrial Organization 64(3).",
+      "url": "https://ideas.repec.org/a/kap/revind/v64y2024i3d10.1007_s11151-024-09944-2.html",
+      "access": "abstract",
+      "licence": "Figure from the abstract.",
+      "usage": "literature"
+    },
+    "orbach-einav-2007": {
+      "title": "Orbach, B. Y. and Einav, L. (2007) Uniform prices for differentiated goods: the case of the movie-theater industry. International Review of Law and Economics 27(2), 129-153.",
+      "url": "http://web.stanford.edu/~leinav/pubs/IRLE2007.pdf",
+      "access": "read (working paper version)",
+      "licence": "Figures quoted from the paper (which cites Hofmann 2003 for margins).",
+      "usage": "literature"
+    },
+    "amc-2024": {
+      "title": "AMC Entertainment Holdings (2025) Q4 and full-year 2024 results, Exhibit 99.1 to Form 8-K, 'Segment Other Data'; and Form 10-K for 2024.",
+      "url": "https://investor.amctheatres.com/sec-filings/all-sec-filings/content/0001411579-25-000037/amc-20250225xex99d1.htm",
+      "access": "read (via fetch tool)",
+      "licence": "Public company filing; figures quoted with attribution.",
+      "usage": "quote-with-attribution"
+    },
+    "vista-2023": {
+      "title": "Vista Group (2023) The impact of concession discounts on moviegoer spend. Randomised trial, 28,000+ cinemagoers, two US exhibitors, Nov 2021 to Mar 2022.",
+      "url": "https://vista.co/insights/the-impact-of-concession-discounts-on-moviegoer-spend",
+      "access": "read",
+      "licence": "Vendor research, no licence; quote with attribution.",
+      "usage": "quote-with-attribution"
+    },
+    "everyman-2019": {
+      "title": "Everyman Media Group (2020) 2019 results: average ticket price GBP 11.37, spend per head GBP 7.13.",
+      "url": "https://ukinvestor.foxrobinson.com/?p=25944",
+      "access": "secondary (search summary of RNS)",
+      "licence": "Public company disclosure.",
+      "usage": "quote-with-attribution"
+    },
+    "chen-2023": {
+      "title": "Chen, X., Xie, W., Chen, X. and He, P. (2023) Weather shocks and movie recreation demand in China. Energy Economics 127.",
+      "url": "https://ccap.pku.edu.cn/docs/2024-01/20240105105618405277.pdf",
+      "access": "read",
+      "licence": "Figures quoted from the paper (49 Chinese cities, 2015-2017).",
+      "usage": "literature"
+    },
+    "izquierdo-2016": {
+      "title": "Izquierdo Sanchez, S., Elliott, C. and Simmons, R. (2016) Substitution between leisure activities: a quasi-natural experiment using sports viewing and cinema attendance. Applied Economics 48.",
+      "url": "https://ueaeprints.uea.ac.uk/id/eprint/57258/1/filmsportspaperDecember2015_2rr.pdf",
+      "access": "read (accepted version)",
+      "licence": "Figures quoted from the paper (Spain, UK, Finland, Belgium 2007-2012).",
+      "usage": "literature"
+    },
+    "choi-2015": {
+      "title": "Choi, P., Boatwright, P. and Smith, M. D. (2015) The Perfect Storm: Using Snowstorms to Analyze the Effect of Theatrical Attendance on the Demand for Subsequently Released DVDs. CMU working paper.",
+      "url": "https://www.cmu.edu/entertainment-analytics/documents/technology-impact-on-entertainment/the-perfect-storm.pdf",
+      "access": "read in part",
+      "licence": "Direction of effect only.",
+      "usage": "literature"
+    },
+    "stephens-2006": {
+      "title": "Stephens, M. (2006) Paycheque receipt and the timing of consumption. Economic Journal 116(513), 680-701.",
+      "url": "https://econpapers.repec.org/RePEc:ecj:econjl:v:116:y:2006:i:513:p:680-701",
+      "access": "abstract",
+      "licence": "Direction of effect only.",
+      "usage": "literature"
+    },
+    "mpaa-2017": {
+      "title": "MPAA (2017) Theatrical Market Statistics 2016.",
+      "url": "https://www.motionpictures.org/wp-content/uploads/2017/03/2016-Theatrical-Market-Statistics-Report-2.pdf",
+      "access": "read",
+      "licence": "Copyright; quote with attribution.",
+      "usage": "quote-with-attribution"
+    },
+    "fader-hardie-lee-2005": {
+      "title": "Fader, P. S., Hardie, B. G. S. and Lee, K. L. (2005) 'Counting your customers' the easy way: an alternative to the Pareto/NBD model. Marketing Science 24(2), 275-284.",
+      "url": "http://www.brucehardie.com/papers/018/fader_et_al_mksc_05.pdf",
+      "access": "read",
+      "licence": "Method only.",
+      "usage": "literature"
+    },
+    "christenfeld-1995": {
+      "title": "Christenfeld, N. (1995) Choices from identical options. Psychological Science 6(1), 50-55.",
+      "url": "https://doi.org/10.1111/j.1467-9280.1995.tb00304.x",
+      "access": "secondary (summaries)",
+      "licence": "Figures quoted second hand.",
+      "usage": "literature"
+    },
+    "weyers-2006": {
+      "title": "Weyers, P., Milnik, A., Müller, C. and Pauli, P. (2006) How to choose a seat in theatres: always sit on the right side? Laterality 11, 181-193.",
+      "url": "https://doi.org/10.1080/13576500500430711",
+      "access": "secondary",
+      "licence": "Direction only.",
+      "usage": "literature"
+    },
+    "seatfold": {
+      "title": "Seatfold derivation or engineering assumption; see docs/research/pulse-behaviour-evidence.md for the working.",
+      "url": "docs/research/pulse-behaviour-evidence.md",
+      "access": "n/a",
+      "licence": "Our own work.",
+      "usage": "derived"
+    }
+  },
+  "parameters": {
+    "choice": {
+      "description": "Same-night choice between shows and films, and the outside option (not going). lambda values use the convention in backend/src/intelligence/choice.ts (1 = shows add up, near 0 = they only split the same audience); lambda = 1 - sigma of a nested logit.",
+      "sigmaFilmsVsOutside": {
+        "value": 0.52,
+        "range": [
+          0.45,
+          0.58
+        ],
+        "unit": "nested-logit correlation (0-1)",
+        "source": [
+          "einav-2007"
+        ],
+        "ref": "p.137 table under Figure 3 (0.524, s.e. 0.030; 0.577 without film effects)",
+        "usage": "literature",
+        "confidence": "medium",
+        "note": "US weekly national data, one nest for all films."
+      },
+      "lambdaCross": {
+        "value": 0.5,
+        "range": [
+          0.4,
+          0.75
+        ],
+        "unit": "dissimilarity (0-1)",
+        "source": [
+          "einav-2007",
+          "seatfold"
+        ],
+        "ref": "1 - sigma; 0.75 kept as the upper sensitivity case",
+        "usage": "derived",
+        "confidence": "medium",
+        "mapsTo": "choice.ts DEFAULT_CHOICE.lambdaCross (working value 0.75)"
+      },
+      "lambdaFilm": {
+        "value": 0.3,
+        "range": [
+          0.15,
+          0.45
+        ],
+        "unit": "dissimilarity (0-1)",
+        "source": [
+          "cc-2013",
+          "seatfold"
+        ],
+        "ref": "Assumption informed by 'film first' 62-75% (CC 2013 Figure 15, p.22)",
+        "usage": "assumption",
+        "confidence": "low",
+        "mapsTo": "choice.ts DEFAULT_CHOICE.lambdaFilm (working value 0.35)"
+      },
+      "spillToSameFilm": {
+        "value": 0.5,
+        "range": [
+          0.3,
+          0.7
+        ],
+        "unit": "share of turned-away demand",
+        "source": [
+          "cc-2013",
+          "seatfold"
+        ],
+        "ref": "Assumption; 75% of multiplex customers pick the film first (CC 2013 p.22); 59.7% of French bookers book to secure the chosen show (CNC 2026 p.11)",
+        "usage": "assumption",
+        "confidence": "low",
+        "mapsTo": "choice.ts DEFAULT_CHOICE.spillToSameFilm"
+      },
+      "outsideShareIfVenueUnavailableMultiplex": {
+        "value": 0.08,
+        "range": [
+          0.03,
+          0.1
+        ],
+        "unit": "share of admissions",
+        "source": [
+          "cc-2013"
+        ],
+        "ref": "Figure 22 p.31; Table 6 p.32",
+        "usage": "open",
+        "confidence": "high",
+        "note": "Stated: would not have gone to the cinema at all if all the operator's cinemas were closed."
+      },
+      "outsideShareIfVenueUnavailableArthouse": {
+        "value": 0.25,
+        "range": [
+          0.15,
+          0.35
+        ],
+        "unit": "share of admissions",
+        "source": [
+          "cc-2013"
+        ],
+        "ref": "Figure 22 p.31; Table 6 p.32",
+        "usage": "open",
+        "confidence": "high"
+      },
+      "weeklyOutsideOptionShare": {
+        "value": 0.96,
+        "range": [
+          0.85,
+          0.97
+        ],
+        "unit": "share of market not attending in a week",
+        "source": [
+          "einav-2007",
+          "ho-rysman-wang-2020"
+        ],
+        "ref": "Einav Figure 2 p.133 (industry share 0.03-0.15); Ho, Rysman and Wang p.14 (outside 96%)",
+        "usage": "literature",
+        "confidence": "medium"
+      },
+      "filmChosenFirstShare": {
+        "value": {
+          "multiplex": 0.75,
+          "arthouse": 0.62,
+          "france": 0.821
+        },
+        "range": [
+          0.62,
+          0.82
+        ],
+        "unit": "share of visits",
+        "source": [
+          "cc-2013",
+          "cnc-2026"
+        ],
+        "ref": "CC 2013 Figure 15 p.22; CNC 2026 p.13",
+        "usage": "open",
+        "confidence": "high"
+      },
+      "dayChosenFirstShare": {
+        "value": {
+          "multiplex": 0.66,
+          "arthouse": 0.43
+        },
+        "range": [
+          0.43,
+          0.66
+        ],
+        "unit": "share of visits",
+        "source": [
+          "cc-2013"
+        ],
+        "ref": "Figure 16 p.23",
+        "usage": "open",
+        "confidence": "high"
+      },
+      "distanceUtilityPerMile": {
+        "value": {
+          "linear": -0.114,
+          "quadratic": 0.002
+        },
+        "range": [
+          -0.15,
+          -0.08
+        ],
+        "unit": "utility per mile (logit scale)",
+        "source": [
+          "davis-2001"
+        ],
+        "ref": "Table 4 p.13",
+        "usage": "literature",
+        "confidence": "medium",
+        "note": "US 1996-1997; refit on member postcodes."
+      },
+      "relativePullByDistanceMiles": {
+        "value": {
+          "0": 1.0,
+          "5": 0.59,
+          "10": 0.39,
+          "15": 0.28
+        },
+        "range": null,
+        "unit": "relative choice weight",
+        "source": [
+          "davis-2001",
+          "seatfold"
+        ],
+        "ref": "exp(-0.114 d + 0.002 d^2)",
+        "usage": "derived",
+        "confidence": "medium"
+      },
+      "journeyTimeShares": {
+        "value": {
+          "le10": 0.2,
+          "11to20": 0.37,
+          "21to30": 0.25,
+          "31to40": 0.105,
+          "gt40": 0.075
+        },
+        "range": null,
+        "unit": "share of visits by minutes travelled",
+        "source": [
+          "cc-2013"
+        ],
+        "ref": "Figure 11 p.19 (mean of Cineworld and Picturehouse); average just over 20 minutes p.18",
+        "usage": "open",
+        "confidence": "high"
+      },
+      "shareWithin30Minutes": {
+        "value": 0.82,
+        "range": [
+          0.82,
+          0.935
+        ],
+        "unit": "share of visits",
+        "source": [
+          "cc-2013",
+          "cnc-2026"
+        ],
+        "ref": "CC 2013 Figure 11 (UK 0.82); CNC 2026 p.22 (France 0.935)",
+        "usage": "open",
+        "confidence": "high"
+      },
+      "sameCinemaLoyaltyShare": {
+        "value": 0.7,
+        "range": [
+          0.7,
+          0.83
+        ],
+        "unit": "share always using the same cinema",
+        "source": [
+          "cnc-2026"
+        ],
+        "ref": "p.23",
+        "usage": "open",
+        "confidence": "medium"
+      },
+      "weeklyRetentionEurope": {
+        "value": 0.62,
+        "range": [
+          0.59,
+          0.7
+        ],
+        "unit": "share of last week's admissions kept",
+        "source": [
+          "dalton-leung-2013",
+          "einav-2007"
+        ],
+        "ref": "Dalton and Leung Table 3 p.18 (decay elasticity -0.35 to -0.53 in Europe); Einav p.138 (37% weekly decline)",
+        "usage": "literature",
+        "confidence": "medium",
+        "note": "Corroborates the BFI-based 0.55 typical retention in priors.json."
+      },
+      "shareOfTotalInFirstTwoWeeks": {
+        "value": 0.55,
+        "range": [
+          0.5,
+          0.59
+        ],
+        "unit": "share of a film's total gross",
+        "source": [
+          "dalton-leung-2013"
+        ],
+        "ref": "Table 2 p.17 (Germany 0.51, Belgium 0.50, Spain 0.59)",
+        "usage": "literature",
+        "confidence": "medium"
+      }
+    },
+    "wordOfMouth": {
+      "description": "Diffusion and updating a film's trajectory from early sales.",
+      "bassWeeklyDiscountDelta": {
+        "value": 0.3,
+        "range": [
+          0.2,
+          0.5
+        ],
+        "unit": "weekly discount factor on publicity and word of mouth",
+        "source": [
+          "dellarocas-2004"
+        ],
+        "ref": "Working paper p.18 (eq. 1 p.16; average R2 0.976)",
+        "usage": "literature",
+        "confidence": "medium"
+      },
+      "buzzVolumeElasticitySameDay": {
+        "value": 0.63,
+        "range": [
+          0.33,
+          0.63
+        ],
+        "unit": "elasticity of daily admissions to daily buzz volume",
+        "source": [
+          "duan-gu-whinston-2008"
+        ],
+        "ref": "Table 5; text PDF p.18",
+        "usage": "literature",
+        "confidence": "medium"
+      },
+      "buzzVolumeElasticityLags": {
+        "value": {
+          "day1": 0.17,
+          "day2": 0.1
+        },
+        "range": null,
+        "unit": "elasticity",
+        "source": [
+          "duan-gu-whinston-2008"
+        ],
+        "ref": "Table 5; PDF p.18",
+        "usage": "literature",
+        "confidence": "medium"
+      },
+      "weekendDayMultiplier": {
+        "value": 1.88,
+        "range": [
+          1.62,
+          2.75
+        ],
+        "unit": "admissions on a weekend day vs a weekday, same film",
+        "source": [
+          "duan-gu-whinston-2008"
+        ],
+        "ref": "PDF p.20 (3SLS coefficient 0.88 read by the authors as +88%; OLS 1.01)",
+        "usage": "literature",
+        "confidence": "medium",
+        "note": "US 2003-2004."
+      },
+      "openingShockCarryOver": {
+        "value": 1.0,
+        "range": [
+          0.8,
+          1.0
+        ],
+        "unit": "extra later-weekend viewers per extra opening viewer, five weekends",
+        "source": [
+          "gilchrist-sands-2016"
+        ],
+        "ref": "Abstract ('doubled over the following five weekends')",
+        "usage": "literature",
+        "confidence": "low"
+      },
+      "wordOfMouthShareOfVariation": {
+        "value": 0.1,
+        "range": null,
+        "unit": "share of variation in consumer expectations",
+        "source": [
+          "moul-2007"
+        ],
+        "ref": "Abstract",
+        "usage": "literature",
+        "confidence": "low"
+      },
+      "sequelLiftWeeks": {
+        "value": 2,
+        "range": [
+          1,
+          2
+        ],
+        "unit": "weeks",
+        "source": [
+          "moon-2010"
+        ],
+        "ref": "Table 3 p.115",
+        "usage": "literature",
+        "confidence": "medium"
+      }
+    },
+    "occasions": {
+      "description": "Who people go with, party sizes and when.",
+      "companionMixUkMultiplex": {
+        "value": {
+          "couple": 0.4,
+          "family": 0.31,
+          "friends": 0.21,
+          "alone": 0.07,
+          "other": 0.02
+        },
+        "range": null,
+        "unit": "share of visitors (last visit)",
+        "source": [
+          "cc-2013"
+        ],
+        "ref": "Figure 7 p.15",
+        "usage": "open",
+        "confidence": "high",
+        "note": "2013, Cineworld members and registered customers."
+      },
+      "companionMixUkArthouse": {
+        "value": {
+          "couple": 0.5,
+          "family": 0.08,
+          "friends": 0.26,
+          "alone": 0.15,
+          "other": 0.01
+        },
+        "range": null,
+        "unit": "share of visitors (last visit)",
+        "source": [
+          "cc-2013"
+        ],
+        "ref": "Figure 7 p.15",
+        "usage": "open",
+        "confidence": "high"
+      },
+      "companionMixFrance2026": {
+        "value": {
+          "alone": 0.192,
+          "couple": 0.323,
+          "family": 0.338,
+          "friends": 0.148
+        },
+        "range": null,
+        "unit": "share of visitors (last visit)",
+        "source": [
+          "cnc-2026"
+        ],
+        "ref": "p.5 and chart p.10",
+        "usage": "open",
+        "confidence": "medium"
+      },
+      "soloShare": {
+        "value": 0.07,
+        "range": [
+          0.07,
+          0.23
+        ],
+        "unit": "share of visitors",
+        "source": [
+          "cc-2013",
+          "cnc-2026",
+          "oneday-2026"
+        ],
+        "ref": "CC 2013 multiplex 0.07, arthouse 0.15; CNC 0.192; One Day 0.22 (multi-select)",
+        "usage": "open",
+        "confidence": "high"
+      },
+      "soloShareWeeklyCinemagoers": {
+        "value": 0.333,
+        "range": null,
+        "unit": "share of visits",
+        "source": [
+          "cnc-2026"
+        ],
+        "ref": "p.9",
+        "usage": "open",
+        "confidence": "medium"
+      },
+      "soloShareTeens15to19": {
+        "value": 0.128,
+        "range": null,
+        "unit": "share of visits",
+        "source": [
+          "cnc-2026"
+        ],
+        "ref": "p.9",
+        "usage": "open",
+        "confidence": "medium"
+      },
+      "partySizeDistributionMultiplex": {
+        "value": {
+          "1": 0.16,
+          "2": 0.57,
+          "3": 0.12,
+          "4": 0.105,
+          "5plus": 0.045
+        },
+        "range": null,
+        "unit": "share of parties (bookings)",
+        "source": [
+          "cc-2013",
+          "seatfold"
+        ],
+        "ref": "Derived from CC 2013 Figure 7 with assumed family (mean 3.35) and friends (mean 3.15) sizes",
+        "usage": "derived",
+        "confidence": "low"
+      },
+      "partySizeDistributionLiveVenueNL": {
+        "value": {
+          "1": 0.18,
+          "2": 0.7,
+          "3": 0.06,
+          "4": 0.06
+        },
+        "range": null,
+        "unit": "share of reservations",
+        "source": [
+          "blom-2020"
+        ],
+        "ref": "p.18",
+        "usage": "literature",
+        "confidence": "medium",
+        "note": "Dutch concert venue reservations; a check, not a cinema figure."
+      },
+      "meanPartySize": {
+        "value": 2.2,
+        "range": [
+          1.98,
+          2.5
+        ],
+        "unit": "people per booking",
+        "source": [
+          "cc-2013",
+          "cnc-2026",
+          "blom-2020",
+          "seatfold"
+        ],
+        "ref": "Derived: 2.25 (CC 2013 multiplex), 1.98 (CNC 2026), 1.98 (Blom et al.)",
+        "usage": "derived",
+        "confidence": "medium"
+      },
+      "dayOfWeekIndexMultiplex": {
+        "value": {
+          "mon": 0.42,
+          "tue": 0.76,
+          "wed": 0.67,
+          "thu": 0.67,
+          "fri": 0.93,
+          "sat": 2.36,
+          "sun": 1.18
+        },
+        "range": null,
+        "unit": "visits relative to an average day (1.0)",
+        "source": [
+          "cc-2013",
+          "seatfold"
+        ],
+        "ref": "Derived from Figure 8 p.16 (recalled days only)",
+        "usage": "derived",
+        "confidence": "medium",
+        "note": "Last-visit recall, 2013; use as the weekday prior before a venue has history."
+      },
+      "dayOfWeekIndexArthouse": {
+        "value": {
+          "mon": 0.54,
+          "tue": 0.81,
+          "wed": 0.9,
+          "thu": 1.08,
+          "fri": 0.9,
+          "sat": 1.71,
+          "sun": 1.08
+        },
+        "range": null,
+        "unit": "visits relative to an average day (1.0)",
+        "source": [
+          "cc-2013",
+          "seatfold"
+        ],
+        "ref": "Derived from Figure 8 p.16 (recalled days only)",
+        "usage": "derived",
+        "confidence": "medium"
+      },
+      "sessionTimeMixFrance": {
+        "value": {
+          "morning": 0.051,
+          "afternoon13to19": 0.534,
+          "earlyEvening19to21": 0.318,
+          "late21plus": 0.089
+        },
+        "range": null,
+        "unit": "share of visitors",
+        "source": [
+          "cnc-2026"
+        ],
+        "ref": "Table p.24",
+        "usage": "open",
+        "confidence": "low",
+        "note": "French programming differs from UK programming."
+      },
+      "familyShareDaytimeSchoolHolidays": {
+        "value": 0.45,
+        "range": [
+          0.3,
+          0.6
+        ],
+        "unit": "share of daytime admissions",
+        "source": [
+          "cc-2013",
+          "dcm-redc-2025",
+          "seatfold"
+        ],
+        "ref": "Assumption; CC 2013 multiplex family share 0.31 across all visits; DCM 2025 p.8 holiday intent 84-89%",
+        "usage": "assumption",
+        "confidence": "low"
+      },
+      "familyShareMultiplierByCertificate": {
+        "value": {
+          "U": 1.6,
+          "PG": 1.5,
+          "12A": 0.9,
+          "15": 0.2,
+          "18": 0.0
+        },
+        "range": null,
+        "unit": "multiplier on the venue's family share",
+        "source": [
+          "seatfold"
+        ],
+        "ref": "Assumption",
+        "usage": "assumption",
+        "confidence": "low"
+      },
+      "adultsAttendingCinemaLast12MonthsEngland": {
+        "value": 0.54,
+        "range": null,
+        "unit": "share of adults 16+",
+        "source": [
+          "dcms-ps-2025"
+        ],
+        "ref": "Main report Figure 2.4",
+        "usage": "open",
+        "confidence": "high"
+      }
+    },
+    "decisionTiming": {
+      "description": "When people decide and book.",
+      "decisionSameDay": {
+        "value": 0.276,
+        "range": [
+          0.27,
+          0.3
+        ],
+        "unit": "share of visits",
+        "source": [
+          "cnc-2026"
+        ],
+        "ref": "Chart p.13",
+        "usage": "open",
+        "confidence": "medium"
+      },
+      "decisionDayBefore": {
+        "value": 0.335,
+        "range": [
+          0.33,
+          0.35
+        ],
+        "unit": "share of visits",
+        "source": [
+          "cnc-2026"
+        ],
+        "ref": "Chart p.13",
+        "usage": "open",
+        "confidence": "medium"
+      },
+      "decisionSeveralDaysAhead": {
+        "value": 0.389,
+        "range": [
+          0.35,
+          0.39
+        ],
+        "unit": "share of visits",
+        "source": [
+          "cnc-2026"
+        ],
+        "ref": "Chart p.13",
+        "usage": "open",
+        "confidence": "medium"
+      },
+      "bookedInAdvanceShare": {
+        "value": 0.417,
+        "range": [
+          0.256,
+          0.417
+        ],
+        "unit": "share of visits",
+        "source": [
+          "cnc-2026"
+        ],
+        "ref": "p.11; table p.12 (25.6% in 2019)",
+        "usage": "open",
+        "confidence": "medium",
+        "note": "UK multiplexes likely higher."
+      },
+      "advanceBookerTiming": {
+        "value": {
+          "severalDaysAhead": 0.201,
+          "dayBefore": 0.349,
+          "sameDay": 0.45
+        },
+        "range": null,
+        "unit": "share of advance bookers",
+        "source": [
+          "cnc-2026"
+        ],
+        "ref": "Chart p.12",
+        "usage": "open",
+        "confidence": "medium"
+      },
+      "shareSoldBeforeShowDay": {
+        "value": 0.23,
+        "range": [
+          0.15,
+          0.4
+        ],
+        "unit": "share of final admissions",
+        "source": [
+          "cnc-2026",
+          "seatfold"
+        ],
+        "ref": "Derived: 0.417 x (0.201 + 0.349)",
+        "usage": "derived",
+        "confidence": "low"
+      },
+      "sameDayDecisionWeeklyCinemagoers": {
+        "value": 0.356,
+        "range": null,
+        "unit": "share of visits",
+        "source": [
+          "cnc-2026"
+        ],
+        "ref": "p.13",
+        "usage": "open",
+        "confidence": "medium"
+      },
+      "severalDaysAheadOccasionalCinemagoers": {
+        "value": 0.501,
+        "range": null,
+        "unit": "share of visits",
+        "source": [
+          "cnc-2026"
+        ],
+        "ref": "p.13",
+        "usage": "open",
+        "confidence": "medium"
+      },
+      "leadTimeByPartySize": {
+        "value": "larger parties book earlier; 1-2 ticket bookings are latest",
+        "range": null,
+        "unit": "direction",
+        "source": [
+          "price-2019"
+        ],
+        "ref": "PDF p.13, Figure 4",
+        "usage": "open",
+        "confidence": "medium"
+      },
+      "leadTimeByPrice": {
+        "value": "dearer tickets sell earlier: 47% of GBP 30+ vs 9% of under GBP 5 sold three months out",
+        "range": null,
+        "unit": "direction and example",
+        "source": [
+          "price-2019"
+        ],
+        "ref": "PDF p.10, Figure 2",
+        "usage": "open",
+        "confidence": "medium"
+      }
+    },
+    "price": {
+      "description": "Price sensitivity at different levels. Use the level that matches the decision.",
+      "marketElasticity": {
+        "value": -0.4,
+        "range": [
+          -1.0,
+          -0.2
+        ],
+        "unit": "elasticity",
+        "source": [
+          "dessy-gambaro-2008",
+          "cc-2013",
+          "seatfold"
+        ],
+        "ref": "Dessy and Gambaro abstract (-0.26); CC 2013 Figure 21 derived (-0.6 multiplex, -0.2 arthouse)",
+        "usage": "literature",
+        "confidence": "medium",
+        "mapsTo": "choice.ts DEFAULT_CHOICE.priceElasticity (-0.7) if the nest already reallocates demand between shows"
+      },
+      "venueElasticityMultiplex": {
+        "value": -2.0,
+        "range": [
+          -7.0,
+          -1.0
+        ],
+        "unit": "elasticity (rivals unchanged)",
+        "source": [
+          "cc-2013",
+          "seatfold"
+        ],
+        "ref": "Figure 21 p.29: 36% lost on a 5% rise, stated",
+        "usage": "derived",
+        "confidence": "low"
+      },
+      "venueElasticityArthouse": {
+        "value": -0.8,
+        "range": [
+          -1.6,
+          -0.3
+        ],
+        "unit": "elasticity (rivals unchanged)",
+        "source": [
+          "cc-2013",
+          "seatfold"
+        ],
+        "ref": "Figure 21 p.29: 8% lost on a 5% rise, stated",
+        "usage": "derived",
+        "confidence": "low"
+      },
+      "showOwnPriceElasticity": {
+        "value": -2.0,
+        "range": [
+          -4.0,
+          -1.2
+        ],
+        "unit": "elasticity (other shows unchanged)",
+        "source": [
+          "ho-liang-weinberg-yan-2018",
+          "ho-rysman-wang-2020",
+          "deroos-mckenzie-2014"
+        ],
+        "ref": "Product elasticity 5-6.5 (Hong Kong), calibrated 4 (China), about 2.5 (Sydney)",
+        "usage": "literature",
+        "confidence": "low",
+        "mapsTo": "choice.ts priceElasticity when applied to one show without nesting"
+      },
+      "blanketDiscountDayResponse": {
+        "value": 3.0,
+        "range": [
+          2.0,
+          3.5
+        ],
+        "unit": "admissions multiplier at about 40% of the usual price, one day",
+        "source": [
+          "nationalcinemaday-2022"
+        ],
+        "ref": "1.46m admissions on 3 Sep 2022; 'about three times normal' (press)",
+        "usage": "quote-with-attribution",
+        "confidence": "low",
+        "note": "Includes pull-forward and publicity; derived arc elasticity about -1.2."
+      },
+      "seatZonePricingRevenueGain": {
+        "value": 0.106,
+        "range": [
+          0.05,
+          0.11
+        ],
+        "unit": "revenue change",
+        "source": [
+          "yi-kim-chung-2024"
+        ],
+        "ref": "Abstract",
+        "usage": "literature",
+        "confidence": "low",
+        "note": "Korea, no change in tickets sold."
+      },
+      "exhibitorMarginConcessionsVsTickets": {
+        "value": {
+          "concessions": 0.85,
+          "tickets": 0.45
+        },
+        "range": null,
+        "unit": "gross margin share",
+        "source": [
+          "orbach-einav-2007"
+        ],
+        "ref": "Working paper p.20 (citing Hofmann 2003)",
+        "usage": "literature",
+        "confidence": "low"
+      },
+      "memberAdmissionsRetainedAfter5pcFeeRise": {
+        "value": {
+          "multiplex": 0.7,
+          "arthouse": 0.91
+        },
+        "range": null,
+        "unit": "share of member admissions",
+        "source": [
+          "cc-2013"
+        ],
+        "ref": "Executive summary p.3",
+        "usage": "open",
+        "confidence": "medium"
+      },
+      "memberShareOfAdmissions": {
+        "value": {
+          "ukMultiplex2013": 0.13,
+          "ukArthouse2013": 0.16,
+          "usAmcStubs2024": 0.49
+        },
+        "range": null,
+        "unit": "share of admissions",
+        "source": [
+          "cc-2013",
+          "amc-2024"
+        ],
+        "ref": "CC 2013 p.28; AMC 10-K 2024",
+        "usage": "open",
+        "confidence": "medium",
+        "note": "AMC figure is loyalty membership including paid and free tiers; quote with attribution."
+      }
+    },
+    "seats": {
+      "description": "Seat choice. Thin evidence; fit a conditional logit on Seatfold's own booking order.",
+      "middleHalfOfRowShare": {
+        "value": 0.65,
+        "range": [
+          0.6,
+          0.71
+        ],
+        "unit": "share choosing the middle half when free",
+        "source": [
+          "christenfeld-1995"
+        ],
+        "ref": "Secondary: 71% middle of four shelves, 60% middle of four stalls",
+        "usage": "literature",
+        "confidence": "low"
+      },
+      "lateralBias": {
+        "value": 0.0,
+        "range": [
+          0.0,
+          0.05
+        ],
+        "unit": "extra share choosing the right half",
+        "source": [
+          "weyers-2006"
+        ],
+        "ref": "Secondary: rightward bias on standard seating charts",
+        "usage": "literature",
+        "confidence": "low"
+      },
+      "preferredDepthFromScreen": {
+        "value": 0.65,
+        "range": [
+          0.55,
+          0.75
+        ],
+        "unit": "fraction of auditorium depth",
+        "source": [
+          "seatfold"
+        ],
+        "ref": "Assumption",
+        "usage": "assumption",
+        "confidence": "low"
+      },
+      "gapBetweenPartiesUnderHalfFull": {
+        "value": 1,
+        "range": [
+          0,
+          2
+        ],
+        "unit": "seats",
+        "source": [
+          "seatfold"
+        ],
+        "ref": "Assumption",
+        "usage": "assumption",
+        "confidence": "low"
+      }
+    },
+    "externalDrivers": {
+      "description": "Weather, sport, payday. Ship only what a venue backtest confirms.",
+      "footballTournamentWeeks": {
+        "value": 0.85,
+        "range": [
+          0.82,
+          0.95
+        ],
+        "unit": "admissions multiplier",
+        "source": [
+          "izquierdo-2016"
+        ],
+        "ref": "PDF p.14-15; Table 4 p.26 (DD -0.250, -0.295)",
+        "usage": "literature",
+        "confidence": "medium"
+      },
+      "homeNationMatchOverlappingSlot": {
+        "value": 0.6,
+        "range": [
+          0.4,
+          0.95
+        ],
+        "unit": "admissions multiplier",
+        "source": [
+          "seatfold"
+        ],
+        "ref": "Assumption informed by Euro 2020 final day and trade reports",
+        "usage": "assumption",
+        "confidence": "low"
+      },
+      "weeklyMaxTemperaturePerDegree": {
+        "value": -0.01,
+        "range": [
+          -0.015,
+          -0.005
+        ],
+        "unit": "proportional change per degree C",
+        "source": [
+          "izquierdo-2016",
+          "seatfold"
+        ],
+        "ref": "Table 4 p.26 (-0.012 on per-capita revenue, means 0.80-1.26)",
+        "usage": "derived",
+        "confidence": "low"
+      },
+      "extremeHeat": {
+        "value": 0.97,
+        "range": [
+          0.94,
+          1.0
+        ],
+        "unit": "admissions multiplier",
+        "source": [
+          "chen-2023"
+        ],
+        "ref": "PDF p.2 and p.6 (-3.38% audiences)",
+        "usage": "literature",
+        "confidence": "low"
+      },
+      "extremeColdOrSnow": {
+        "value": 0.92,
+        "range": [
+          0.85,
+          0.97
+        ],
+        "unit": "admissions multiplier",
+        "source": [
+          "chen-2023",
+          "choi-2015"
+        ],
+        "ref": "Chen et al. PDF p.6 (-7.87% below -5 C)",
+        "usage": "literature",
+        "confidence": "low"
+      },
+      "rain": {
+        "value": {
+          "light": 0.985,
+          "moderate": 0.976,
+          "heavy": 0.965,
+          "torrential": 0.954
+        },
+        "range": [
+          0.95,
+          1.05
+        ],
+        "unit": "admissions multiplier vs no rain",
+        "source": [
+          "chen-2023"
+        ],
+        "ref": "PDF p.6",
+        "usage": "literature",
+        "confidence": "low",
+        "note": "China; UK sign not established."
+      },
+      "paydayWeekend": {
+        "value": 1.0,
+        "range": [
+          1.0,
+          1.05
+        ],
+        "unit": "admissions multiplier",
+        "source": [
+          "stephens-2006"
+        ],
+        "ref": "Abstract (direction only)",
+        "usage": "literature",
+        "confidence": "low",
+        "note": "Test in backtest; do not ship."
+      }
+    },
+    "habit": {
+      "description": "Frequency and lapsing.",
+      "frequencySegmentsShareOfCinemagoers": {
+        "value": {
+          "weeklyPlus": 0.033,
+          "monthlyPlus": 0.246,
+          "lessThanMonthly": 0.721
+        },
+        "range": null,
+        "unit": "share of cinemagoers",
+        "source": [
+          "cnc-2025-public"
+        ],
+        "ref": "Chart p.6",
+        "usage": "open",
+        "confidence": "medium"
+      },
+      "frequencySegmentsShareOfAdmissions": {
+        "value": {
+          "weeklyPlus": 0.242,
+          "monthlyPlus": 0.466,
+          "lessThanMonthly": 0.292
+        },
+        "range": null,
+        "unit": "share of admissions",
+        "source": [
+          "cnc-2025-public"
+        ],
+        "ref": "Chart p.6; p.8",
+        "usage": "open",
+        "confidence": "medium"
+      },
+      "visitsPerYearBySegment": {
+        "value": {
+          "weeklyPlus": 31.6,
+          "monthlyPlus": 8.2,
+          "lessThanMonthly": 1.75
+        },
+        "range": null,
+        "unit": "visits a year",
+        "source": [
+          "cnc-2025-public",
+          "seatfold"
+        ],
+        "ref": "p.8 (31.6); others derived from p.6-8",
+        "usage": "derived",
+        "confidence": "medium"
+      },
+      "meanGapDaysBySegment": {
+        "value": {
+          "weeklyPlus": 12,
+          "monthlyPlus": 45,
+          "lessThanMonthly": 210
+        },
+        "range": null,
+        "unit": "days",
+        "source": [
+          "seatfold"
+        ],
+        "ref": "Derived from visits a year",
+        "usage": "derived",
+        "confidence": "medium"
+      },
+      "frequentShareOfTicketsUS": {
+        "value": 0.48,
+        "range": null,
+        "unit": "share of tickets bought by people going monthly or more",
+        "source": [
+          "mpaa-2017"
+        ],
+        "ref": "p.13 (11% of population)",
+        "usage": "quote-with-attribution",
+        "confidence": "medium"
+      },
+      "visitsPerSixMonthsRegisteredUk": {
+        "value": {
+          "multiplex": 3.5,
+          "arthouse": 4.3
+        },
+        "range": [
+          2.3,
+          5.3
+        ],
+        "unit": "visits to one site per six months",
+        "source": [
+          "cc-2013"
+        ],
+        "ref": "Figure 3 p.10; Table 4 p.11",
+        "usage": "open",
+        "confidence": "high"
+      },
+      "churnRatioThreshold": {
+        "value": 2.0,
+        "range": [
+          1.5,
+          3.0
+        ],
+        "unit": "days since last visit / own median gap",
+        "source": [
+          "seatfold"
+        ],
+        "ref": "Current Pulse rule; no external evidence; replace with BG/NBD",
+        "usage": "assumption",
+        "confidence": "low"
+      }
+    },
+    "concessions": {
+      "description": "Food and drink.",
+      "anyFoodDrinkShareMultiplex": {
+        "value": 0.51,
+        "range": [
+          0.45,
+          0.6
+        ],
+        "unit": "share of customers buying for themselves",
+        "source": [
+          "cc-2013"
+        ],
+        "ref": "Figure 12 p.19 (49% bought nothing)",
+        "usage": "open",
+        "confidence": "high"
+      },
+      "anyFoodDrinkShareArthouse": {
+        "value": 0.69,
+        "range": [
+          0.6,
+          0.75
+        ],
+        "unit": "share of customers buying for themselves",
+        "source": [
+          "cc-2013"
+        ],
+        "ref": "Figure 12 p.19 (31% bought nothing)",
+        "usage": "open",
+        "confidence": "high"
+      },
+      "basketMixMultiplex": {
+        "value": {
+          "snacks": 0.37,
+          "softDrink": 0.3,
+          "hotDrink": 0.04,
+          "alcohol": 0.02,
+          "meal": 0.01
+        },
+        "range": null,
+        "unit": "share of customers buying each",
+        "source": [
+          "cc-2013"
+        ],
+        "ref": "Figure 12 p.19",
+        "usage": "open",
+        "confidence": "high"
+      },
+      "basketMixArthouse": {
+        "value": {
+          "snacks": 0.25,
+          "softDrink": 0.17,
+          "hotDrink": 0.17,
+          "alcohol": 0.33,
+          "meal": 0.04
+        },
+        "range": null,
+        "unit": "share of customers buying each",
+        "source": [
+          "cc-2013"
+        ],
+        "ref": "Figure 12 p.19",
+        "usage": "open",
+        "confidence": "high"
+      },
+      "popcornRate": {
+        "value": 0.383,
+        "range": [
+          0.3,
+          0.45
+        ],
+        "unit": "share of visitors",
+        "source": [
+          "cnc-2026"
+        ],
+        "ref": "p.9",
+        "usage": "open",
+        "confidence": "medium"
+      },
+      "popcornRate15to24": {
+        "value": 0.537,
+        "range": null,
+        "unit": "share of visitors",
+        "source": [
+          "cnc-2026"
+        ],
+        "ref": "p.9",
+        "usage": "open",
+        "confidence": "medium"
+      },
+      "foodPerHeadToTicketPriceRatio": {
+        "value": 0.55,
+        "range": [
+          0.45,
+          0.7
+        ],
+        "unit": "ratio",
+        "source": [
+          "amc-2024",
+          "everyman-2019"
+        ],
+        "ref": "AMC 2024 Segment Other Data (US 8.30/12.22, International 4.80/9.57); Everyman 2019 (7.13/11.37)",
+        "usage": "quote-with-attribution",
+        "confidence": "medium"
+      },
+      "attachRatePrior": {
+        "value": {
+          "multiplex": 0.45,
+          "arthouseOrPremium": 0.65
+        },
+        "range": [
+          0.35,
+          0.7
+        ],
+        "unit": "share of admissions with a food or drink purchase",
+        "source": [
+          "cc-2013",
+          "seatfold"
+        ],
+        "ref": "Derived from CC 2013 Figure 12, rounded down for children in family groups",
+        "usage": "derived",
+        "confidence": "medium",
+        "mapsTo": "food.ts attach-rate shrink target (currently 0.35)"
+      },
+      "popcornDiscountSpendUplift": {
+        "value": 0.08,
+        "range": [
+          0.02,
+          0.18
+        ],
+        "unit": "change in spend per admission (low-spend segment)",
+        "source": [
+          "vista-2023"
+        ],
+        "ref": "Trial results (5.2% and 11.1% averages)",
+        "usage": "quote-with-attribution",
+        "confidence": "low"
+      }
+    }
+  }
+}

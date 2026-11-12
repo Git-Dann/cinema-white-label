@@ -197,4 +197,23 @@ describe('Pulse (integration)', () => {
     await api(app, admin).post(`${A}/simulate`).send({ venueId, change: { kind: 'add', filmId: f[0].film.id, auditoriumId: f[0].screen.id, time: '25:00' } }).expect(422);
     await api(app, kestrel).post(`${A}/simulate`).send({ venueId, change: { kind: 'remove', screeningId: f[0].screeningId } }).expect(403);
   });
+
+  it('only suggests prices the night model says pay, and briefs the AI layer with measured impact', async () => {
+    const pr = (await api(app, admin).get(`${A}/pricing`).expect(200)).body;
+    expect(pr.checked).toBeGreaterThanOrEqual(pr.suggestions.length);
+    expect(pr.rejected).toBe(pr.checked - pr.suggestions.length);
+    for (const s of pr.suggestions) expect(s.impact.totalMinor).toBeGreaterThan(0);
+    const b = (await api(app, admin).get(`${A}/brief`).expect(200)).body;
+    expect(b.basis.note).toContain('demo');
+    expect(b.horizonDays).toBe(7);
+    expect(Array.isArray(b.items)).toBe(true);
+    const priced = b.items.filter((i: any) => i.impactMinor !== null);
+    expect(b.totalImpactMinor).toBe(priced.reduce((a: number, i: any) => a + i.impactMinor, 0));
+    for (const i of b.items) {
+      expect(i.action.href).toMatch(/^\//);
+      expect(i.confidence).toBeGreaterThan(0);
+      expect(i.confidence).toBeLessThanOrEqual(100);
+    }
+    await api(app, kestrel).get(`${A}/brief`).expect(403);
+  });
 });

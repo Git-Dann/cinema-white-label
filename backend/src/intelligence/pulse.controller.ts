@@ -80,6 +80,12 @@ export class PulseAdminController {
     return this.pulse.model(t);
   }
 
+  /** The week's best moves for the AI layer: simulated impact, confidence and where to act. */
+  @Get('brief')
+  brief(@CurrentTenant() t: Tenant) {
+    return this.pulse.brief(t);
+  }
+
   /** What-if for one cinema-day. Read-only: it changes nothing, so any portal role may run it. */
   @Post('simulate')
   @HttpCode(200)

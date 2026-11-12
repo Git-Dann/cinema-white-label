@@ -2,11 +2,14 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { AiPanel, aiInsightsFor, Bars, build, forecastFor, Kpi, Mix, num, Range, RANGES, RangePicker, TrendChart } from '@/components/insights';
+import { PulseBrief, tenantPath } from '@/lib/api';
+import { useSession, useTenantData } from '@/lib/session';
+import { AiPanel, PulseAiPanel, aiInsightsFor, Bars, build, forecastFor, Kpi, Mix, num, Range, RANGES, RangePicker, TrendChart } from '@/components/insights';
 
 /**
  * Overview block: a short version of Insights with an "AI insights" layer that can
- * be switched on. Sample data only, and labelled as such on screen.
+ * be switched on. The charts are sample data, labelled as such. The AI panel runs on
+ * Pulse's brief when Pulse has one, and falls back to labelled sample insights.
  */
 export function PerformancePreview() {
   const [range, setRange] = useState<Range>('30d');
@@ -15,6 +18,9 @@ export function PerformancePreview() {
   const r = RANGES.find((x) => x.id === range)!;
   const forecast = useMemo(() => (ai ? forecastFor(data.trend, r.unit, Math.max(4, Math.round(data.trend.length * 0.25))) : []), [ai, data, r.unit]);
   const insights = useMemo(() => aiInsightsFor(range), [range]);
+  // With Pulse, the AI layer works from Pulse's brief; without it, it shows labelled sample text.
+  const { tenant } = useSession();
+  const brief = useTenantData<PulseBrief>(ai ? tenantPath(tenant, '/pulse/brief') : null);
 
   return (
     <section className={`perf${ai ? ' perf-ai' : ''}`} aria-labelledby="perf-title">
@@ -36,7 +42,7 @@ export function PerformancePreview() {
         </div>
       </header>
 
-      {ai && <AiPanel key={range} insights={insights} />}
+      {ai && (brief.data && brief.data.items.length > 0 ? <PulseAiPanel brief={brief.data} /> : !brief.loading && <AiPanel key={range} insights={insights} />)}
 
       <div className="stat-grid insights-kpis">
         {data.kpis.map((k, i) => (

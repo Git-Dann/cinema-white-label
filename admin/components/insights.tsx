@@ -1,6 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import type { PulseBrief } from '@/lib/api';
 
 /*
  * Insights: a visual preview of the analytics an operator gets. Every figure on
@@ -441,6 +443,64 @@ export function AiPanel({ insights }: { insights: AiInsight[] }) {
                 <span className="muted small">{i.confidence}% confidence</span>
               </span>
               <button className="btn btn-sm" type="button" disabled title="Preview only">{i.action}</button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * The AI layer running on Pulse: the same panel, filled with Pulse's brief instead of sample
+ * text. Money totals only count moves Pulse simulated; the rest show as checks. Each action
+ * opens the page where the operator does it.
+ */
+export function PulseAiPanel({ brief }: { brief: PulseBrief }) {
+  const v = useTween(brief.totalImpactMinor);
+  const demo = (brief.basis.demoShows ?? 0) > 0;
+  const priced = brief.items.filter((i) => i.impactMinor !== null);
+  return (
+    <section className="ai-panel" aria-label="AI insights from Pulse">
+      <div className="ai-panel-head">
+        <div>
+          <div className="ai-kicker">
+            <span className="ai-spark" aria-hidden="true">✦</span> AI insights · from Pulse{demo ? ' · demo history' : ''}
+          </div>
+          {priced.length > 0 ? (
+            <>
+              <div className="ai-total num">+{gbp(v)}</div>
+              <div className="muted small">
+                Expected extra this week if you act on {priced.length === 1 ? 'the move' : `these ${priced.length} moves`}, tickets and food, checked against the rest of each night
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="ai-total">Hold steady</div>
+              <div className="muted small">No price or screen change would earn more this week. {brief.items.length ? `${brief.items.length} thing${brief.items.length === 1 ? '' : 's'} to check.` : ''}</div>
+            </>
+          )}
+        </div>
+      </div>
+      <ul className="ai-list">
+        {brief.items.map((i, n) => (
+          <li key={i.id} className="ai-item" style={{ animationDelay: `${120 + n * 90}ms` }}>
+            <div className="ai-item-top">
+              <span className="ai-tag">{i.kind}</span>
+              {i.impactMinor !== null ? <span className="ai-impact num">+{gbp(i.impactMinor, true)}</span> : <span className="ai-impact muted">Check</span>}
+            </div>
+            <h3 className="ai-title">{i.title}</h3>
+            <p className="muted small">{i.detail}</p>
+            <div className="ai-item-foot">
+              <span className="ai-conf" aria-label={`${i.confidence}% confidence`}>
+                <span className="ai-conf-bar">
+                  <span style={{ width: `${i.confidence}%` }} />
+                </span>
+                <span className="muted small">{i.confidence}% confidence</span>
+              </span>
+              <Link className="btn btn-sm" href={i.action.href}>
+                {i.action.label}
+              </Link>
             </div>
           </li>
         ))}
