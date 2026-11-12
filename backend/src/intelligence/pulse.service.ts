@@ -117,10 +117,10 @@ export class PulseService {
     const note = !model.shows
       ? 'No history yet: forecasts use industry priors only.'
       : model.liveShows && model.demoShows
-        ? `Based on ${model.liveShows} live shows and ${model.demoShows} demo shows over ${weeks} weeks.`
+        ? `Based on ${model.liveShows} live shows and ${model.demoShows} demo shows over ${weeks} week${weeks === 1 ? '' : 's'}.`
         : model.demoShows
-          ? `Based on ${weeks} weeks of demo history (${model.demoShows} shows).`
-          : `Based on ${weeks} weeks of your sales (${model.liveShows} shows).`;
+          ? `Based on ${weeks} week${weeks === 1 ? '' : 's'} of demo history (${model.demoShows} shows).`
+          : `Based on ${weeks} week${weeks === 1 ? '' : 's'} of your sales (${model.liveShows} shows).`;
     return { liveShows: model.liveShows, demoShows: model.demoShows, weeks, note };
   }
 
