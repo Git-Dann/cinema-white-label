@@ -58,6 +58,12 @@ export class PulseAdminController {
     return this.pulse.forecasts(t, { venueId, from, to });
   }
 
+  /** What people are saying about a film on Bluesky this week: counts, trend and live posts. */
+  @Get('conversation/:filmId')
+  conversation(@CurrentTenant() t: Tenant, @Param('filmId') filmId: string) {
+    return this.pulse.conversation(t, filmId);
+  }
+
   @Get('pricing')
   pricing(@CurrentTenant() t: Tenant) {
     return this.pulse.pricing(t);

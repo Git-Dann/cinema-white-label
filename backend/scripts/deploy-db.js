@@ -96,6 +96,8 @@ function main(env = process.env) {
       const { SLOT_BASE } = require('../dist/intelligence/pulse');
       const { DEMO_TENANTS } = require('../dist/intelligence/outcomes');
       console.log(`deploy-db: ${await ensureDemoInterest(prisma, DEMO_TENANTS, SLOT_BASE)} demo films given audience interest (labelled demo).`);
+      const { ensureDemoConversation } = require('../dist/intelligence/conversation');
+      console.log(`deploy-db: ${await ensureDemoConversation(prisma, DEMO_TENANTS)} demo films given social conversation (labelled demo).`);
       await prisma.$disconnect();
       return;
     }

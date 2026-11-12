@@ -44,6 +44,16 @@ export default function TodayPage() {
   const staffing = useTenantData<PulseStaffing>(site ? tenantPath(tenant, `/pulse/staffing?venueId=${site.id}&date=${date}`) : null);
   const food = useTenantData<PulseFood>(site ? tenantPath(tenant, `/pulse/food?venueId=${site.id}&date=${date}`) : null);
   const forecastFor = useMemo(() => new Map((pulse.data?.forecasts ?? []).filter((f) => f.localDate === date).map((f) => [f.screeningId, f])), [pulse.data, date]);
+  // Films on today whose social talk is climbing: expect more walk-ups than the booking pace shows.
+  const talk = useMemo(() => {
+    const seen = new Map<string, number>();
+    for (const f of forecastFor.values()) {
+      const d = f.drivers.find((x) => x.label === 'People are talking');
+      const m = d?.explanation.match(/climbing \(([\d.]+) times/);
+      if (m) seen.set(f.film.title, Number(m[1]));
+    }
+    return [...seen.entries()].sort((a, b) => b[1] - a[1]);
+  }, [forecastFor]);
   const [why, setWhy] = useState<PulseForecast | null>(null);
   const time = (iso: string) => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: tz }).format(new Date(iso));
 
@@ -120,6 +130,14 @@ export default function TodayPage() {
             <h2 className="h3">Pulse forecast</h2>
             <PulseBasisLine basis={staffing.data?.basis ?? food.data?.basis} />
           </header>
+          {talk.length > 0 && (
+            <p className="today-talk small">
+              <span className="pulse-mark" aria-hidden="true" />
+              <span>
+                People are talking more about {talk.map(([t, m]) => `${t} (${m.toFixed(1)}×)`).join(', ')} than last week on Bluesky. Expect extra walk-ups: staffing and food below already include it, so keep a till spare.
+              </span>
+            </p>
+          )}
           <div className="today-pulse">
             <section className="card ins-card" aria-labelledby="staff-h">
               <header className="ins-head">
