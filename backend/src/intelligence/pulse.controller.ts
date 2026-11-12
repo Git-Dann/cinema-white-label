@@ -102,6 +102,12 @@ export class PulseAdminController {
     return this.pulse.model(t);
   }
 
+  /** Film runs: weekly retention fitted per film, with a grow, hold, trim or end call for next week. */
+  @Get('films')
+  filmRuns(@CurrentTenant() t: Tenant) {
+    return this.pulse.filmRuns(t);
+  }
+
   /** The week's best moves for the AI layer: simulated impact, confidence and where to act. */
   @Get('brief')
   brief(@CurrentTenant() t: Tenant) {

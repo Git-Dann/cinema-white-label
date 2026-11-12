@@ -5018,3 +5018,11 @@ dialog.sheet.sheet-narrow {
 .ask-suggest {
   flex-wrap: wrap;
 }
+
+.film-runs td:first-child {
+  max-width: 460px;
+}
+.film-runs .card,
+.pulse-section > .card {
+  padding: var(--s2) var(--s3);
+}

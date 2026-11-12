@@ -12,6 +12,7 @@ import { demoBaskets, demoCustomers } from './demo';
 import { interestStrength, median } from './interest';
 import { backtest, BacktestResult, calibrateRanges } from './backtest';
 import { Change, DEFAULT_CHOICE, NightShow, simulate } from './choice';
+import { filmRun, FilmRun, weeklyRows } from './filmrun';
 import { attachRates, MixItem, prepForShow, productMix } from './food';
 import { CustomerHistory, scoreCustomers, segmentSummary } from './loyalty';
 import { DEMO_TENANTS, loadBankHolidays } from './outcomes';
@@ -513,6 +514,21 @@ export class PulseService {
         evidence: { filmId, shows: n, averageShows: avgShows, interest: fc.interest },
       });
     }
+    // Film runs: what next week's programme should do with each film.
+    for (const f of (await this.filmRuns(t)).films) {
+      if (f.verdict === 'hold' || f.showsNext7Days === 0) continue;
+      items.push({
+        id: `run:${f.filmId}`,
+        kind: 'Programme',
+        title: f.verdict === 'grow' ? `Give ${f.title} more shows in week ${f.nextWeek}` : f.verdict === 'trim' ? `Trim ${f.title} in week ${f.nextWeek}` : `Consider ending ${f.title}'s run`,
+        detail: f.reason,
+        impactMinor: null,
+        admissions: null,
+        confidence: Math.round(50 + 35 * f.dataWeight),
+        action: { label: 'Plan shows', href: '/next-weeks' },
+        evidence: { filmId: f.filmId, retention: f.retention, priorRetention: f.priorRetention, projectedPull: f.projectedPull, weeks: f.weeks },
+      });
+    }
     // Staffing gaps today and tomorrow.
     for (const venueId of ctx.venues.keys()) {
       for (const offset of [0, 1]) {
@@ -557,6 +573,28 @@ export class PulseService {
       totalImpactMinor: top.reduce((a, i) => a + (i.impactMinor ?? 0), 0),
       items: top,
     };
+  }
+
+  /**
+   * Film runs: for each film that played in the last fortnight, how fast its audience is falling
+   * away here (fitted against its genre prior) and what that means for next week's shows.
+   */
+  async filmRuns(t: Tenant) {
+    const ctx = await this.context(t);
+    const now = this.clock.now();
+    const recent = new Set(ctx.outcomes.filter((o) => o.startsAt.getTime() >= now.getTime() - 14 * DAY).map((o) => o.filmId));
+    const upcoming = await this.prisma.screening.groupBy({ by: ['filmId'], where: { tenantId: t.id, status: 'SCHEDULED', startsAt: { gte: now, lt: new Date(now.getTime() + 7 * DAY) } }, _count: { _all: true } });
+    const runs: (FilmRun & { showsNext7Days: number })[] = [];
+    for (const filmId of recent) {
+      const fc = ctx.films.get(filmId);
+      if (!fc || fc.hidden) continue;
+      const rows = weeklyRows(ctx.outcomes.filter((o) => o.filmId === filmId));
+      if (!rows.length) continue;
+      const nowWeek = filmWeekOf(fc.film.releaseDate, now);
+      runs.push({ ...filmRun(fc.film, rows, nowWeek), showsNext7Days: upcoming.find((u) => u.filmId === filmId)?._count._all ?? 0 });
+    }
+    const order = { grow: 0, trim: 1, end: 2, hold: 3 } as const;
+    return { basis: this.basis(ctx.model), films: runs.sort((a, b) => order[a.verdict] - order[b.verdict] || b.projectedPull - a.projectedPull) };
   }
 
   /** Cinemas and their screens, for Ask Pulse to turn names into ids. */

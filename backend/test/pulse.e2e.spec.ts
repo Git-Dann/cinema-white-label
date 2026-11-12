@@ -264,9 +264,25 @@ describe('Pulse (integration)', () => {
     expect(JSON.parse(results[0].content).items).toBeDefined();
     expect(JSON.parse(results[1].content).error).toBe('Invalid input');
     expect(seen[0].model).toBe('claude-opus-5-5');
-    expect(seen[0].tools.map((t: any) => t.name)).toEqual(['pulse_brief', 'pulse_venues', 'pulse_forecasts', 'pulse_simulate', 'pulse_accuracy', 'pulse_learned']);
+    expect(seen[0].tools.map((t: any) => t.name)).toEqual(['pulse_brief', 'pulse_venues', 'pulse_forecasts', 'pulse_simulate', 'pulse_accuracy', 'pulse_film_runs', 'pulse_learned']);
     expect(await assistant.runTool(tenant, 'drop_tables', {})).toEqual({ error: 'Unknown tool drop_tables' });
     const venues: any = await assistant.runTool(tenant, 'pulse_venues', {});
     expect(venues[0].screens.length).toBeGreaterThan(0);
+  });
+
+  it('fits each film run against its genre and calls next week, labelled with its basis', async () => {
+    const r = (await api(app, admin).get(`${A}/films`).expect(200)).body;
+    expect(r.basis.note).toContain('demo');
+    expect(r.films.length).toBeGreaterThan(0);
+    for (const f of r.films) {
+      expect(['grow', 'hold', 'trim', 'end']).toContain(f.verdict);
+      expect(f.retention).toBeGreaterThan(0);
+      expect(f.retention).toBeLessThan(1);
+      expect(f.dataWeight).toBeGreaterThanOrEqual(0);
+      expect(f.dataWeight).toBeLessThanOrEqual(1);
+      expect(f.nextWeek).toBeGreaterThan(f.weeks[f.weeks.length - 1].filmWeek - 1);
+      expect(typeof f.reason).toBe('string');
+    }
+    await api(app, kestrel).get(`${A}/films`).expect(403);
   });
 });

@@ -5,7 +5,7 @@ import { ErrorNote, Loading, PageHeader } from '@/components/ui';
 import { num } from '@/components/insights';
 import { TileHit } from '@/components/Sheet';
 import { ConfidenceChip, ForecastBar, ForecastSheet, PaceChip, paceText, PulseBasisLine } from '@/components/pulse';
-import { PulseForecast, PulseForecasts, tenantPath } from '@/lib/api';
+import { PulseFilmRuns, PulseForecast, PulseForecasts, tenantPath } from '@/lib/api';
 import { useCinemaScope } from '@/lib/cinema-scope';
 import { useSession, useTenantData } from '@/lib/session';
 import { dayLabel, forecast, hoursNeeded, KIND_COLOUR, ROTA_HOURS, SLATE, START, STOCK, weekdayLabel } from '@/lib/slate';
@@ -141,6 +141,76 @@ function ProgrammeForecast({ venueId }: { venueId: string }) {
   );
 }
 
+const VERDICT: Record<PulseFilmRuns['films'][number]['verdict'], { label: string; badge: string }> = {
+  grow: { label: 'More shows', badge: 'badge-success' },
+  hold: { label: 'Hold', badge: 'badge-neutral' },
+  trim: { label: 'Fewer shows', badge: 'badge-warning' },
+  end: { label: 'Consider ending', badge: 'badge-danger' },
+};
+
+/** Each film's run so far: how much of its audience it keeps a week, and the call for next week. */
+function FilmRuns() {
+  const { tenant } = useSession();
+  const res = useTenantData<PulseFilmRuns>(tenantPath(tenant, '/pulse/films'));
+  const films = res.data?.films ?? [];
+  return (
+    <section className="pulse-section" aria-labelledby="film-runs">
+      <header className="pulse-section-head">
+        <h2 id="film-runs" className="h3">Film runs</h2>
+        <PulseBasisLine basis={res.data?.basis} />
+      </header>
+      <ErrorNote message={res.error} />
+      {res.loading && !res.data ? (
+        <Loading />
+      ) : !films.length ? (
+        <p className="muted small">No films have played in the last two weeks.</p>
+      ) : (
+        <div className="card">
+          <div className="table-wrap">
+            <table className="table film-runs">
+              <thead>
+                <tr>
+                  <th scope="col">Film</th>
+                  <th scope="col" className="num-col">Opened</th>
+                  <th scope="col" className="num-col">Keeps each week</th>
+                  <th scope="col" className="num-col">Next week</th>
+                  <th scope="col" className="num-col">Shows booked</th>
+                  <th scope="col">Call</th>
+                </tr>
+              </thead>
+              <tbody>
+                {films.map((f) => (
+                  <tr key={f.filmId} title={f.reason}>
+                    <td>
+                      <strong>{f.title}</strong>
+                      <div className="muted small">{f.reason}</div>
+                    </td>
+                    <td className="num num-col small">{f.openingVsUsual != null ? `${Math.round(f.openingVsUsual * 100)}%` : '–'}</td>
+                    <td className="num num-col small">
+                      {Math.round(f.retention * 100)}%<div className="muted">{f.dataWeight >= 0.5 ? 'from its run here' : 'mostly genre'}</div>
+                    </td>
+                    <td className="num num-col small">
+                      Week {f.nextWeek}
+                      <div className="muted">{f.projectedPull.toFixed(1)}× average</div>
+                    </td>
+                    <td className="num num-col small">{f.showsNext7Days}</td>
+                    <td>
+                      <span className={`badge ${VERDICT[f.verdict].badge}`}>{VERDICT[f.verdict].label}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="muted small pulse-foot-note">
+            Opened is the first week against a usual opening (100% is typical). Keeps each week starts from the film's genre and shifts to its own run as weeks come in. Next week is against the average film on your programme.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function NextWeeksPage() {
   const { venue, venues } = useCinemaScope();
   const site = venue?.name ?? venues[0]?.name ?? 'your cinema';
@@ -166,6 +236,7 @@ export default function NextWeeksPage() {
     <>
       <PageHeader title="Next 6 weeks" description={`${site} · every programmed show forecast by Pulse, then the weeks beyond`} />
       {siteId && <ProgrammeForecast venueId={siteId} />}
+      <FilmRuns />
 
       <header className="pulse-section-head nw-later-head">
         <h2 className="h3">Weeks beyond the programme</h2>

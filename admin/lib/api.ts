@@ -670,6 +670,27 @@ export interface PulsePricing {
   suggestions: PulsePriceSuggestion[];
 }
 
+export interface PulseFilmRun {
+  filmId: string;
+  title: string;
+  weeks: { filmWeek: number; shows: number; admissions: number; pull: number }[];
+  openingPull: number | null;
+  openingVsUsual: number | null;
+  priorRetention: number;
+  retention: number;
+  dataWeight: number;
+  nextWeek: number;
+  projectedPull: number;
+  verdict: 'grow' | 'hold' | 'trim' | 'end';
+  reason: string;
+  showsNext7Days: number;
+}
+
+export interface PulseFilmRuns {
+  basis: PulseBasis;
+  films: PulseFilmRun[];
+}
+
 export interface PulseBriefItem {
   id: string;
   kind: string;

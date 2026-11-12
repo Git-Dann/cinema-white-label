@@ -3055,6 +3055,25 @@
         ]
       }
     },
+    "/v1/admin/t/{tenant}/pulse/films": {
+      "get": {
+        "operationId": "PulseAdminController_filmRuns",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Pulse"
+        ]
+      }
+    },
     "/v1/admin/t/{tenant}/pulse/brief": {
       "get": {
         "operationId": "PulseAdminController_brief",
