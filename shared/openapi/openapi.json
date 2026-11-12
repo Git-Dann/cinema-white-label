@@ -2785,6 +2785,42 @@
         ]
       }
     },
+    "/v1/admin/t/{tenant}/pulse/ask": {
+      "get": {
+        "operationId": "PulseAdminController_askStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Pulse"
+        ]
+      },
+      "post": {
+        "operationId": "PulseAdminController_ask",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Pulse"
+        ]
+      }
+    },
     "/v1/admin/t/{tenant}/pulse/forecasts": {
       "get": {
         "operationId": "PulseAdminController_forecasts",
@@ -3003,6 +3039,63 @@
     "/v1/admin/t/{tenant}/pulse/model": {
       "get": {
         "operationId": "PulseAdminController_model",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Pulse"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/pulse/brief": {
+      "get": {
+        "operationId": "PulseAdminController_brief",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Pulse"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/pulse/simulate": {
+      "post": {
+        "operationId": "PulseAdminController_simulate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Pulse"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/pulse/accuracy": {
+      "get": {
+        "operationId": "PulseAdminController_accuracy",
         "parameters": [],
         "responses": {
           "200": {
