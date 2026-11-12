@@ -376,7 +376,7 @@ p {
   margin: var(--s1) 0 var(--s4);
   flex-wrap: wrap;
 }
-.page-header .muted {
+.page-header > div > .muted {
   margin: 6px 0 0;
   max-width: 68ch;
   font-size: 14.5px;
@@ -4894,9 +4894,12 @@ dialog.sheet.sheet-narrow {
 }
 .pulse-adjust-bar i.up {
   background: var(--success);
+  /* Square where the bar meets the centre line, rounded at its free end. */
+  border-radius: 0 4px 4px 0;
 }
 .pulse-adjust-bar i.down {
   background: var(--warning);
+  border-radius: 4px 0 0 4px;
 }
 .pulse-adjust-value {
   text-align: right;

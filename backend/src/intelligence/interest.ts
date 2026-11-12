@@ -122,14 +122,14 @@ export async function refreshInterest(db: Db, tenantId: string, now: Date, fetch
   let unmatched = 0;
   let failed = 0;
   for (const f of films) {
-    if (f.interest?.source === 'demo') continue;
+    // Demo figures stand in only until a real article is found: real films always get real page views.
     try {
-      let article = f.interest?.article ?? null;
-      let series = f.interest?.series ?? false;
+      let article = f.interest?.source === 'wikipedia' ? f.interest.article : null;
+      let series = f.interest?.source === 'wikipedia' ? f.interest.series : false;
       if (!article) {
         const hit = parseWikidata(await fetcher.wikidata(wikidataQuery(f.title, f.releaseDate.getUTCFullYear())));
         if (!hit) {
-          unmatched++;
+          unmatched++; // keeps any demo figures (a fictional demo film has no article)
           continue;
         }
         article = hit.article;

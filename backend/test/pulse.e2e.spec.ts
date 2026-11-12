@@ -166,6 +166,10 @@ describe('Pulse (integration)', () => {
       const before = queries.length;
       await refreshInterest(prisma, tenant.id, now, fetcher);
       expect(queries.filter((q) => q.includes('"Interest Test Film"@en')).length).toBe(queries.slice(0, before).filter((q) => q.includes('"Interest Test Film"@en')).length);
+      // A film carrying demo figures is upgraded once a real article is found.
+      await prisma.filmInterest.update({ where: { filmId: film.id }, data: { source: 'demo', article: null, views: 5 } });
+      await refreshInterest(prisma, tenant.id, now, fetcher);
+      expect(await prisma.filmInterest.findUniqueOrThrow({ where: { filmId: film.id } })).toMatchObject({ source: 'wikipedia', article: 'Interest Test Film', views: 2000 });
     } finally {
       await prisma.film.deleteMany({ where: { id: { in: [film.id, other.id] } } });
     }
