@@ -21,6 +21,7 @@ public final class AppModel {
     public private(set) var comingSoon: [Film] = []
     /// Live offers for the selected cinema. Empty hides the Offers section.
     public private(set) var promotions: [Promotion] = []
+    public private(set) var recommendations: RecommendationList = .empty
     /// Points balance and history. `program == nil` hides rewards.
     public private(set) var loyalty: LoyaltySummary = .none
     public private(set) var membership: Membership?
@@ -109,7 +110,9 @@ public final class AppModel {
             (nowShowing, comingSoon, venues) = try await (n, c, v)
             loadError = nil
             if selectedVenueID == nil || selectedVenue == nil { selectedVenueID = favouriteVenues.first?.id ?? venues.first?.id }
-            await loadPromotions()
+            async let promos: Void = loadPromotions()
+            async let recs: Void = loadRecommendations()
+            _ = await (promos, recs)
         } catch {
             loadError = (error as? APIError)?.message ?? "We couldn't load films right now."
         }
@@ -148,6 +151,17 @@ public final class AppModel {
     /// Offers are optional content: a failure leaves the section hidden rather than erroring the home screen.
     public func loadPromotions() async {
         promotions = (try? await service.promotions(venueId: selectedVenueID)) ?? []
+    }
+
+    /// Optional content: a failure leaves the "You might like" row hidden.
+    public func loadRecommendations() async {
+        recommendations = (try? await service.recommendations()) ?? .empty
+    }
+
+    /// Picks the app can show, leaving out films already booked.
+    public var recommendedFilms: [RecommendationList.Resolved] {
+        let booked = Set(tickets.bookings.map(\.film.id))
+        return recommendations.resolved(against: nowShowing + comingSoon, excluding: booked)
     }
 
     public func reloadVenues(near latitude: Double? = nil, longitude: Double? = nil, query: String? = nil) async throws -> [Venue] {

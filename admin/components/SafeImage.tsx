@@ -17,6 +17,14 @@ export function SafeImage({ src, fallback = null, className, style, onLoad, ...r
   const [attempt, setAttempt] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  // Reset when the source changes. This must run before the cache check below: React reuses
+  // the same <img> when a list re-renders with new films, and a cached image never fires onLoad again.
+  useEffect(() => {
+    setAttempt(0);
+    setLoaded(false);
+    setFailed(false);
+  }, [src]);
+
   // An image already in the browser cache can finish before React attaches onLoad;
   // check it once mounted so it never stays invisible.
   const ref = useRef<HTMLImageElement | null>(null);
@@ -24,12 +32,6 @@ export function SafeImage({ src, fallback = null, className, style, onLoad, ...r
     const img = ref.current;
     if (img && img.complete && img.naturalWidth > 0) setLoaded(true);
   });
-
-  useEffect(() => {
-    setAttempt(0);
-    setLoaded(false);
-    setFailed(false);
-  }, [src]);
 
   if (!src || failed) return <>{fallback}</>;
 

@@ -23,6 +23,9 @@ import { CONCESSIONS, VOUCHERS } from '../src/fixtures/commerce';
 import { ensureFixtureProductImages } from '../src/fixtures/product-images';
 import { ensureFixtureVenueImages } from '../src/fixtures/venue-images';
 import { ensureFixturePromotionImages } from '../src/fixtures/promotion-images';
+import { DEMO_TENANTS, ensureDemoHistory } from '../src/intelligence/outcomes';
+import { ensureDemoInterest } from '../src/intelligence/interest';
+import { SLOT_BASE } from '../src/intelligence/pulse';
 import { ensureFixtureMenuSpecials, fixtureProductData } from '../src/fixtures/menu-specials';
 import { DEFAULT_SEAT_CATEGORIES } from '@cinema/contracts';
 import { TENANTS } from '../src/fixtures/tenants';
@@ -269,6 +272,8 @@ async function main() {
   console.log(`\nProduct images: ${await ensureFixtureProductImages(prisma)} demo products given artwork`);
   console.log(`Cinema photos: ${await ensureFixtureVenueImages(prisma)} demo cinemas given a photo`);
   console.log(`Offer banners: ${await ensureFixturePromotionImages(prisma)} demo offers given a photo`);
+  console.log(`Pulse: ${await ensureDemoHistory(prisma)} demo show outcomes (labelled demo)`);
+  console.log(`Pulse: ${await ensureDemoInterest(prisma, DEMO_TENANTS, SLOT_BASE)} demo films given audience interest (labelled demo)`);
   console.log('\nDev logins (admin portal):');
   console.log('  platform@cinema.example / platform-dev-password');
   for (const t of TENANTS) console.log(`  admin@${t.slug}.example / operator-dev-password`);

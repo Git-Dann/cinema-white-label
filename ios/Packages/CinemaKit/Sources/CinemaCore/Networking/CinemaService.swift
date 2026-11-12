@@ -17,6 +17,8 @@ public protocol CinemaService: Sendable {
     func concessions(venueId: String) async throws -> ConcessionMenu
     /// Live promotions for this cinema plus operator-wide ones.
     func promotions(venueId: String?) async throws -> [Promotion]
+    /// Pulse picks for the signed-in customer, or popular picks when they have no bookings yet.
+    func recommendations() async throws -> RecommendationList
     func loyalty() async throws -> LoyaltySummary
     func membershipPlans() async throws -> [MembershipPlan]
     func myMembership() async throws -> Membership?
@@ -103,6 +105,8 @@ public struct LiveCinemaService: CinemaService {
     public func concessions(venueId: String) async throws -> ConcessionMenu { try await client.get("/venues/\(venueId)/concessions") }
 
     public func promotions(venueId: String?) async throws -> [Promotion] { try await client.get("/promotions" + q(["venueId": venueId])) }
+
+    public func recommendations() async throws -> RecommendationList { try await client.get("/me/recommendations", authenticated: true) }
 
     public func loyalty() async throws -> LoyaltySummary { try await client.get("/loyalty", authenticated: true) }
 

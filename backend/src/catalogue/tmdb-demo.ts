@@ -126,7 +126,8 @@ export async function importTmdbDemoCatalogue(db: Db, tenantId: string, client: 
       originalLanguage: f.originalLanguage ?? 'en',
       hidden: false,
       details: undefined as unknown as Prisma.InputJsonValue,
-      provenance: { source: 'tmdb-demo', tmdbId: m.id, importedAt: now.toISOString() } as Prisma.InputJsonValue,
+      // Popularity and votes feed Pulse's film-strength prior (docs/pulse.md).
+      provenance: { source: 'tmdb-demo', tmdbId: m.id, importedAt: now.toISOString(), popularity: m.popularity ?? summary.popularity ?? null, voteCount: m.vote_count ?? null, voteAverage: m.vote_average ?? null } as Prisma.InputJsonValue,
     };
     const link = await db.filmExternalId.findUnique({
       where: { tenantId_provider_externalId: { tenantId, provider: 'tmdb', externalId: String(m.id) } },
