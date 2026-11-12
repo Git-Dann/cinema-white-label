@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { api, createApp, guest, T } from './harness';
 import { leadCurveFrom, refreshBankHolidays, rollupOutcomes, rng } from '../src/intelligence/outcomes';
 import { InterestFetcher, refreshInterest } from '../src/intelligence/interest';
+import { ConversationFetcher, conversationStrength, refreshConversation } from '../src/intelligence/conversation';
 import { PulseAssistant } from '../src/intelligence/assistant';
 import { PulseService } from '../src/intelligence/pulse.service';
 
@@ -175,6 +176,70 @@ describe('Pulse (integration)', () => {
     }
   });
 
+  it('shows demo social conversation, labelled, with no posts to show for fictional films', async () => {
+    const m = (await api(app, admin).get(`${A}/model`).expect(200)).body;
+    expect(m.conversation.length).toBeGreaterThan(0);
+    expect(m.conversation.every((c: any) => c.source === 'demo' && c.posts7 >= 0 && c.strength >= 0.92 && c.strength <= 1.08)).toBe(true);
+    const c = (await api(app, admin).get(`${A}/conversation/${m.conversation[0].filmId}`).expect(200)).body;
+    expect(c).toMatchObject({ source: 'demo', posts: [] });
+    expect(c.note).toMatch(/Demo figures/);
+    await api(app, kestrel).get(`/v1/admin/t/kestrel/pulse/conversation/${m.conversation[0].filmId}`).expect(404);
+    const brief = (await api(app, admin).get(`${A}/brief`).expect(200)).body;
+    for (const i of brief.items.filter((x: any) => x.kind === 'Social')) expect(i.detail).toMatch(/posts on Bluesky.*\(Demo figures\.\)/);
+  });
+
+  it('refreshes social conversation from Bluesky, storing counts and links but never post text', async () => {
+    const tenant = (await prisma.tenant.findUniqueOrThrow({ where: { slug: 'kestrel' } }))!;
+    const now = new Date();
+    const film = await prisma.film.create({
+      data: { tenantId: tenant.id, slug: `pulse-talk-${Date.now()}`, title: 'Talk Test Film', synopsis: 'x', releaseDate: new Date(now.getTime() - 5 * 86400_000), runtimeMinutes: 100, certificate: '12A', genres: ['Drama'] },
+    });
+    // Only films with a matched Wikipedia article (a real film) are searched.
+    await prisma.filmInterest.create({ data: { tenantId: tenant.id, filmId: film.id, source: 'wikipedia', article: 'Talk Test Film', views: 1000, windowEnd: now } });
+    const fictional = await prisma.film.create({
+      data: { tenantId: tenant.id, slug: `pulse-talk-fiction-${Date.now()}`, title: 'Talk Fiction Film', synopsis: 'x', releaseDate: new Date(now.getTime() - 5 * 86400_000), runtimeMinutes: 100, certificate: '12A', genres: ['Drama'] },
+    });
+    const p = (uri: string, text: string, likes: number) => ({ uri, author: { handle: 'fan.bsky.social' }, record: { text }, likeCount: likes, repostCount: 1, replyCount: 0 });
+    const searches: string[] = [];
+    const fetcher: ConversationFetcher = {
+      async search(q) {
+        searches.push(`${q.q} ${q.sort}`);
+        if (q.sort === 'top') return { posts: [p('at://did:plc:a/app.bsky.feed.post/1', 'Talk Test Film was brilliant', 40), p('at://did:plc:a/app.bsky.feed.post/2', 'Talk Test Film tickets booked', 9)] };
+        const thisWeek = new Date(q.since).getTime() > now.getTime() - 8 * 86400_000;
+        return thisWeek ? { posts: [p('at://x/1', 'Talk Test Film tonight', 2)], hitsTotal: 90 } : { posts: [p('at://x/2', 'Talk Test Film soon', 1)], hitsTotal: 20 };
+      },
+      async posts(uris) {
+        // The second post has since been deleted.
+        return uris.filter((u) => u.endsWith('/1')).map((u) => p(u, 'Talk Test Film was brilliant', 41));
+      },
+    };
+    try {
+      const shared = new Map();
+      const r = await refreshConversation(prisma, tenant.id, now, fetcher, 40, shared);
+      expect(r.updated).toBeGreaterThanOrEqual(1);
+      expect(searches.filter((s) => s.startsWith('"Talk Test Film"')).length).toBe(3);
+      expect(searches.some((s) => s.includes('Talk Fiction Film'))).toBe(false);
+      // A second operator showing the same title reuses the same searches.
+      await refreshConversation(prisma, tenant.id, now, fetcher, 40, shared);
+      expect(searches.filter((s) => s.startsWith('"Talk Test Film"')).length).toBe(3);
+      const row = await prisma.filmConversation.findUniqueOrThrow({ where: { filmId: film.id } });
+      expect(row).toMatchObject({ source: 'bluesky', query: '"Talk Test Film"', posts7: 90, prev7: 20 });
+      expect(JSON.stringify(row.top)).not.toMatch(/brilliant/);
+      app.get(PulseService).talkFetcher = fetcher;
+      app.get(PulseService).invalidate(tenant.id);
+      const c = (await api(app, kestrel).get(`/v1/admin/t/kestrel/pulse/conversation/${film.id}`).expect(200)).body;
+      expect(c).toMatchObject({ posts7: 90, prev7: 20, momentum: 3.8, source: 'bluesky', live: true });
+      expect(c.typical).toBeGreaterThan(0);
+      expect(c.strength).toBe(conversationStrength(90, c.typical)); // against the typical film this operator shows
+      expect(c.posts).toHaveLength(1);
+      expect(c.posts[0]).toMatchObject({ author: 'fan.bsky.social', text: 'Talk Test Film was brilliant', likes: 41, url: 'https://bsky.app/profile/fan.bsky.social/post/1' });
+      const tools = await new PulseAssistant(app.get(PulseService)).runTool(tenant as any, 'pulse_conversation', {});
+      expect((tools as any).films.some((f: any) => f.filmId === film.id && f.posts7 === 90)).toBe(true);
+    } finally {
+      await prisma.film.deleteMany({ where: { id: { in: [film.id, fictional.id] } } });
+    }
+  });
+
   it('reports its own accuracy from a rolling backtest, against baselines, labelled with its basis', async () => {
     const a = (await api(app, admin).get(`${A}/accuracy`).expect(200)).body;
     expect(a.basis.note).toContain('demo');
@@ -272,7 +337,7 @@ describe('Pulse (integration)', () => {
     expect(JSON.parse(results[0].content).items).toBeDefined();
     expect(JSON.parse(results[1].content).error).toBe('Invalid input');
     expect(seen[0].model).toBe('claude-opus-5-5');
-    expect(seen[0].tools.map((t: any) => t.name)).toEqual(['pulse_brief', 'pulse_venues', 'pulse_forecasts', 'pulse_simulate', 'pulse_accuracy', 'pulse_film_runs', 'pulse_learned']);
+    expect(seen[0].tools.map((t: any) => t.name)).toEqual(['pulse_brief', 'pulse_venues', 'pulse_forecasts', 'pulse_simulate', 'pulse_accuracy', 'pulse_film_runs', 'pulse_learned', 'pulse_conversation']);
     expect(await assistant.runTool(tenant, 'drop_tables', {})).toEqual({ error: 'Unknown tool drop_tables' });
     const venues: any = await assistant.runTool(tenant, 'pulse_venues', {});
     expect(venues[0].screens.length).toBeGreaterThan(0);

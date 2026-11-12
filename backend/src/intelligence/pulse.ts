@@ -1,4 +1,5 @@
 import { DAY_NAMES, isDaySlot, Slot, SLOT_LABELS, SLOTS, slotOf } from './calendar';
+import type { ConversationView } from './conversation';
 
 /**
  * Seatfold Pulse: the demand model. Deterministic, explainable, no dependencies.
@@ -148,6 +149,8 @@ export interface FilmContext {
   rank?: number;
   /** Audience interest from Wikipedia page views (see interest.ts). */
   interest?: { views: number; typical: number; strength: number; source: 'wikipedia' | 'demo' };
+  /** Social conversation on Bluesky this week (see conversation.ts); capped at ±8%. */
+  conversation?: ConversationView;
 }
 
 /** The prior expectation for a show, with the reasons. */
@@ -159,6 +162,7 @@ export function prior(show: ShowFeatures, ctx: FilmContext): { base: number; mu:
   const ret = weeklyRetention(ctx.film, topDecile);
   const decay = releaseFactor(ret.factor, show.filmWeek);
   const strength = ctx.interest ? ctx.interest.strength : filmStrength(ctx.rank);
+  const talk = ctx.conversation?.strength ?? 1;
   const fmt = formatUplift(show.formats);
   const holiday = show.schoolHoliday && isDaySlot(show.slot) ? 1.3 : 1;
   const drivers: Driver[] = [];
@@ -173,9 +177,20 @@ export function prior(show: ShowFeatures, ctx: FilmContext): { base: number; mu:
       explanation: `Its Wikipedia page views over the month that counts are ${rel} the typical film you are showing${ctx.interest.source === 'demo' ? ' (demo figures)' : ' (Wikimedia, CC0)'}.`,
     });
   } else if (strength !== 1) drivers.push({ label: strength > 1 ? 'Popular film' : 'Quieter film', effect: strength, explanation: `Ranks in the ${Math.round((ctx.rank ?? 0) * 100)}th percentile of popularity among your films (licensed TMDB data).` });
+  if (ctx.conversation && talk !== 1) {
+    const c = ctx.conversation;
+    const x = c.typical > 0 ? c.posts7 / c.typical : 0;
+    const rel = x >= 1 ? `${x.toFixed(1)} times` : `${Math.round(x * 100)}% of`;
+    const trend = c.momentum >= 1.25 ? ` and climbing (${c.momentum.toFixed(1)} times last week)` : c.momentum <= 0.8 ? ' and easing off' : '';
+    drivers.push({
+      label: talk > 1 ? 'People are talking' : 'Little social talk',
+      effect: talk,
+      explanation: `${c.posts7} posts about it on Bluesky in the last 7 days, ${rel} the typical film you are showing${trend}${c.source === 'demo' ? ' (demo figures)' : ''}. Kept to a small effect until your own sales confirm it.`,
+    });
+  }
   if (fmt !== 1) drivers.push({ label: 'Premium format', effect: fmt, explanation: 'IMAX, 4DX and 3D shows usually sell a little better.' });
   if (holiday !== 1) drivers.push({ label: show.schoolHoliday!, effect: holiday, explanation: 'Daytime shows sell more in school holidays (approximate England and Wales dates).' });
-  return { base, mu: show.capacity * base * decay * strength * fmt * holiday, drivers };
+  return { base, mu: show.capacity * base * decay * strength * talk * fmt * holiday, drivers };
 }
 
 // ---------------------------------------------------------------------------

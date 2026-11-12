@@ -805,4 +805,37 @@ export interface PulseModelView {
   curves: { hoursBefore: number[]; bySlot: { slot: string; label: string; values: number[]; shows: number }[] };
   /** Audience interest: Wikipedia page views (CC0) against the typical film showing. */
   interest?: { filmId: string; title: string; views: number; typical: number; strength: number; source: 'wikipedia' | 'demo'; series: boolean }[];
+  /** Social conversation on Bluesky this week (counts only), most talked about first. */
+  conversation?: PulseTalk[];
+}
+
+export interface PulseTalk {
+  filmId: string;
+  title: string;
+  posterUrl: string | null;
+  posts7: number;
+  prev7: number;
+  momentum: number;
+  engagement7: number;
+  typical: number;
+  strength: number;
+  source: 'bluesky' | 'demo';
+}
+
+/** One film's conversation with its most engaged posts, fetched live from Bluesky. */
+export interface PulseConversation {
+  filmId: string;
+  title: string;
+  source: 'bluesky' | 'demo';
+  query: string | null;
+  updatedAt: string;
+  posts7: number;
+  prev7: number;
+  momentum: number;
+  engagement7: number;
+  typical: number | null;
+  strength: number | null;
+  posts: { url: string; author: string; text: string; likes: number; reposts: number; replies: number }[];
+  live: boolean;
+  note: string;
 }

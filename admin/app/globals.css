@@ -3374,7 +3374,7 @@ dialog.sheet form {
   gap: var(--s3);
 }
 .tile-grid.wide {
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr));
 }
 .tile {
   display: flex;
@@ -4970,7 +4970,7 @@ dialog.sheet.sheet-narrow {
   margin: var(--s2) 0 0;
 }
 .pulse-learned-wide .pulse-adjust {
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr));
   column-gap: var(--s4);
 }
 .pulse-axis {
@@ -5028,4 +5028,79 @@ dialog.sheet.sheet-narrow {
 .film-runs .card,
 .pulse-section > .card {
   padding: var(--s2) var(--s3);
+}
+
+/* Pulse: social conversation (Bluesky). Selection shown with a fill, posts in an even grid. */
+.talk-table tbody tr.selected td {
+  background: var(--surface-2);
+}
+.talk-table .link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.talk-table .link-button:hover,
+.talk-table .link-button[aria-pressed='true'] {
+  color: var(--link);
+}
+.talk-detail {
+  margin-top: var(--s3);
+}
+.talk-detail > .h4 {
+  margin: 0 0 var(--s2);
+}
+.talk-posts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.talk-post {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--s1);
+  padding: var(--s2);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.talk-text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.talk-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--s2);
+}
+.talk-meta a {
+  margin-left: auto;
+}
+.talk-empty {
+  margin: 0;
+}
+.today-talk {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  margin: 0 0 var(--s2);
+  padding: 12px var(--s2);
+  border-radius: var(--radius);
+  background: var(--success-bg);
+  color: var(--text);
+}
+.today-talk .pulse-mark {
+  flex: none;
 }

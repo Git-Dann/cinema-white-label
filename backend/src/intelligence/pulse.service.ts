@@ -10,6 +10,7 @@ import { basketRules } from './baskets';
 import { BankHolidaySet, DAY_NAMES, divisionForPostcode, localParts, Slot, SLOT_LABELS, showCalendar } from './calendar';
 import { demoBaskets, demoCustomers } from './demo';
 import { interestStrength, median } from './interest';
+import { CLIMBING, ConversationFetcher, conversationViews, httpConversationFetcher, momentum, showable } from './conversation';
 import { backtest, BacktestResult, calibrateRanges } from './backtest';
 import { Change, DEFAULT_CHOICE, NightShow, simulate } from './choice';
 import { filmRun, FilmRun, weeklyRows } from './filmrun';
@@ -60,7 +61,58 @@ export class PulseService {
   private cache = new Map<string, Ctx>();
   private readonly bgCache = new Map<string, { key: string; at: number; params: BgParams }>();
 
+  /** Bluesky client for live posts; replaced in tests. */
+  talkFetcher: ConversationFetcher = httpConversationFetcher;
+  private talkCache = new Map<string, { at: number; value: unknown }>();
   constructor(private readonly prisma: PrismaService, private readonly clock: Clock) {}
+
+  /**
+   * What people are saying about a film: this week's most engaged Bluesky posts, fetched live so
+   * that deleted posts do not appear. Only links are stored; text comes straight from Bluesky.
+   */
+  async conversation(t: Tenant, filmId: string) {
+    const row = await this.prisma.filmConversation.findFirst({ where: { tenantId: t.id, filmId }, include: { film: { select: { title: true } } } });
+    if (!row) throw Errors.notFound('Conversation');
+    const ctx = await this.context(t);
+    const view = ctx.films.get(filmId)?.conversation ?? null;
+    const top = (Array.isArray(row.top) ? row.top : []) as { uri: string; url: string; engagement: number }[];
+    const key = `${filmId}:${top.map((p) => p.uri).join(',')}`;
+    const hit = this.talkCache.get(key);
+    let posts: { url: string; author: string; text: string; likes: number; reposts: number; replies: number }[] = [];
+    let live = true;
+    if (hit && this.clock.now().getTime() - hit.at < MODEL_TTL) posts = hit.value as typeof posts;
+    else if (top.length) {
+      try {
+        const got = await this.talkFetcher.posts(top.map((p) => p.uri));
+        const byUri = new Map(got.map((p) => [p.uri, p]));
+        posts = top
+          .map((p) => byUri.get(p.uri))
+          .filter((p): p is NonNullable<typeof p> => !!p && showable(p))
+          .map((p) => ({ url: top.find((x) => x.uri === p.uri)!.url, author: p.author.handle, text: (p.record?.text ?? '').slice(0, 300), likes: p.likeCount ?? 0, reposts: p.repostCount ?? 0, replies: p.replyCount ?? 0 }))
+          .sort((a, b) => b.likes + b.reposts + b.replies - (a.likes + a.reposts + a.replies));
+        this.talkCache.set(key, { at: this.clock.now().getTime(), value: posts });
+      } catch {
+        live = false;
+      }
+    }
+    return {
+      filmId,
+      title: row.film.title,
+      source: row.source,
+      query: row.query,
+      updatedAt: row.updatedAt.toISOString(),
+      // Counts from the latest refresh; typical and strength from the cached model (null until it refreshes).
+      posts7: row.posts7,
+      prev7: row.prev7,
+      momentum: momentum(row.posts7, row.prev7),
+      engagement7: row.engagement7,
+      typical: view?.typical ?? null,
+      strength: view?.strength ?? null,
+      posts,
+      live,
+      note: row.source === 'demo' ? 'Demo figures: this film is fictional, so there are no real posts to show.' : 'Public posts on Bluesky, most engaged first. Fetched live; deleted posts do not appear.',
+    };
+  }
 
   invalidate(tenantId: string) {
     this.cache.delete(tenantId);
@@ -71,7 +123,7 @@ export class PulseService {
     const now = this.clock.now();
     if (hit && now.getTime() - hit.at < MODEL_TTL) return hit;
     const [films, venues, rows, banks] = await Promise.all([
-      this.prisma.film.findMany({ where: { tenantId: t.id }, include: { assets: true, interest: true } }),
+      this.prisma.film.findMany({ where: { tenantId: t.id }, include: { assets: true, interest: true, conversation: true } }),
       this.prisma.venue.findMany({ where: { tenantId: t.id }, select: { id: true, name: true, timeZone: true, postcode: true } }),
       this.prisma.showOutcome.findMany({ where: { tenantId: t.id, startsAt: { gte: new Date(now.getTime() - 365 * DAY) } } }),
       loadBankHolidays(this.prisma),
@@ -81,12 +133,13 @@ export class PulseService {
     const typical = median(films.filter((f) => !f.hidden && f.interest).map((f) => f.interest!.views));
     const interestOf = (f: (typeof films)[number]) =>
       f.interest && f.interest.views > 0 && typical > 0 ? { views: f.interest.views, typical, strength: interestStrength(f.interest.views, typical), source: f.interest.source as 'wikipedia' | 'demo' } : undefined;
+    const talk = conversationViews(films.filter((f) => !f.hidden && f.conversation).map((f) => ({ ...f.conversation!, filmId: f.id })));
     // Off unless licensed (see tmdbPopularityLicensed): each film's own sales still teach its learned multiplier.
     const ranks = tmdbPopularityLicensed() ? popularityRanks(facts.filter((f) => !films.find((x) => x.id === f.id)!.hidden)) : new Map<string, number>();
     const filmMap = new Map(
       facts.map((f) => {
         const full = films.find((x) => x.id === f.id)!;
-        return [f.id, { film: f, rank: ranks.get(f.id), interest: interestOf(full), slug: full.slug, hidden: full.hidden, posterUrl: imageRef(pickAsset(full.assets, 'POSTER', now))?.url ?? null }];
+        return [f.id, { film: f, rank: ranks.get(f.id), interest: interestOf(full), conversation: talk.get(f.id), slug: full.slug, hidden: full.hidden, posterUrl: imageRef(pickAsset(full.assets, 'POSTER', now))?.url ?? null }];
       }),
     );
     const outcomes = rows.map((r) => ({
@@ -535,6 +588,23 @@ export class PulseService {
         evidence: { filmId, shows: n, averageShows: avgShows, interest: fc.interest },
       });
     }
+    // Social talk climbing fast: early warning for walk-ups, staffing and stock.
+    for (const [filmId, n] of showsByFilm) {
+      const c = ctx.films.get(filmId)?.conversation;
+      if (!c || c.momentum < CLIMBING || c.posts7 < 15) continue;
+      const title = ctx.films.get(filmId)!.film.title;
+      items.push({
+        id: `talk:${filmId}`,
+        kind: 'Social',
+        title: `Talk about ${title} is up ${c.momentum.toFixed(1)} times this week`,
+        detail: `${c.posts7} posts on Bluesky in the last 7 days against ${c.prev7} the week before. It has ${n} show${n === 1 ? '' : 's'} in the next 7 days: expect more walk-ups, so check the rota and food orders for its busiest nights.${c.source === 'demo' ? ' (Demo figures.)' : ''}`,
+        impactMinor: null,
+        admissions: null,
+        confidence: c.source === 'demo' ? 45 : 55,
+        action: { label: 'Open today', href: '/today' },
+        evidence: { filmId, shows: n, conversation: c },
+      });
+    }
     // Film runs: what next week's programme should do with each film.
     for (const f of (await this.filmRuns(t)).films) {
       if (f.verdict === 'hold' || f.showsNext7Days === 0) continue;
@@ -646,6 +716,11 @@ export class PulseService {
         .filter((f) => !f.hidden && f.interest)
         .map((f) => ({ filmId: f.film.id, title: f.film.title, views: f.interest!.views, typical: f.interest!.typical, strength: f.interest!.strength, source: f.interest!.source, series: !!f.film.series }))
         .sort((a, b) => b.views - a.views),
+      // Social conversation on Bluesky this week, most talked about first.
+      conversation: [...ctx.films.values()]
+        .filter((f) => !f.hidden && f.conversation)
+        .map((f) => ({ filmId: f.film.id, title: f.film.title, posterUrl: f.posterUrl, ...f.conversation! }))
+        .sort((a, b) => b.posts7 - a.posts7),
     };
   }
 

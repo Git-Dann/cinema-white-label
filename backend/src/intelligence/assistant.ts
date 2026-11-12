@@ -48,6 +48,7 @@ const inputs = {
   pulse_accuracy: z.object({}).strict(),
   pulse_learned: z.object({}).strict(),
   pulse_film_runs: z.object({}).strict(),
+  pulse_conversation: z.object({ filmId: id.optional() }).strict(),
 };
 type ToolName = keyof typeof inputs;
 
@@ -86,6 +87,11 @@ export const ASK_TOOLS: Anthropic.Beta.BetaTool[] = [
   { name: 'pulse_accuracy', description: "How accurate Pulse has been on recent weeks it had not seen: typical error a week, a day and three hours out, how often its 80% range held, and the UK-averages baseline.", input_schema: { type: 'object', properties: {}, additionalProperties: false } },
   { name: 'pulse_film_runs', description: "Each film's run so far at this operator: weekly pull against a typical film, how much of its audience it keeps each week, next week's projection, and a grow, hold, trim or end call with the reason. Use for 'how many shows next week' and 'should I drop X' questions.", input_schema: { type: 'object', properties: {}, additionalProperties: false } },
   { name: 'pulse_learned', description: 'What Pulse has learned about this operator: how each cinema, day, time of day, week of release and film runs against the norm, and audience interest per film.', input_schema: { type: 'object', properties: {}, additionalProperties: false } },
+  {
+    name: 'pulse_conversation',
+    description: "Social conversation on Bluesky. Without filmId: every film's posts in the last 7 days, the week before, momentum (this week ÷ last week) and engagement, most talked about first. With filmId: that film's most engaged posts this week, fetched live (quote sparingly and attribute to the handle). Use for 'what are people saying about X' and 'which films are people talking about'. Bluesky is one open network, not all of social media.",
+    input_schema: { type: 'object', properties: { filmId: { type: 'string', description: 'Film id from this tool without filmId, or from pulse_learned.' } }, additionalProperties: false },
+  },
 ];
 
 export interface AskTurn {
@@ -161,6 +167,11 @@ export class PulseAssistant {
       case 'pulse_learned': {
         const m = await this.pulse.model(t);
         return { basis: m.basis, priors: m.priors, multipliers: m.multipliers, interest: m.interest };
+      }
+      case 'pulse_conversation': {
+        const { filmId } = input as { filmId?: string };
+        if (filmId) return this.pulse.conversation(t, filmId);
+        return { source: 'Bluesky public posts (counts only)', films: (await this.pulse.model(t)).conversation.map(({ posterUrl: _p, ...c }) => c) };
       }
     }
   }

@@ -2,7 +2,8 @@
 
 import { ErrorNote, Loading, PageHeader } from '@/components/ui';
 import { PulseBasisLine } from '@/components/pulse';
-import { PulseAccuracy, PulseModelView, tenantPath } from '@/lib/api';
+import { useState } from 'react';
+import { PulseAccuracy, PulseConversation, PulseModelView, PulseTalk, tenantPath } from '@/lib/api';
 import { useSession, useTenantData } from '@/lib/session';
 
 /*
@@ -135,6 +136,105 @@ function AudienceInterest({ rows }: { rows: NonNullable<PulseModelView['interest
   );
 }
 
+const trend = (m: number) =>
+  m >= 2 ? { label: `Climbing ${m.toFixed(1)}×`, badge: 'badge-success' } : m >= 1.25 ? { label: 'Rising', badge: 'badge-neutral' } : m <= 0.8 ? { label: 'Easing off', badge: 'badge-warning' } : { label: 'Steady', badge: 'badge-neutral' };
+
+const n = (x: number) => x.toLocaleString('en-GB');
+const plural = (x: number, one: string, many = `${one}s`) => `${n(x)} ${x === 1 ? one : many}`;
+
+/** The most engaged posts about one film this week, fetched live from Bluesky. */
+function TalkPosts({ filmId }: { filmId: string }) {
+  const { tenant } = useSession();
+  const res = useTenantData<PulseConversation>(tenantPath(tenant, `/pulse/conversation/${filmId}`), [filmId]);
+  const c = res.data;
+  if (res.loading && !c) return <Loading />;
+  if (res.error) return <ErrorNote message={res.error} />;
+  if (!c) return null;
+  if (!c.posts.length) return <p className="muted small talk-empty">{c.source === 'demo' ? c.note : c.live ? 'No posts with any engagement this week.' : 'Bluesky did not answer just now. Try again shortly.'}</p>;
+  return (
+    <ul className="talk-posts">
+      {c.posts.map((p) => (
+        <li key={p.url} className="talk-post">
+          <p className="talk-text">{p.text}</p>
+          <div className="talk-meta small">
+            <span className="muted">@{p.author}</span>
+            <span className="num muted">
+              {plural(p.likes, 'like')} · {plural(p.reposts, 'repost')} · {plural(p.replies, 'reply', 'replies')}
+            </span>
+            <a href={p.url} target="_blank" rel="noreferrer">
+              Open on Bluesky
+            </a>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Films by how much people are posting about them on Bluesky this week, and whether it is growing. */
+function Conversation({ rows }: { rows: PulseTalk[] }) {
+  const shown = rows.slice(0, 10);
+  const demo = rows.some((r) => r.source === 'demo');
+  const [pick, setPick] = useState<string | null>(null);
+  const current = shown.find((r) => r.filmId === pick) ?? shown[0];
+  return (
+    <section className="card ins-card pulse-section" aria-labelledby="pulse-talk">
+      <header className="ins-head">
+        <h2 id="pulse-talk" className="h3">Social conversation</h2>
+        <span className="row gap-1 small">
+          <span className="muted">Posts about each film on Bluesky in the last 7 days, against the week before</span>
+          {demo && <span className="badge badge-sample">Demo figures</span>}
+        </span>
+      </header>
+      <div className="table-wrap">
+        <table className="table talk-table">
+          <thead>
+            <tr>
+              <th scope="col">Film</th>
+              <th scope="col" className="num-col">This week</th>
+              <th scope="col" className="num-col">Week before</th>
+              <th scope="col">Trend</th>
+              <th scope="col" className="num-col">Engagement</th>
+              <th scope="col" className="num-col">Forecast effect</th>
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map((r) => {
+              const t = trend(r.momentum);
+              const on = r.filmId === current?.filmId;
+              return (
+                <tr key={r.filmId} className={on ? 'selected' : undefined} aria-selected={on}>
+                  <td>
+                    <button type="button" className="link-button" onClick={() => setPick(r.filmId)} aria-pressed={on}>
+                      {r.title}
+                    </button>
+                  </td>
+                  <td className="num num-col">{n(r.posts7)}</td>
+                  <td className="num num-col muted">{n(r.prev7)}</td>
+                  <td>
+                    <span className={`badge ${t.badge}`}>{t.label}</span>
+                  </td>
+                  <td className="num num-col">{n(r.engagement7)}</td>
+                  <td className="num num-col">×{r.strength.toFixed(2)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {current && (
+        <div className="talk-detail">
+          <h3 className="h4">What people are saying about {current.title}</h3>
+          <TalkPosts filmId={current.filmId} />
+        </div>
+      )}
+      <p className="muted small pulse-foot-note">
+        Bluesky is one open network, not all of social media. Its effect on forecasts is kept within ×0.92 to ×1.08 until your own sales confirm it; talk that climbs fast raises a staffing and stock alert on Today. Pulse stores counts and links only; posts are shown live, so deleted posts disappear.
+      </p>
+    </section>
+  );
+}
+
 /** Share of a show's final sales sold by each point before it starts, one line per time of day. */
 function BookingCurve({ curves }: { curves: PulseModelView['curves'] }) {
   const W = 1000;
@@ -215,6 +315,8 @@ export default function PulsePage() {
           {acc.data && <Accuracy a={acc.data} />}
 
           {m.interest && m.interest.length > 0 && <AudienceInterest rows={m.interest} />}
+
+          {m.conversation && m.conversation.length > 0 && <Conversation rows={m.conversation} />}
 
           <section className="pulse-section" aria-labelledby="pulse-learned">
             <header className="pulse-section-head">

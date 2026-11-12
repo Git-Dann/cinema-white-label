@@ -2867,6 +2867,34 @@
         ]
       }
     },
+    "/v1/admin/t/{tenant}/pulse/conversation/{filmId}": {
+      "get": {
+        "operationId": "PulseAdminController_conversation",
+        "parameters": [
+          {
+            "name": "filmId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Pulse"
+        ]
+      }
+    },
     "/v1/admin/t/{tenant}/pulse/pricing": {
       "get": {
         "operationId": "PulseAdminController_pricing",

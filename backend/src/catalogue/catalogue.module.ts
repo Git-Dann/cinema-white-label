@@ -1,6 +1,7 @@
 import { Controller, Get, Headers, Module, Param, Query, UseGuards } from '@nestjs/common';
 import { DEMO_TENANTS, refreshBankHolidays, rollupOutcomes } from '../intelligence/outcomes';
 import { ensureDemoInterest, refreshInterest } from '../intelligence/interest';
+import { ensureDemoConversation, refreshConversation } from '../intelligence/conversation';
 import { SLOT_BASE } from '../intelligence/pulse';
 import { ApiExcludeController, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Tenant } from '@prisma/client';
@@ -48,6 +49,7 @@ export class CronController {
     if (auth !== `Bearer ${secret}`) throw Errors.unauthorised();
     const now = this.clock.now();
     const results: Record<string, unknown> = {};
+    const talk = new Map(); // Bluesky searches shared across operators showing the same film
     for (const t of await this.prisma.tenant.findMany({ select: { id: true, slug: true } })) {
       const films = tmdbDemoEnabled() ? await importTmdbDemoCatalogue(this.prisma, t.id, httpTmdbClient(), now) : null;
       results[t.slug] = {
@@ -56,11 +58,14 @@ export class CronController {
         outcomes: await rollupOutcomes(this.prisma, t.id, now),
         // Audience interest from Wikipedia page views (CC0); a failure keeps yesterday's figures.
         interest: await refreshInterest(this.prisma, t.id, now).catch(() => 'unchanged'),
+        // Social conversation on Bluesky (counts and links only); a failure keeps yesterday's figures.
+        conversation: await refreshConversation(this.prisma, t.id, now, undefined, undefined, talk).catch(() => 'unchanged'),
       };
     }
     // Bank holidays for Pulse (gov.uk, Open Government Licence); a failed fetch keeps the cache.
     results.bankHolidays = await refreshBankHolidays(this.prisma).catch(() => 'unchanged');
     results.demoInterest = await ensureDemoInterest(this.prisma, DEMO_TENANTS, SLOT_BASE, now);
+    results.demoConversation = await ensureDemoConversation(this.prisma, DEMO_TENANTS);
     return results;
   }
 }

@@ -124,6 +124,17 @@ Consequence: Pulse learns multipliers from data. Whether empirical-Bayes shrinka
 
 - Developer policies (verified): non-authorised statistics such as view counts must not be stored over 30 days; "must not ... access or use API Data to create new or derived data or metrics"; no aggregation except for a channel owner. A trailer-view time series is exactly the forbidden derived metric. Avoid.
 
+#### Social conversation: Bluesky (used), Reddit, X, TikTok, Threads (not used)
+
+Checked 12 November 2026.
+
+- **Bluesky (used).** Open network on the AT Protocol. `app.bsky.feed.searchPosts` on `api.bsky.app` answers without a key (the `public.api.bsky.app` host returned 403 for search) and gives `hitsTotal`, likes, reposts, replies and quotes; `since`, `until` and `lang` filters work. The Developer Guidelines (docs.bsky.app/docs/developer-guidelines) ask services not to spam, to provide reporting and blocking where they host user content, and to have "a method for deleting content a user has requested to be deleted". The Terms of Service add nothing on read access. Pulse stores only counts and post links, and shows post text fetched live, so a deleted post disappears without any deletion handling of our own. Limits: one network, skewed to English-speaking, politically engaged adults; volumes are modest (for example, 30 posts a week naming "Zootopia 2" in November 2026); no history worth backtesting before 2024.
+- **Reddit (not used).** The free Data API tier is for approved non-commercial use; commercial use needs a separate agreement with Reddit (reported widely; primary pricing page not found). Revisit with a paid agreement.
+- **X (not used).** Read access is paid only.
+- **TikTok (not used).** The Research API is for non-commercial academic research.
+- **Threads (not used yet).** Public keyword search needs the `threads_keyword_search` permission through Meta app review; without it, search covers only the signed-in user's own posts. Data-use terms for public posts were not found. Apply once Seatfold has a live production app.
+- **Wikipedia edits (CC0).** The Wikimedia Analytics API (`metrics/edits/per-page`) is CC0 ("Data provided by the API is available under the CC0 1.0 license", access policy page). Mestyán et al. used edits and editors alongside page views. A UK test against 2023 openings is running; Pulse does not use edits until it shows they add something beyond page views.
+
 #### Letterboxd, IMDb datasets, OMDb, MovieLens
 
 - Letterboxd API docs return 403; the API is granted privately. Avoid.

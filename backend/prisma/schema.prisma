@@ -263,11 +263,12 @@ model Film {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  externalIds FilmExternalId[]
-  interest    FilmInterest?
-  assets      MediaAsset[]
-  trailers    Trailer[]
-  screenings  Screening[]
+  externalIds  FilmExternalId[]
+  interest     FilmInterest?
+  conversation FilmConversation?
+  assets       MediaAsset[]
+  trailers     Trailer[]
+  screenings   Screening[]
 
   @@unique([tenantId, slug])
 }
@@ -287,6 +288,27 @@ model FilmInterest {
   views     Int
   windowEnd DateTime
   updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+/// Social conversation about a film on Bluesky: weekly counts and links to the most engaged
+/// posts. Post text is never stored; it is fetched live so deleted posts disappear.
+model FilmConversation {
+  id          String   @id @default(cuid())
+  tenantId    String
+  filmId      String   @unique
+  film        Film     @relation(fields: [filmId], references: [id], onDelete: Cascade)
+  source      String
+  query       String?
+  /// Posts about the film in the last 7 full days, and the 7 before.
+  posts7      Int
+  prev7       Int
+  /// Likes, reposts, replies and quotes on this week's posts.
+  engagement7 Int
+  /// Up to five { uri, url, engagement } of this week's most engaged posts.
+  top         Json     @default("[]")
+  updatedAt   DateTime @updatedAt
 
   @@index([tenantId])
 }
