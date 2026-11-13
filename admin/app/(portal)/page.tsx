@@ -7,6 +7,7 @@ import { useSession, useTenantData } from '@/lib/session';
 import { ErrorNote, Loading, PageHeader, StatusBadge } from '@/components/ui';
 import { useCinemaScope } from '@/lib/cinema-scope';
 import { PerformancePreview } from './performance-preview';
+import { SetupChecklist } from './setup-checklist';
 
 export default function OverviewPage() {
   const { tenant, tenantName } = useSession();
@@ -22,11 +23,13 @@ export default function OverviewPage() {
       <PageHeader title="Overview" description={`${scope.venue?.name ?? tenantName} · last 30 days`} />
       <ErrorNote message={stats.error} />
       <section aria-label="Key figures" className="stat-grid">
-        <StatCard label="Confirmed bookings" value={stats.data ? stats.data.bookings.toLocaleString('en-GB') : '—'} />
-        <StatCard label="Revenue" value={stats.data ? formatMoney(stats.data.revenueMinor, stats.data.currency) : '—'} />
+        <StatCard label="Live bookings" value={stats.data ? stats.data.bookings.toLocaleString('en-GB') : '—'} />
+        <StatCard label="Live revenue" value={stats.data ? formatMoney(stats.data.revenueMinor, stats.data.currency) : '—'} />
         <StatCard label="Cinemas" value={stats.data ? String(stats.data.venues) : '—'} href="/venues" />
         <StatCard label="Films" value={stats.data ? String(stats.data.films) : '—'} href="/films" />
       </section>
+
+      <SetupChecklist releases={releases.error ? null : releases.data} />
 
       <PerformancePreview />
 
@@ -88,9 +91,9 @@ export default function OverviewPage() {
             <>
               <h3 className="h4 mt-3">App events</h3>
               <ul className="event-list">
-                {Object.entries(stats.data.events).map(([k, v]) => (
+                {Object.entries(stats.data.events).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
                   <li key={k}>
-                    <span>{k.replace(/_/g, ' ')}</span>
+                    <span>{sentence(k)}</span>
                     <span className="num">{v.toLocaleString('en-GB')}</span>
                   </li>
                 ))}
@@ -118,3 +121,9 @@ function StatCard({ label, value, href }: { label: string; value: string; href?:
     <div className="card stat-card">{body}</div>
   );
 }
+
+/** BOOKING_CONFIRMED or Booking Confirmed → Booking confirmed. */
+const sentence = (k: string) => {
+  const t = k.replace(/_/g, ' ').toLowerCase();
+  return t.charAt(0).toUpperCase() + t.slice(1);
+};

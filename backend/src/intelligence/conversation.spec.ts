@@ -48,6 +48,10 @@ describe('Social conversation (Bluesky)', () => {
     expect(momentum(195, 95)).toBe(2);
     expect(conversationStrength(100, 100)).toBe(1);
     expect(conversationStrength(200, 100)).toBeGreaterThan(1);
+    // Twice the typical talk is a small lift, not the cap; about 8 times reaches it.
+    expect(conversationStrength(195, 95)).toBeCloseTo(1.026, 3);
+    expect(conversationStrength(795, 95)).toBeCloseTo(1.08, 3);
+    expect(conversationStrength(395, 95)).toBeLessThan(1 + CONVERSATION_CAP);
     expect(conversationStrength(1_000_000, 10)).toBe(1 + CONVERSATION_CAP);
     expect(conversationStrength(0, 10_000)).toBe(1 - CONVERSATION_CAP);
     expect(conversationStrength(5, 0)).toBe(1);

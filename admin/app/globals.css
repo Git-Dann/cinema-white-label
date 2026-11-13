@@ -88,6 +88,8 @@ img {
 
 .visually-hidden {
   position: absolute !important;
+  top: 0;
+  left: 0;
   width: 1px;
   height: 1px;
   overflow: hidden;
@@ -355,13 +357,64 @@ p {
   max-width: 1440px;
   outline: none;
 }
+.topbar {
+  display: none;
+}
 @media (max-width: 800px) {
   .shell {
     grid-template-columns: 1fr;
   }
+  /* Phone: a slim bar with the page name and a Menu button; the menu opens as a full-height sheet. */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px var(--s2);
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-title {
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .topbar-menu {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-weight: 500;
+  }
+  .topbar-menu svg {
+    width: 18px;
+    height: 18px;
+  }
   .sidebar {
-    position: static;
+    display: none;
+  }
+  .menu-open .sidebar {
+    display: flex;
+    position: fixed;
+    inset: 61px 0 0 0;
+    z-index: 29;
     height: auto;
+    background: var(--bg);
+    overscroll-behavior: contain;
+  }
+  .menu-open .sidebar-brand {
+    display: none;
   }
   .main {
     padding: var(--s3) var(--s2);
@@ -748,6 +801,8 @@ textarea:disabled {
 
 /* Tables: hairline rows only. */
 .table-wrap {
+  /* Positioned so hidden screen-reader labels inside stay within the scroll area. */
+  position: relative;
   overflow-x: auto;
   margin: 0 -8px;
 }
@@ -1293,6 +1348,8 @@ textarea:disabled {
   font: inherit;
   font-size: 14px;
   font-weight: 650;
+  line-height: 40px;
+  text-align: center;
   pointer-events: none;
 }
 .phone-button.secondary {
@@ -2006,6 +2063,11 @@ textarea:disabled {
 .chip.selected {
   background: var(--text);
   color: var(--bg);
+}
+/* Muted text inside a selected (light) chip would sit grey on white. */
+.chip.selected .muted {
+  color: inherit;
+  opacity: 0.75;
 }
 .chip-count {
   font-size: 12px;
@@ -4759,6 +4821,9 @@ dialog.sheet.sheet-narrow {
 .pulse-segment-risk {
   background: var(--warning-bg) !important;
 }
+.pulse-segment-risk .muted {
+  color: var(--text-2);
+}
 .pulse-segments li {
   display: grid;
   gap: 6px;
@@ -5103,4 +5168,96 @@ dialog.sheet.sheet-narrow {
 }
 .today-talk .pulse-mark {
   flex: none;
+}
+
+/* Overview: "Get set up" checklist. Done steps get a filled dot, never a side stripe. */
+.setup {
+  margin-bottom: var(--s2);
+}
+.setup-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s3);
+  margin-bottom: var(--s2);
+}
+.setup-head p {
+  margin: 2px 0 0;
+}
+.setup-progress {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.setup-progress span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--success);
+}
+.setup-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s1);
+}
+.setup-steps a {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  height: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  text-decoration: none;
+  transition: background-color 0.15s var(--ease);
+}
+.setup-steps a:hover {
+  background: var(--surface-3);
+}
+.setup-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.setup-dot {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  font-size: 11px;
+  font-weight: 700;
+}
+.setup-steps .done .setup-dot {
+  background: var(--success);
+  border-color: var(--success);
+  color: var(--bg);
+}
+.setup-steps .done strong {
+  color: var(--text-2);
+}
+@media (max-width: 1100px) {
+  .setup-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .setup-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .setup-progress {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .setup-steps {
+    grid-template-columns: 1fr;
+  }
 }
