@@ -108,7 +108,7 @@ function AudienceInterest({ rows }: { rows: NonNullable<PulseModelView['interest
         <h2 id="pulse-interest" className="h3">Audience interest</h2>
         <span className="row gap-1 small">
           <span className="muted">
-            Wikipedia page views in the month before release, against the typical film you show ({typical.toLocaleString('en-GB')})
+            Wikipedia page views in the month before release, against the typical film you show ({compact(typical)})
           </span>
           {demo && <span className="badge badge-sample">Demo figures</span>}
         </span>
@@ -120,7 +120,7 @@ function AudienceInterest({ rows }: { rows: NonNullable<PulseModelView['interest
             <li key={r.filmId}>
               <span className="pulse-adjust-label" title={`${r.title}: ${r.views.toLocaleString('en-GB')} page views`}>
                 {r.title}
-                <span className="muted small"> · {r.views.toLocaleString('en-GB')}</span>
+                <span className="muted small"> · {compact(r.views)}</span>
                 {r.series && <span className="muted small"> · series</span>}
               </span>
               <span className="pulse-adjust-bar" aria-hidden="true">
@@ -195,7 +195,7 @@ function Conversation({ rows }: { rows: PulseTalk[] }) {
               <th scope="col" className="num-col">Week before</th>
               <th scope="col">Trend</th>
               <th scope="col" className="num-col">Engagement</th>
-              <th scope="col" className="num-col">Forecast effect</th>
+              <th scope="col" className="num-col">Effect on forecast</th>
             </tr>
           </thead>
           <tbody>
@@ -229,7 +229,7 @@ function Conversation({ rows }: { rows: PulseTalk[] }) {
         </div>
       )}
       <p className="muted small pulse-foot-note">
-        Bluesky is one open network, not all of social media. Its effect on forecasts is kept within ×0.92 to ×1.08 until your own sales confirm it; talk that climbs fast raises a staffing and stock alert on Today. Pulse stores counts and links only; posts are shown live, so deleted posts disappear.
+        Bluesky is one open network, not all of social media. The effect on forecasts comes from how much talk there is compared with your typical film; the trend shows which way it is moving. It is kept within ×0.92 to ×1.08 until your own sales confirm it; talk that climbs fast raises a staffing and stock alert on Today. Pulse stores counts and links only; posts are shown live, so deleted posts disappear.
       </p>
     </section>
   );
@@ -282,6 +282,9 @@ function BookingCurve({ curves }: { curves: PulseModelView['curves'] }) {
     </figure>
   );
 }
+
+/** 6,933,104 → 6.9m, 476,459 → 476k: short enough to sit beside a title. */
+const compact = (v: number) => (v >= 1e6 ? `${(v / 1e6).toFixed(1)}m` : v >= 1e4 ? `${Math.round(v / 1e3)}k` : Math.round(v).toLocaleString('en-GB'));
 
 export default function PulsePage() {
   const { tenant } = useSession();

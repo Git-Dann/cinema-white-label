@@ -34,7 +34,7 @@ const NAV: { group: string | null; items: NavItem[] }[] = [
   { group: 'Plan', items: [
     { href: '/insights', label: 'Insights', icon: 'chart', views: H },
     { href: '/pulse', label: 'Pulse', icon: 'pulse', views: HV },
-    { href: '/year-ahead', label: 'Year ahead', icon: 'spark', views: H },
+    { href: '/year-ahead', label: 'Year ahead', icon: 'trend', views: H },
     { href: '/next-weeks', label: 'Next 6 weeks', icon: 'spark', views: HV },
   ] },
   { group: 'What’s on', items: [
@@ -94,12 +94,33 @@ function Shell({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // On a phone the menu is a drawer behind a top bar; it closes when a page is chosen.
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => setMenuOpen(false), [pathname]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
+    document.addEventListener('keydown', esc);
+    return () => document.removeEventListener('keydown', esc);
+  }, [menuOpen]);
+  const current = allowed.find((n) => isActive(n.href, pathname));
+
   return (
-    <div className="shell">
+    <div className={`shell${menuOpen ? ' menu-open' : ''}`}>
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <aside className="sidebar">
+      <header className="topbar">
+        <div className="brand-mark small" aria-hidden="true">
+          <span />
+        </div>
+        <span className="topbar-title">{current?.label ?? 'Seatfold'}</span>
+        <button type="button" className="topbar-menu" aria-expanded={menuOpen} aria-controls="sidebar" onClick={() => setMenuOpen((o) => !o)}>
+          <Icon name={menuOpen ? 'close' : 'menu'} />
+          <span>{menuOpen ? 'Close' : 'Menu'}</span>
+        </button>
+      </header>
+      <aside className="sidebar" id="sidebar">
         <div className="sidebar-brand">
           <div className="brand-mark small" aria-hidden="true">
             <span />

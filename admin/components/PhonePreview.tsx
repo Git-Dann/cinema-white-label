@@ -162,14 +162,12 @@ export function PhonePreview({
             </div>
           </div>
 
-          <button
-            type="button"
-            tabIndex={-1}
+          <span
             className="phone-button"
             style={{ background: t.actionPrimary, color: t.actionPrimaryText, borderRadius: r.medium }}
           >
             Book 2 tickets · £23.40
-          </button>
+          </span>
         </div>
 
         <div className="phone-tabs" style={{ background: t.backgroundElevated, borderTopColor: t.divider }}>

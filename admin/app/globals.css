@@ -88,6 +88,8 @@ img {
 
 .visually-hidden {
   position: absolute !important;
+  top: 0;
+  left: 0;
   width: 1px;
   height: 1px;
   overflow: hidden;
@@ -355,13 +357,64 @@ p {
   max-width: 1440px;
   outline: none;
 }
+.topbar {
+  display: none;
+}
 @media (max-width: 800px) {
   .shell {
     grid-template-columns: 1fr;
   }
+  /* Phone: a slim bar with the page name and a Menu button; the menu opens as a full-height sheet. */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px var(--s2);
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-title {
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .topbar-menu {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-weight: 500;
+  }
+  .topbar-menu svg {
+    width: 18px;
+    height: 18px;
+  }
   .sidebar {
-    position: static;
+    display: none;
+  }
+  .menu-open .sidebar {
+    display: flex;
+    position: fixed;
+    inset: 61px 0 0 0;
+    z-index: 29;
     height: auto;
+    background: var(--bg);
+    overscroll-behavior: contain;
+  }
+  .menu-open .sidebar-brand {
+    display: none;
   }
   .main {
     padding: var(--s3) var(--s2);
@@ -748,6 +801,8 @@ textarea:disabled {
 
 /* Tables: hairline rows only. */
 .table-wrap {
+  /* Positioned so hidden screen-reader labels inside stay within the scroll area. */
+  position: relative;
   overflow-x: auto;
   margin: 0 -8px;
 }
@@ -1293,6 +1348,8 @@ textarea:disabled {
   font: inherit;
   font-size: 14px;
   font-weight: 650;
+  line-height: 40px;
+  text-align: center;
   pointer-events: none;
 }
 .phone-button.secondary {
@@ -2006,6 +2063,11 @@ textarea:disabled {
 .chip.selected {
   background: var(--text);
   color: var(--bg);
+}
+/* Muted text inside a selected (light) chip would sit grey on white. */
+.chip.selected .muted {
+  color: inherit;
+  opacity: 0.75;
 }
 .chip-count {
   font-size: 12px;
@@ -4758,6 +4820,9 @@ dialog.sheet.sheet-narrow {
 }
 .pulse-segment-risk {
   background: var(--warning-bg) !important;
+}
+.pulse-segment-risk .muted {
+  color: var(--text-2);
 }
 .pulse-segments li {
   display: grid;
