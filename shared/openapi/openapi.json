@@ -30,6 +30,42 @@
         ]
       }
     },
+    "/v1/t/{tenant}/app-status": {
+      "get": {
+        "operationId": "TenantsController_appStatus",
+        "parameters": [
+          {
+            "name": "platform",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "ios"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "required": true,
+            "in": "query",
+            "description": "The app version, e.g. 1.4.0",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update status for an app version: current, update-available or update-required",
+        "tags": [
+          "Tenant"
+        ]
+      }
+    },
     "/v1/t/{tenant}/auth/guest": {
       "post": {
         "operationId": "TenantsController_guest",

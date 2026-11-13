@@ -1,0 +1,13 @@
+{
+  "slug": "kestrel",
+  "appName": "Kestrel",
+  "storeName": "Kestrel Picturehouse Demo",
+  "bundleId": "uk.co.gitwork.kestrel.cinema",
+  "appleTeamId": "B27Y4M6S3Y",
+  "appStoreId": null,
+  "appIcon": "AppIcon-Kestrel",
+  "ring": "internal",
+  "status": "live",
+  "secretSuffix": "GITWORK",
+  "demoMode": false
+}

@@ -1,8 +1,8 @@
 #include "Base.xcconfig"
-// Build-time identity for the fictional Northlight Cinemas app.
-APP_BUNDLE_ID = $(BUNDLE_ID_PREFIX).northlight.cinema
+// Generated from fleet/brands/northlight.json by scripts/fleet.mjs. Edit the brand file, not this.
+APP_BUNDLE_ID = uk.co.gitwork.northlight.cinema
 APP_NAME = Northlight
 TENANT_SLUG = northlight
-// Icon Composer icon in Resources/CinemaIcon.icon (needs Xcode 26). The
-// AppIcon-Northlight asset set stays as the flat icon for older tooling.
+DEVELOPMENT_TEAM = B27Y4M6S3Y
 ASSETCATALOG_COMPILER_APPICON_NAME = CinemaIcon
+DEMO_MODE = NO

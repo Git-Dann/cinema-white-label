@@ -1,5 +1,7 @@
 # Getting the app on TestFlight
 
+This covers the single demo app. To build and upload every operator's app at once, see [fleet-releases.md](fleet-releases.md).
+
 Automatic TestFlight uploads use the **Northlight** release build, which talks to the hosted API (`https://cinema-api-flame.vercel.app`). Payments are simulated and labelled.
 
 The **Northlight Demo** scheme is still there for showing the app offline: it archives a release build that always runs on the bundled demo data: fictional films, seat maps, food, offers, 640 demo points and memberships, all offline. No backend is needed, payments are simulated and the app says so. Internal TestFlight testing needs no App Review and costs nothing beyond the Apple Developer membership.

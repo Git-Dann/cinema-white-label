@@ -1,0 +1,200 @@
+name: Fleet release
+
+# Builds every operator app from this one codebase and uploads each to its own
+# App Store Connect account (TestFlight), one ring at a time:
+#   internal  our demo apps (Northlight, Kestrel)
+#   pilot     internal + operators who opted in to early releases
+#   general   everyone
+# Which apps exist, and which ring each is in, comes from fleet/brands/*.json.
+# The version is MARKETING_VERSION in ios/Config/Base.xcconfig: one version for
+# the whole fleet. See docs/fleet-releases.md for the full release routine.
+#
+# Secrets, one set per Apple team (brands on the same team share them), named
+# with the brand's secretSuffix:
+#   ASC_KEY_ID_<SUFFIX>, ASC_ISSUER_ID_<SUFFIX>, ASC_PRIVATE_KEY_<SUFFIX>
+# The GITWORK team falls back to the existing ASC_KEY_ID / ASC_ISSUER_ID /
+# ASC_PRIVATE_KEY. A brand without a key is skipped with a notice, not failed.
+on:
+  workflow_dispatch:
+    inputs:
+      ring:
+        description: "Ring to release to (includes every earlier ring)"
+        type: choice
+        options: [internal, pilot, general]
+        default: internal
+      brands:
+        description: "Only these brands, comma-separated slugs (blank for the whole ring)"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fleet-release
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      build: ${{ steps.plan.outputs.build }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @cinema/contracts build
+      - name: Check the fleet
+        run: node scripts/fleet.mjs check
+      - name: Choose apps
+        id: plan
+        env:
+          RING: ${{ inputs.ring }}
+          ONLY: ${{ inputs.brands }}
+        run: |
+          matrix=$(node scripts/fleet.mjs matrix "$RING" "$ONLY")
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          # One build number for every app in this release: UTC date and time.
+          echo "build=$(date -u +%Y%m%d.%H%M)" >> "$GITHUB_OUTPUT"
+          version=$(sed -n 's/^MARKETING_VERSION = //p' ios/Config/Base.xcconfig)
+          {
+            echo "### Fleet release $version ($RING)"
+            echo ""
+            echo "| App | Ring |"
+            echo "|---|---|"
+            node scripts/fleet.mjs list | awk -v m="$matrix" 'index(m, "\"slug\":\"" $1 "\"") { print "| " $1 " | " $2 " |" }'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  app:
+    name: ${{ matrix.brand.appName }}
+    needs: plan
+    if: needs.plan.outputs.matrix != '[]'
+    runs-on: macos-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      # Apple's processing is per account, but one runner at a time keeps the free macOS minutes predictable.
+      max-parallel: 2
+      matrix:
+        brand: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      SLUG: ${{ matrix.brand.slug }}
+      BUILD: ${{ needs.plan.outputs.build }}
+    steps:
+      - name: Find this brand's App Store Connect key
+        id: key
+        env:
+          KEY_ID: ${{ secrets[format('ASC_KEY_ID_{0}', matrix.brand.secretSuffix)] || (matrix.brand.secretSuffix == 'GITWORK' && secrets.ASC_KEY_ID) || '' }}
+          ISSUER_ID: ${{ secrets[format('ASC_ISSUER_ID_{0}', matrix.brand.secretSuffix)] || (matrix.brand.secretSuffix == 'GITWORK' && secrets.ASC_ISSUER_ID) || '' }}
+          PRIVATE_KEY: ${{ secrets[format('ASC_PRIVATE_KEY_{0}', matrix.brand.secretSuffix)] || (matrix.brand.secretSuffix == 'GITWORK' && secrets.ASC_PRIVATE_KEY) || '' }}
+        run: |
+          if [ -z "$KEY_ID" ] || [ -z "$ISSUER_ID" ] || [ -z "$PRIVATE_KEY" ]; then
+            echo "::notice::$SLUG skipped: add ASC_KEY_ID_${{ matrix.brand.secretSuffix }}, ASC_ISSUER_ID_${{ matrix.brand.secretSuffix }} and ASC_PRIVATE_KEY_${{ matrix.brand.secretSuffix }} (see docs/fleet-releases.md)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s' "$PRIVATE_KEY" > "$RUNNER_TEMP/keys/AuthKey.p8"
+          {
+            echo "ASC_KEY_ID=$KEY_ID"
+            echo "ASC_ISSUER_ID=$ISSUER_ID"
+            echo "ASC_KEY_PATH=$RUNNER_TEMP/keys/AuthKey.p8"
+          } >> "$GITHUB_ENV"
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.ready == 'true'
+
+      - name: Select newest Xcode
+        if: steps.key.outputs.ready == 'true'
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
+          SDK=$(xcrun --sdk iphoneos --show-sdk-version)
+          echo "SDK=$SDK" >> "$GITHUB_ENV"
+          echo "Xcode $(xcodebuild -version | head -1), iOS SDK $SDK" >> "$GITHUB_STEP_SUMMARY"
+
+      # Same fallback as the TestFlight workflow: until the runner has the iOS 27 SDK,
+      # build against the newest SDK it has.
+      - name: Match deployment target to the SDK when needed
+        if: steps.key.outputs.ready == 'true'
+        working-directory: ios
+        run: |
+          if [ "$(printf '%s\n27.0\n' "$SDK" | sort -V | head -1)" != "27.0" ]; then
+            sed -i '' "s/IPHONEOS_DEPLOYMENT_TARGET = 27.0/IPHONEOS_DEPLOYMENT_TARGET = $SDK/" Config/Base.xcconfig
+            sed -i '' "s/iOS: \"27.0\"/iOS: \"$SDK\"/" project.yml
+            sed -i '' "s/.iOS(\"27.0\")/.iOS(\"$SDK\")/" Packages/CinemaKit/Package.swift
+          fi
+
+      - name: Generate project
+        if: steps.key.outputs.ready == 'true'
+        working-directory: ios
+        run: |
+          sed -i '' "s/^CURRENT_PROJECT_VERSION = .*/CURRENT_PROJECT_VERSION = $BUILD/" Config/Base.xcconfig
+          brew install xcodegen
+          xcodegen generate
+          # The brand's xcconfig (generated from fleet/brands) sets bundle ID, name, team and icon.
+          XC="Config/$(echo "${SLUG:0:1}" | tr a-z A-Z)${SLUG:1}.xcconfig"
+          test -f "$XC" || { echo "::error::$XC missing; run node scripts/fleet.mjs generate"; exit 1; }
+          echo "BRAND_XCCONFIG=$XC" >> "$GITHUB_ENV"
+          TEAM=$(sed -n 's/^DEVELOPMENT_TEAM = //p' "$XC")
+          cp ExportOptions.plist "$RUNNER_TEMP/ExportOptions.plist"
+          plutil -replace teamID -string "$TEAM" "$RUNNER_TEMP/ExportOptions.plist"
+
+      - name: Note existing development certificates
+        if: steps.key.outputs.ready == 'true'
+        run: |
+          python3 -m pip install --quiet --break-system-packages pyjwt cryptography
+          python3 ios/scripts/asc_dev_certs.py snapshot "$RUNNER_TEMP/dev-certs.json"
+
+      - name: Archive
+        if: steps.key.outputs.ready == 'true'
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project Cinema.xcodeproj -scheme Northlight -configuration "Northlight Release" \
+            -xcconfig "$BRAND_XCCONFIG" \
+            -destination "generic/platform=iOS" -archivePath "$RUNNER_TEMP/$SLUG.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            2>&1 | tee archive.log | grep -E "error:|\*\* ARCHIVE" || true
+          test -d "$RUNNER_TEMP/$SLUG.xcarchive" || { echo "::error::Archive failed; see archive.log"; grep -E "error:" archive.log | head -20; exit 1; }
+
+      - name: Upload to TestFlight
+        if: steps.key.outputs.ready == 'true'
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/$SLUG.xcarchive" -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            2>&1 | tee upload.log | grep -E "error|Upload|EXPORT" || true
+          grep -q "EXPORT SUCCEEDED" upload.log || { echo "::error::Upload failed; see upload.log"; tail -40 upload.log; exit 1; }
+          echo "Uploaded ${{ matrix.brand.appName }} build $BUILD. It appears in that account's TestFlight after Apple's processing." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep logs
+        if: always() && steps.key.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fleet-${{ matrix.brand.slug }}-logs
+          path: |
+            ios/archive.log
+            ios/upload.log
+          if-no-files-found: ignore
+
+      - name: Revoke the development certificate this run created
+        if: always() && steps.key.outputs.ready == 'true'
+        run: |
+          test -f "$RUNNER_TEMP/dev-certs.json" || exit 0
+          python3 ios/scripts/asc_dev_certs.py revoke-new "$RUNNER_TEMP/dev-certs.json"
+
+      - name: Remove key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"

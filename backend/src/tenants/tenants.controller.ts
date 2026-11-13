@@ -1,5 +1,7 @@
-import { Controller, Get, Headers, HttpCode, Post, Res, UseGuards } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { BadRequestException, Controller, Get, Headers, HttpCode, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { appStatus, AppVersionString } from '@cinema/contracts';
+import { FLEET_BRANDS, FLEET_POLICY } from '../fleet/fleet.data';
 import { Tenant } from '@prisma/client';
 import type { Response } from 'express';
 import { PrismaService } from '../common/prisma.service';
@@ -25,6 +27,22 @@ export class TenantsController {
       return;
     }
     return cfg;
+  }
+
+  /**
+   * Whether this app version is current, can update or must update. The fleet policy lives in
+   * fleet/policy.json, so raising the minimum version for every app is one reviewed change.
+   */
+  @Get('app-status')
+  @ApiOperation({ summary: 'Update status for an app version: current, update-available or update-required' })
+  @ApiQuery({ name: 'platform', enum: ['ios'] })
+  @ApiQuery({ name: 'version', description: 'The app version, e.g. 1.4.0' })
+  appStatus(@CurrentTenant() tenant: Tenant, @Query('platform') platform: string, @Query('version') version: string, @Res({ passthrough: true }) res: Response) {
+    if (platform !== 'ios') throw new BadRequestException('platform must be ios');
+    if (!AppVersionString.safeParse(version).success) throw new BadRequestException('version must look like 1.4.0');
+    // Short cache: a raised minimum reaches every app within five minutes.
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    return appStatus(FLEET_POLICY, FLEET_BRANDS.find((b) => b.slug === tenant.slug) ?? null, version);
   }
 
   @Post('auth/guest')
