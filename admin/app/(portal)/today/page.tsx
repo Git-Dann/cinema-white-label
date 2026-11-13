@@ -6,6 +6,7 @@ import { SafeImage } from '@/components/SafeImage';
 import { mediaUrl, PulseFood, PulseForecast, PulseForecasts, PulseStaffing, ShiftRow, tenantPath, VenueToday } from '@/lib/api';
 import { ForecastSheet, paceTone, PulseBasisLine } from '@/components/pulse';
 import { useCinemaScope } from '@/lib/cinema-scope';
+import { rotaName } from '@/lib/format';
 import { useSession, useTenantData } from '@/lib/session';
 
 /*
@@ -111,7 +112,7 @@ export default function TodayPage() {
           <section className="card onshift" aria-labelledby="onshift-h">
             <div className="row between">
               <h2 id="onshift-h" className="h3">On shift</h2>
-              <span className="muted small">{onShift.length ? `From ${onShift[0].source}` : 'Connect your rota in Connections to see who is working'}</span>
+              <span className="muted small">{onShift.length ? `From ${rotaName(onShift[0].source)}` : 'Connect your rota in Connections to see who is working'}</span>
             </div>
             {onShift.length > 0 && (
               <ul className="onshift-list">
