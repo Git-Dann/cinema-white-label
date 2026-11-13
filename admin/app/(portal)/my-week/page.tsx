@@ -3,6 +3,7 @@
 import { PageHeader } from '@/components/ui';
 import { ShiftRow, tenantPath, VenueToday } from '@/lib/api';
 import { useCinemaScope } from '@/lib/cinema-scope';
+import { rotaName } from '@/lib/format';
 import { useSession, useTenantData } from '@/lib/session';
 import { SLATE, START, weekDate, weekdayLabel } from '@/lib/slate';
 
@@ -50,7 +51,7 @@ export default function MyWeekPage() {
       <PageHeader
         title="My week"
         description={`${real.length ? (mine.length ? me.name : 'The team') : 'Sam'} · ${site?.name ?? 'your cinema'}`}
-        actions={real.length ? <span className="badge badge-success">From {real[0].source}</span> : <span className="badge badge-sample">Sample shifts · connect your rota</span>}
+        actions={real.length ? <span className="badge badge-success">From {rotaName(real[0].source)}</span> : <span className="badge badge-sample">Sample shifts · connect your rota</span>}
       />
 
       <section aria-labelledby="mw-shifts">

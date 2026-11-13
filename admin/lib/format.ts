@@ -128,3 +128,7 @@ export function permissions(role: string) {
     canManageTeam: operator,
   };
 }
+
+/** A rota source as people know it: sources arrive lower-case ("planday"), so known ones get their real names. */
+const ROTA_NAMES: Record<string, string> = { planday: 'Planday', deputy: 'Deputy', rotacloud: 'RotaCloud' };
+export const rotaName = (source: string) => ROTA_NAMES[source] ?? (source ? source[0].toUpperCase() + source.slice(1) : source);

@@ -796,3 +796,16 @@ html:not([data-motion="off"]) .btn:hover, html:not([data-motion="off"]) .btn--xl
 }
 /* phones: the header button reads just "Book" (screen readers still hear "Book a demo") */
 @media (max-width: 639px) { .nav__cta-more { display: none; } }
+
+/* "change it live": two phones, the film page behind and the account screen (points and membership) in front */
+.remote-shot .device--back { translate: -92% 6%; rotate: -4deg; opacity: .9; }
+.remote-shot .device--front { translate: -8% 0; rotate: 3deg; z-index: 1; box-shadow: 0 30px 60px -20px rgb(0 0 0 / .7); }
+/* the AI layer: a real portal capture in the connect frame */
+.connect__frame--shot { padding: clamp(16px, 3vw, 40px) clamp(16px, 3vw, 40px) 0; overflow: hidden; }
+.connect__frame--shot img { display: block; width: 100%; height: auto; border-radius: 14px 14px 0 0; box-shadow: 0 24px 70px -30px rgb(0 0 0 / .8); border: 1px solid rgb(255 255 255 / .08); border-bottom: 0; }
+@media (max-width: 639px) { main > #connect > .wrap > .connect__frame--shot { height: auto; } }
+/* portal captures: crisp edges and a quiet frame */
+.plan__shot img { border-radius: 12px; border: 1px solid rgb(255 255 255 / .08); }
+main > #connect > .wrap > .connect__frame--shot { flex: none !important; height: auto !important; min-height: 0 !important; max-height: none !important; aspect-ratio: auto !important; }
+.connect__frame--shot img { -webkit-mask: linear-gradient(#000 78%, transparent); mask: linear-gradient(#000 78%, transparent); }
+.connect__frame--shot > picture { display: block; }

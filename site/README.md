@@ -15,7 +15,7 @@ Cloudflare Pages, Vercel or Netlify.
 | Portal | The release history beside a draft release, with its palette and WCAG contrast checks | Live HTML matching `admin/` (Releases, Branding) |
 | Booking | Seats, food, ticket: three real app captures that change as you scroll | `ci-screenshots` |
 | Changes | What changes live vs what needs an App Store build | `docs/feature-parity.md` |
-| Plan | Year ahead, Next 6 weeks and My week, one tab per role | Portal captures (`img/portal-*.webp`, sample data) |
+| Plan | Pulse, Today and My week, one tab per role | Portal captures at 3x (`img/portal-*.webp`, demo history, labelled) |
 | Platform | What sits underneath, for whoever signs off the technology | `CLAUDE.md` rules, `backend/` |
 | Seating | A live 226-seat map you can tap | `shared/fixtures/layouts/curved.json` |
 | iPhone | Live Activity, offline ticket, Spotlight, VoiceOver list, Calendar | `docs/apple-integrations.md`, the app |
