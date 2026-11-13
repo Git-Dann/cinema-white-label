@@ -1,0 +1,8 @@
+{
+  "ios": {
+    "minimumVersion": "0.1.0",
+    "latestVersion": "0.1.0",
+    "message": "This update keeps your tickets and bookings working smoothly."
+  },
+  "overrides": {}
+}

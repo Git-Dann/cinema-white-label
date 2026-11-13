@@ -27,6 +27,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @cinema/contracts build
       - run: pnpm --filter @cinema/contracts test
+      # Brand files, version policy and the files generated from them agree.
+      - run: node scripts/fleet.mjs check
 
   backend:
     name: Backend

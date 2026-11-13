@@ -1,6 +1,8 @@
 #include "Base.xcconfig"
-// Build-time identity for the fictional Kestrel Picturehouse app.
-APP_BUNDLE_ID = $(BUNDLE_ID_PREFIX).kestrel.cinema
+// Generated from fleet/brands/kestrel.json by scripts/fleet.mjs. Edit the brand file, not this.
+APP_BUNDLE_ID = uk.co.gitwork.kestrel.cinema
 APP_NAME = Kestrel
 TENANT_SLUG = kestrel
+DEVELOPMENT_TEAM = B27Y4M6S3Y
 ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon-Kestrel
+DEMO_MODE = NO

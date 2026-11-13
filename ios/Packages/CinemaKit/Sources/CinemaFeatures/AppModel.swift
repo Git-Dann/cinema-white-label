@@ -29,6 +29,11 @@ public final class AppModel {
     public private(set) var membershipPlans: [MembershipPlan] = []
     public private(set) var loadError: String?
     public private(set) var isLoading = false
+    /// The server's view of this app version (fleet policy). Nil until checked, or when offline.
+    public private(set) var appStatus: AppStatus?
+    /// The newest version the customer said "Not now" to, so each version is suggested once.
+    public private(set) var dismissedUpdateVersion: String? = UserDefaults.standard.string(forKey: AppModel.dismissedUpdateKey)
+    private static let dismissedUpdateKey = "dismissedUpdateVersion"
 
     /// Customer's chosen cinema, remembered between launches.
     public var selectedVenueID: String? {
@@ -65,6 +70,19 @@ public final class AppModel {
     }
 
     public var config: TenantConfig { configStore.config }
+    public var updatePrompt: UpdatePrompt { UpdatePrompt.decide(appStatus, dismissedVersion: dismissedUpdateVersion) }
+
+    /// Asks the platform whether this version is still supported. Failures leave things as they are.
+    public func checkForUpdate() async {
+        guard let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String else { return }
+        if let status = try? await service.appStatus(version: version) { appStatus = status }
+    }
+
+    public func dismissUpdate() {
+        guard case .suggest(let s) = updatePrompt else { return }
+        dismissedUpdateVersion = s.latestVersion
+        UserDefaults.standard.set(s.latestVersion, forKey: Self.dismissedUpdateKey)
+    }
     public var formatters: Formatters { Formatters(locale: Locale(identifier: config.tenant.locale.replacingOccurrences(of: "-", with: "_")), currencyCode: config.tenant.currency) }
     public var selectedVenue: Venue? { venues.first { $0.id == selectedVenueID } }
     public var favouriteVenues: [Venue] { venues.filter(\.isFavourite) }
@@ -77,7 +95,8 @@ public final class AppModel {
         async let tickets: Void = refreshTickets()
         // Load rewards and membership up front so Account is ready before it is opened.
         async let account: Void = loadAccount()
-        _ = await (config, content, tickets, account)
+        async let update: Void = checkForUpdate()
+        _ = await (config, content, tickets, account, update)
     }
 
     /// Refreshes tickets, retrying once after a moment (the API can be waking up), and

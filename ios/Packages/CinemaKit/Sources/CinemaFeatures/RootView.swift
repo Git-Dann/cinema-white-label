@@ -69,9 +69,13 @@ public struct RootView: View {
             .cinemaTheme(app.configStore.activeTheme(increasedContrast: contrast == .increased), typography: app.config.typography)
         }
         .cinemaTheme(app.configStore.activeTheme(increasedContrast: contrast == .increased), typography: app.config.typography)
+        .updatePrompts(app)
         .task { await app.start() }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { Task { await app.refreshConfig() } }
+            if phase == .active {
+                Task { await app.refreshConfig() }
+                Task { await app.checkForUpdate() }
+            }
         }
         .onOpenURL { url in handleDeepLink(url) }
         .onContinueUserActivity(CSSearchableItemActionType) { SpotlightIndexer.handle($0) }

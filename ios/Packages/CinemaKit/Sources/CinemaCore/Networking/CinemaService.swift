@@ -34,6 +34,13 @@ public protocol CinemaService: Sendable {
     func cancelBooking(id: String) async throws -> Booking
     func requestWalletPass(bookingId: String) async throws -> WalletPassResponse
     func track(_ events: [AnalyticsEvent]) async throws
+    /// Whether this app version is current, can update or must update. Nil when the service has no opinion.
+    func appStatus(version: String) async throws -> AppStatus?
+}
+
+public extension CinemaService {
+    /// Demo and test services never ask anyone to update.
+    func appStatus(version: String) async throws -> AppStatus? { nil }
 }
 
 /// Food, voucher and fulfilment choices sent with quotes and checkout.
@@ -162,6 +169,10 @@ public struct LiveCinemaService: CinemaService {
     public func track(_ events: [AnalyticsEvent]) async throws {
         struct Body: Encodable, Sendable { var events: [AnalyticsEvent] }
         _ = try await client.send("POST", "/analytics/events", body: Body(events: events), as: EmptyResponse.self)
+    }
+
+    public func appStatus(version: String) async throws -> AppStatus? {
+        try await client.get("/app-status" + q(["platform": "ios", "version": version]))
     }
 }
 
