@@ -17,7 +17,7 @@ For each screening:
    - **Slot base** is the expected share of seats filled for the time slot: weekday daytime, weekday evening (including Sunday evening), Friday or Saturday evening, weekend daytime, late show (21:30 or later). Bank holidays count as Saturdays and the day before one as a Friday.
    - **Release decay** is `weekly retention ^ (week of release − 1)`, with retention set by genre (below).
    - **Film strength** is neutral (×1) by default. TMDB's free licence forbids commercial use and machine-learning use, so its popularity only counts when `PULSE_TMDB_LICENSED=true` records a written agreement; then strength is `0.8 + 0.4 × popularity rank`, kept between 0.6 and 1.8. Without it, each film's own sales teach its learned film multiplier.
-   - **Social talk** is posts about the film on Bluesky in the last 7 days against the typical film on the programme, `((posts + 5) / (typical + 5)) ^ 0.1`, kept between ×0.92 and ×1.08 (see below).
+   - **Social talk** is posts about the film on Bluesky in the last 7 days against the typical film on the programme, `((posts + 5) / (typical + 5)) ^ 0.037`, kept between ×0.92 and ×1.08 (see below). The power is set so that talk 8 times the typical film's reaches ×1.08: twice the typical talk gives about ×1.03, so the effect separates loud films from merely busy ones.
    - **Format**: IMAX and 4DX ×1.15, 3D ×1.05.
    - **School holiday**: daytime shows ×1.3.
 

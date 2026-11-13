@@ -20,6 +20,10 @@ const DAY = 86400_000;
 const API = 'https://api.bsky.app/xrpc';
 /** Most a film's conversation can move a forecast either way, until validated on an operator's sales. */
 export const CONVERSATION_CAP = 0.08;
+/** Talk this many times the typical film's reaches the cap; less than that scales smoothly. */
+const CAP_AT_RATIO = 8;
+/** Elasticity chosen so that CAP_AT_RATIO times typical talk gives exactly the cap (about 0.037). */
+const TALK_ELASTICITY = Math.log(1 + CONVERSATION_CAP) / Math.log(CAP_AT_RATIO);
 /** Smoothing for week-on-week momentum so a jump from 1 post to 4 is not "4 times". */
 const MOMENTUM_SMOOTHING = 5;
 /** A week of talk this many times the week before counts as climbing (for alerts). */
@@ -127,7 +131,7 @@ export function momentum(posts7: number, prev7: number): number {
  */
 export function conversationStrength(posts7: number, typical: number): number {
   if (!(typical > 0)) return 1;
-  const s = Math.pow((posts7 + MOMENTUM_SMOOTHING) / (typical + MOMENTUM_SMOOTHING), 0.1);
+  const s = Math.pow((posts7 + MOMENTUM_SMOOTHING) / (typical + MOMENTUM_SMOOTHING), TALK_ELASTICITY);
   return Math.round(Math.min(1 + CONVERSATION_CAP, Math.max(1 - CONVERSATION_CAP, s)) * 1000) / 1000;
 }
 
