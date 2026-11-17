@@ -80,3 +80,18 @@ struct CustomerProfileTests {
         #expect(store.load() == .empty)
     }
 }
+
+@Suite("Membership plans list")
+struct MembershipPlanListTests {
+    let plans = [
+        MembershipPlan(id: "premiere", name: "Premiere", description: "", priceMinor: 1499, interval: "month", entitlements: .init()),
+        MembershipPlan(id: "plus", name: "Plus", description: "", priceMinor: 699, interval: "month", entitlements: .init()),
+        MembershipPlan(id: "annual", name: "Annual", description: "", priceMinor: 6900, interval: "year", entitlements: .init()),
+    ]
+
+    @Test func listsOtherPlansCheapestFirst() {
+        #expect(plans.others(than: plans[0]).map(\.id) == ["plus", "annual"])
+        #expect(plans.others(than: nil).map(\.id) == ["plus", "premiere", "annual"])
+        #expect(plans.byPrice.map(\.id) == ["plus", "premiere", "annual"])
+    }
+}
