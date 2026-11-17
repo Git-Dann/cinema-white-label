@@ -37,12 +37,14 @@ export class TenantsController {
   @ApiOperation({ summary: 'Update status for an app version: current, update-available or update-required' })
   @ApiQuery({ name: 'platform', enum: ['ios'] })
   @ApiQuery({ name: 'version', description: 'The app version, e.g. 1.4.0' })
-  appStatus(@CurrentTenant() tenant: Tenant, @Query('platform') platform: string, @Query('version') version: string, @Res({ passthrough: true }) res: Response) {
+  @ApiQuery({ name: 'app', required: false, description: 'Fleet brand of the app asking (e.g. seatfold for the shared app); defaults to the operator' })
+  appStatus(@CurrentTenant() tenant: Tenant, @Query('platform') platform: string, @Query('version') version: string, @Res({ passthrough: true }) res: Response, @Query('app') appBrand?: string) {
     if (platform !== 'ios') throw new BadRequestException('platform must be ios');
     if (!AppVersionString.safeParse(version).success) throw new BadRequestException('version must look like 1.4.0');
     // Short cache: a raised minimum reaches every app within five minutes.
     res.setHeader('Cache-Control', 'public, max-age=300');
-    return appStatus(FLEET_POLICY, FLEET_BRANDS.find((b) => b.slug === tenant.slug) ?? null, version);
+    const slug = appBrand ?? tenant.slug;
+    return appStatus(FLEET_POLICY, FLEET_BRANDS.find((b) => b.slug === slug) ?? null, version);
   }
 
   @Post('auth/guest')

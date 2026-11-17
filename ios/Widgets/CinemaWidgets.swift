@@ -14,8 +14,13 @@ struct CinemaWidgetsBundle: WidgetBundle {
 
 struct NextTicketWidget: Widget {
     private static let info = Bundle.main.infoDictionary ?? [:]
-    private static let slug = info["TenantSlug"] as? String ?? "northlight"
     private static let appGroup = info["AppGroup"] as? String ?? ""
+    /// A branded app's operator, or the one chosen in the shared Seatfold app (saved in the App Group).
+    private static var slug: String {
+        (info["TenantSlug"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            ?? UserDefaults(suiteName: appGroup)?.string(forKey: "seatfold.operator")
+            ?? "northlight"
+    }
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "NextTicket", provider: NextTicketProvider(

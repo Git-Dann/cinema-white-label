@@ -13,12 +13,16 @@ configs:
   Northlight Demo: release
   Kestrel Debug: debug
   Kestrel Release: release
+  Seatfold Debug: debug
+  Seatfold Release: release
 configFiles:
   Northlight Debug: Config/Northlight.xcconfig
   Northlight Release: Config/Northlight.xcconfig
   Northlight Demo: Config/Northlight-Demo.xcconfig
   Kestrel Debug: Config/Kestrel.xcconfig
   Kestrel Release: Config/Kestrel.xcconfig
+  Seatfold Debug: Config/Seatfold.xcconfig
+  Seatfold Release: Config/Seatfold.xcconfig
 targets:
   CinemaApp:
     type: application
@@ -44,6 +48,9 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLSchemes: [cinema-$(TENANT_SLUG)]
         TenantSlug: $(TENANT_SLUG)
+        # branded: one operator's app. shared: the Seatfold app with a cinema picker (fleet/brands).
+        AppMode: $(APP_MODE)
+        FleetBrand: $(FLEET_BRAND)
         APIBaseURL: $(API_BASE_URL)
         # YES in the Northlight Demo configuration: offline fictional data, no backend needed (TestFlight demos).
         DemoMode: $(DEMO_MODE)
@@ -151,3 +158,20 @@ schemes:
       config: Kestrel Debug
     archive:
       config: Kestrel Release
+  Seatfold:
+    build:
+      targets:
+        CinemaApp: all
+    run:
+      config: Seatfold Debug
+    archive:
+      config: Seatfold Release
+  # The shared app on bundled demo operators, no backend: for showing white-label theming offline.
+  Seatfold Demo:
+    build:
+      targets:
+        CinemaApp: all
+    run:
+      config: Seatfold Debug
+      commandLineArguments:
+        "-mock-data": true

@@ -78,5 +78,11 @@ describe('fleet brands', () => {
     expect(x).toContain('DEVELOPMENT_TEAM = ABCDE12345');
     expect(x).toContain('ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon-Kestrel');
     expect(x).toContain('DEMO_MODE = YES');
+    expect(x).toContain('APP_MODE = branded');
+    expect(x).toContain('TENANT_SLUG = kestrel');
+    const shared = xcconfigFor(brand('seatfold', { mode: 'shared' }));
+    expect(shared).toContain('TENANT_SLUG = \n');
+    expect(shared).toContain('APP_MODE = shared');
+    expect(shared).toContain('FLEET_BRAND = seatfold');
   });
 });

@@ -53,6 +53,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "app",
+            "required": false,
+            "in": "query",
+            "description": "Fleet brand of the app asking (e.g. seatfold for the shared app); defaults to the operator",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -3229,6 +3238,85 @@
         },
         "tags": [
           "Pulse"
+        ]
+      }
+    },
+    "/v1/directory": {
+      "get": {
+        "operationId": "DirectoryController_list",
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Operator, cinema, town or postcode",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lat",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lng",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Operators listed in the shared Seatfold app, nearest first when a location is given",
+        "tags": [
+          "Seatfold app"
+        ]
+      }
+    },
+    "/v1/admin/t/{tenant}/seatfold-app": {
+      "get": {
+        "operationId": "SeatfoldAppAdminController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether this operator is listed in the shared Seatfold app",
+        "tags": [
+          "Admin"
+        ]
+      },
+      "put": {
+        "operationId": "SeatfoldAppAdminController_set",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List or unlist this operator in the shared Seatfold app",
+        "tags": [
+          "Admin"
         ]
       }
     }

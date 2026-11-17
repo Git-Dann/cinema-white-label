@@ -5,53 +5,89 @@ import CinemaCore
 import CinemaFeatures
 
 /// App entry point. Everything operator-specific at build time comes from the
-/// xcconfig for the selected scheme (bundle ID, icon, TENANT_SLUG, API_BASE_URL);
+/// xcconfig generated from fleet/brands (bundle ID, icon, TENANT_SLUG, APP_MODE);
 /// everything else is runtime tenant configuration from the backend.
+///
+/// Two modes from one codebase:
+/// - branded: one operator's own app, fixed to TENANT_SLUG.
+/// - shared: the Seatfold app. The customer picks an operator and the app takes on its theme.
 @main
 struct CinemaApp: App {
-    @State private var app: AppModel
+    @State private var branded: AppModel?
+    private let shared: (directory: any DirectoryService, choices: OperatorChoiceStore)?
+    private let factory: AppFactory
 
     init() {
         let info = Bundle.main.infoDictionary ?? [:]
-        let slug = info["TenantSlug"] as? String ?? "northlight"
         let base = URL(string: info["APIBaseURL"] as? String ?? "http://localhost:3000/")!
-
-        // Bundled known-good configuration so the app always has a valid theme offline.
-        guard let bundled = BundledConfig.load(tenantSlug: slug) else {
-            fatalError("Missing bundled tenant configuration for \(slug); run the backend seed to regenerate it")
-        }
-
         let arguments = ProcessInfo.processInfo.arguments
         // Demo builds (Info.plist DemoMode = YES) and the -mock-data argument both use offline demo data.
-        let demoBuild = (Bundle.main.object(forInfoDictionaryKey: "DemoMode") as? String)?.uppercased() == "YES"
-            || (Bundle.main.object(forInfoDictionaryKey: "DemoMode") as? Bool) == true
+        let demoBuild = (info["DemoMode"] as? String)?.uppercased() == "YES" || (info["DemoMode"] as? Bool) == true
         let mockMode = demoBuild || arguments.contains("-mock-data")
-        var support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let service: any CinemaService
-        if mockMode {
-            // Offline demo / UI-test mode: fictional in-memory data, no backend, nothing persisted.
-            service = MockCinemaService(config: bundled)
-            support = FileManager.default.temporaryDirectory.appendingPathComponent("mock-\(UUID().uuidString)")
-            if arguments.contains("-ui-testing") { UIView.setAnimationsEnabled(false) }
-        } else {
-            let tokens = GuestTokenProvider(baseURL: base, tenantSlug: slug, store: KeychainTokenStore(service: "\(Bundle.main.bundleIdentifier ?? "cinema").session"))
-            service = LiveCinemaService(client: APIClient(baseURL: base, tenantSlug: slug, tokens: tokens))
+        if mockMode && arguments.contains("-ui-testing") { UIView.setAnimationsEnabled(false) }
+        let support = mockMode
+            ? FileManager.default.temporaryDirectory.appendingPathComponent("mock-\(UUID().uuidString)")
+            : FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let mode = AppMode.from(info: info)
+        let factory = AppFactory(baseURL: base, mockMode: mockMode, support: support, fleetBrand: (info["FleetBrand"] as? String).flatMap { $0.isEmpty ? nil : $0 }, perOperatorSession: mode == .shared)
+        self.factory = factory
+
+        switch mode {
+        case .branded(let slug):
+            // Bundled known-good configuration so the app always has a valid theme offline.
+            guard let bundled = BundledConfig.load(tenantSlug: slug) else {
+                fatalError("Missing bundled tenant configuration for \(slug); run the backend seed to regenerate it")
+            }
+            shared = nil
+            _branded = State(initialValue: factory.make(bundled))
+        case .shared:
+            let group = (info["AppGroup"] as? String).flatMap(UserDefaults.init(suiteName:))
+            let choices = OperatorChoiceStore(directory: support.appendingPathComponent("operators", isDirectory: true), shared: group)
+            let directory: any DirectoryService = mockMode ? DemoDirectoryService() : LiveDirectoryService(baseURL: base)
+            shared = (directory, choices)
         }
-        let model = AppModel(
-            service: service,
-            configStore: TenantConfigStore(bundled: bundled, cacheDirectory: support),
-            tickets: TicketStore(cacheDirectory: support, tenantSlug: slug),
-            mediaBaseURL: base,
-            isDemo: mockMode,
-            accountCacheDirectory: support
-        )
-        _app = State(initialValue: model)
     }
 
     var body: some Scene {
         WindowGroup {
-            RootView(app: app)
+            if let shared {
+                SharedAppView(directory: shared.directory, choices: shared.choices, makeApp: factory.make)
+            } else if let branded {
+                RootView(app: branded)
+            }
         }
+    }
+}
+
+/// Builds the app for one operator from a starting configuration.
+struct AppFactory {
+    let baseURL: URL
+    let mockMode: Bool
+    let support: URL
+    let fleetBrand: String?
+    /// The shared app keeps a separate session per operator; a branded app keeps its existing one.
+    let perOperatorSession: Bool
+
+    @MainActor
+    func make(_ seed: TenantConfig) -> AppModel {
+        let slug = seed.tenant.slug
+        let service: any CinemaService
+        if mockMode {
+            // Offline demo / UI-test mode: fictional in-memory data, no backend, nothing persisted.
+            service = MockCinemaService(config: seed)
+        } else {
+            let keychain = "\(Bundle.main.bundleIdentifier ?? "cinema").session" + (perOperatorSession ? ".\(slug)" : "")
+            let tokens = GuestTokenProvider(baseURL: baseURL, tenantSlug: slug, store: KeychainTokenStore(service: keychain))
+            service = LiveCinemaService(client: APIClient(baseURL: baseURL, tenantSlug: slug, tokens: tokens), fleetBrand: fleetBrand)
+        }
+        return AppModel(
+            service: service,
+            configStore: TenantConfigStore(bundled: seed, cacheDirectory: support),
+            tickets: TicketStore(cacheDirectory: support, tenantSlug: slug),
+            mediaBaseURL: baseURL,
+            isDemo: mockMode,
+            accountCacheDirectory: support
+        )
     }
 }
 

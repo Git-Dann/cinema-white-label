@@ -63,6 +63,7 @@ export default function ConnectionsPage() {
           </button>
         ))}
       </div>
+      {tab === 'apps' && <SeatfoldApp tenant={tenant} canEdit={canEdit} />}
       {tab === 'apps' && <Apps shifts={shifts.data ?? []} films={films.data ?? []} keys={live} hooks={hooks.data ?? []} onTab={setTab} />}
       {tab === 'keys' && <Keys tenant={tenant} canEdit={canEdit} rows={keys.data} loading={keys.loading} error={keys.error} reload={keys.reload} catalogue={catalogue.data} />}
       {tab === 'webhooks' && <Webhooks tenant={tenant} canEdit={canEdit} rows={hooks.data} loading={hooks.loading} error={hooks.error} reload={hooks.reload} catalogue={catalogue.data} />}
@@ -161,6 +162,55 @@ function Apps({ shifts, films, keys, hooks, onTab }: { shifts: ShiftRow[]; films
         </section>
       ))}
     </>
+  );
+}
+
+/**
+ * The shared Seatfold app: one App Store app listing every cinema that opts in. Customers pick
+ * a cinema and the app takes on its brand. For operators without their own app, or alongside it.
+ */
+function SeatfoldApp({ tenant, canEdit }: { tenant: string; canEdit: boolean }) {
+  const state = useTenantData<{ listed: boolean }>(tenantPath(tenant, '/seatfold-app'));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  // Flips at once; goes back if the server says no.
+  const [chosen, setChosen] = useState<boolean | null>(null);
+  const listed = chosen ?? state.data?.listed ?? false;
+
+  const toggle = async (next: boolean) => {
+    setChosen(next);
+    setSaving(true);
+    setError(null);
+    try {
+      await api(tenantPath(tenant, '/seatfold-app'), { method: 'PUT', body: { listed: next } });
+    } catch (e) {
+      setChosen(null);
+      setError(errorMessage(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="venue-block" aria-labelledby="g-customer-apps">
+      <h2 id="g-customer-apps" className="h3 section-title">Customer apps</h2>
+      <p className="muted small conn-blurb">Where customers book you on their phone.</p>
+      <ul className="tile-grid">
+        <li className="card tile">
+          <div className="tile-head">
+            <div className="tile-title">Seatfold app</div>
+            <span className={`badge badge-${listed ? 'success' : 'neutral'}`}>{state.loading ? 'Checking' : listed ? 'Listed' : 'Not listed'}</span>
+          </div>
+          <div className="small">One app with many cinemas. Customers pick yours and the app shows your brand, films and offers.</div>
+          <div className="muted small">No Apple account or App Store review needed on your side.</div>
+          <label className="switch small">
+            <input type="checkbox" checked={listed} disabled={!canEdit || saving || state.loading} onChange={(e) => toggle(e.target.checked)} />
+            List us in the Seatfold app
+          </label>
+          <ErrorNote message={error ?? state.error} />
+        </li>
+      </ul>
+    </section>
   );
 }
 

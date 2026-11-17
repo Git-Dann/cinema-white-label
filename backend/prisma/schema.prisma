@@ -36,6 +36,8 @@ model Tenant {
   companionPolicy           String @default("warn")
   /// Customers may cancel up to this many minutes before the screening.
   cancellationCutoffMinutes Int    @default(60)
+  /// Listed in the shared Seatfold app (one app, many cinemas) for operators without their own app.
+  listedInSeatfoldApp       Boolean @default(false)
 
   settings           TenantSettings?
   palettes           BrandPalette[]
