@@ -809,3 +809,11 @@ html:not([data-motion="off"]) .btn:hover, html:not([data-motion="off"]) .btn--xl
 main > #connect > .wrap > .connect__frame--shot { flex: none !important; height: auto !important; min-height: 0 !important; max-height: none !important; aspect-ratio: auto !important; }
 .connect__frame--shot img { -webkit-mask: linear-gradient(#000 78%, transparent); mask: linear-gradient(#000 78%, transparent); }
 .connect__frame--shot > picture { display: block; }
+
+/* the Android design render: copy beside one phone, honest about its status */
+.android-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: clamp(24px, 5vw, 72px); align-items: center; margin: var(--s-6) 0 var(--s-7); padding: clamp(24px, 4vw, 48px); border-radius: var(--r-lg, 24px); background: radial-gradient(70% 90% at 80% 20%, #0f4c53 0%, #0a2a30 55%, #071419 100%); border: 1px solid rgb(255 255 255 / .08); }
+.android-row__copy { max-width: 520px; }
+.android-row__tag { width: max-content; }
+.android-row__shot img { display: block; width: 300px; height: auto; filter: drop-shadow(0 30px 50px rgb(0 0 0 / .55)); }
+@media (max-width: 639px) { .android-row { grid-template-columns: 1fr; justify-items: center; text-align: left; } .android-row__copy { justify-self: stretch; } .android-row__shot img { width: 220px; } }
+main > section#native.g2 > .wrap { grid-template-rows: auto auto; }
