@@ -114,3 +114,18 @@ public struct OperatorChoiceStore: @unchecked Sendable {
 
     public enum ChoiceError: Error, Equatable { case unusableConfig(String) }
 }
+
+/// Which logo to show: the one made for the current appearance, else the other one rather than none.
+public enum LogoChoice {
+    public static func url(light: String?, dark: String?, isDark: Bool, base: URL) -> URL? {
+        let preferred = isDark ? (dark ?? light) : (light ?? dark)
+        guard let path = preferred, !path.isEmpty else { return nil }
+        return URL(string: path, relativeTo: base)?.absoluteURL
+    }
+}
+
+public extension DirectoryEntry {
+    func logoURL(isDark: Bool, base: URL) -> URL? { LogoChoice.url(light: logoLightUrl, dark: logoDarkUrl, isDark: isDark, base: base) }
+    /// Shown in the logo's place while it loads or when the operator has none.
+    var monogram: String { String(wordmark.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased() }
+}

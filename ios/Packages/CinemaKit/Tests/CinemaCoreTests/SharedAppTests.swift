@@ -83,4 +83,19 @@ struct SharedAppTests {
         #expect(try await demo.operators(query: "kestrel", latitude: nil, longitude: nil).map(\.slug) == ["kestrel"])
         #expect(try await demo.config(slug: "kestrel").tenant.slug == "kestrel")
     }
+
+    @Test func picksTheLogoForTheAppearance() {
+        let base = URL(string: "https://api.example.com/")!
+        var e = entry([.init(name: "K", city: "York")])
+        e.logoLightUrl = "/v1/media/light"
+        e.logoDarkUrl = "/v1/media/dark"
+        #expect(e.logoURL(isDark: true, base: base)?.absoluteString == "https://api.example.com/v1/media/dark")
+        #expect(e.logoURL(isDark: false, base: base)?.absoluteString == "https://api.example.com/v1/media/light")
+        // Only one version: use it in both appearances rather than show nothing.
+        e.logoDarkUrl = nil
+        #expect(e.logoURL(isDark: true, base: base)?.absoluteString == "https://api.example.com/v1/media/light")
+        e.logoLightUrl = ""
+        #expect(e.logoURL(isDark: false, base: base) == nil)
+        #expect(e.monogram == "K")
+    }
 }

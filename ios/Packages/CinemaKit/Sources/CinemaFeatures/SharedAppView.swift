@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import CinemaCore
 import CinemaDesign
 
@@ -9,11 +10,14 @@ public struct SharedAppView: View {
     let directory: any DirectoryService
     let choices: OperatorChoiceStore
     let makeApp: @MainActor (TenantConfig) -> AppModel
+    /// API base URL, for operator logos in the picker.
+    let mediaBaseURL: URL
     @State private var app: AppModel?
 
-    public init(directory: any DirectoryService, choices: OperatorChoiceStore, makeApp: @escaping @MainActor (TenantConfig) -> AppModel) {
+    public init(directory: any DirectoryService, choices: OperatorChoiceStore, mediaBaseURL: URL, makeApp: @escaping @MainActor (TenantConfig) -> AppModel) {
         self.directory = directory
         self.choices = choices
+        self.mediaBaseURL = mediaBaseURL
         self.makeApp = makeApp
         // Reopen the last operator straight away, in their theme, even offline.
         _app = State(initialValue: choices.slug.flatMap(choices.seed(for:)).map(makeApp))
@@ -32,6 +36,7 @@ public struct SharedAppView: View {
                 try choices.choose(config)
                 app = makeApp(config)
             }
+            .environment(\.mediaBaseURL, mediaBaseURL)
         }
     }
 }
@@ -113,11 +118,7 @@ struct OperatorPickerView: View {
 
     private func row(_ e: DirectoryEntry) -> some View {
         HStack(spacing: 14) {
-            // The operator's own accent as a swatch, so customers recognise their cinema.
-            Circle()
-                .fill(Color(hex: e.accent.dark))
-                .frame(width: 14, height: 14)
-                .accessibilityHidden(true)
+            OperatorLogo(entry: e)
             VStack(alignment: .leading, spacing: 2) {
                 Text(e.name).font(.headline).foregroundStyle(palette.textPrimary)
                 Text(e.summary(distance: CinemasView.distance)).font(.subheadline).foregroundStyle(palette.textSecondary)
@@ -155,6 +156,42 @@ struct OperatorPickerView: View {
             try onChosen(try await directory.config(slug: e.slug))
         } catch {
             problem = "Check your connection and try again."
+        }
+    }
+}
+
+/// The operator's logo on a neutral tile, so every brand sits on the same footing. While it loads,
+/// or when there is none, the tile shows the operator's initial with their accent as a ring.
+struct OperatorLogo: View {
+    let entry: DirectoryEntry
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.mediaBaseURL) private var base
+    @Environment(\.palette) private var palette
+    @State private var image: UIImage?
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(palette.surfaceElevated)
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(6)
+                    .transition(.opacity)
+            } else {
+                Text(entry.monogram)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(palette.textPrimary)
+                    .frame(width: 34, height: 34)
+                    .overlay(Circle().strokeBorder(Color(hex: scheme == .dark ? entry.accent.dark : entry.accent.light), lineWidth: 2))
+            }
+        }
+        .frame(width: 56, height: 56)
+        .accessibilityHidden(true)
+        .task(id: scheme) {
+            guard let url = entry.logoURL(isDark: scheme == .dark, base: base) else { image = nil; return }
+            let loaded = await ImagePipeline.shared.image(for: url)
+            withAnimation(.easeOut(duration: 0.2)) { image = loaded }
         }
     }
 }

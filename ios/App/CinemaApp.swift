@@ -51,7 +51,7 @@ struct CinemaApp: App {
     var body: some Scene {
         WindowGroup {
             if let shared {
-                SharedAppView(directory: shared.directory, choices: shared.choices, makeApp: factory.make)
+                SharedAppView(directory: shared.directory, choices: shared.choices, mediaBaseURL: factory.baseURL, makeApp: factory.make)
             } else if let branded {
                 RootView(app: branded)
             }
