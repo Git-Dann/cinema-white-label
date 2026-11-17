@@ -5,8 +5,8 @@ import CinemaDesign
 
 /// The customer's avatar: their photo if they added one, otherwise the person symbol.
 /// Members get a ring in the operator's membership colour; the top plan (Premiere, Limitless and
-/// the like) gets a slowly turning sheen on the ring. From 44pt up, a tag with the plan's short name
-/// sits on the bottom of the ring, like a "LIVE" tag; smaller avatars show a small badge instead.
+/// the like) gets a slowly turning sheen on the ring. From 44pt up, a small icon tag sits on the
+/// bottom of the ring (star for members, crown for the top plan); smaller avatars show a corner badge.
 struct AvatarView: View {
     let tier: AvatarTier
     var size: CGFloat = 34
@@ -55,7 +55,7 @@ struct AvatarView: View {
 
     private var ringWidth: CGFloat { max(2, size * 0.06) }
     private var gap: CGFloat { max(1.5, size * 0.04) }
-    private var showsTag: Bool { tier != .guest && size >= 44 && tag != nil }
+    private var showsTag: Bool { tier != .guest && size >= 44 }
     private var tagHeight: CGFloat { max(14, size * 0.3) }
 
     @ViewBuilder private var ring: some View {
@@ -75,29 +75,22 @@ struct AvatarView: View {
         }
     }
 
-    /// The plan's short name on a capsule in the membership colours, cut out from the page behind it.
+    /// A small capsule on the bottom of the ring, in the membership colours, cut out from the page
+    /// behind it: a star for members, a crown for the top plan. An icon, not the plan name, so it
+    /// always fits inside the avatar's width.
     private var tagView: some View {
-        HStack(spacing: 3) {
-            if tier.isPremium { Image(systemName: "sparkle").font(.system(size: tagHeight * 0.5, weight: .bold)) }
-            Text(tag ?? "")
-                .font(.system(size: tagHeight * 0.56, weight: .heavy))
-                .tracking(0.4)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-        }
-        .foregroundStyle(palette.membershipText)
-        .padding(.horizontal, tagHeight * 0.45)
-        .frame(height: tagHeight)
-        .frame(maxWidth: size * 1.5)
-        .background(palette.membership, in: Capsule())
-        .overlay(Capsule().strokeBorder(palette.background, lineWidth: max(1.5, size * 0.03)))
-        .fixedSize(horizontal: true, vertical: false)
-        .offset(y: tagHeight / 2)
+        Image(systemName: tier.isPremium ? "crown.fill" : "star.fill")
+            .font(.system(size: tagHeight * 0.58, weight: .bold))
+            .foregroundStyle(palette.membershipText)
+            .frame(width: tagHeight * 1.9, height: tagHeight)
+            .background(palette.membership, in: Capsule())
+            .overlay(Capsule().strokeBorder(palette.background, lineWidth: max(1.5, size * 0.03)))
+            .offset(y: tagHeight / 2)
     }
 
     @ViewBuilder private var badge: some View {
         if tier != .guest {
-            Image(systemName: tier.isPremium ? "sparkle" : "star.fill")
+            Image(systemName: tier.isPremium ? "crown.fill" : "star.fill")
                 .font(.system(size: size * 0.24, weight: .bold))
                 .foregroundStyle(palette.membershipText)
                 .frame(width: size * 0.42, height: size * 0.42)
