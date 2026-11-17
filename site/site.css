@@ -834,3 +834,5 @@ main > section#native.g2 > .wrap { grid-template-rows: auto auto; }
 /* the hero and the footer let the ambient light through at their edges, so neither ends on a line */
 .hero.bg-deep { background-color: transparent !important; }
 .hero.bg-deep { -webkit-mask-image: linear-gradient(#000 calc(100% - 220px), rgb(0 0 0 / .6) calc(100% - 120px), transparent); mask-image: linear-gradient(#000 calc(100% - 220px), rgb(0 0 0 / .6) calc(100% - 120px), transparent); }
+/* the hero window clips only at its foot: the centre phone rises on scroll and must never be cut at the top */
+.hero-phones.hero__window { overflow: visible !important; clip-path: inset(-200px -100vw 0 -100vw); }
