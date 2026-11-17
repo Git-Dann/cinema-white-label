@@ -79,8 +79,12 @@ jobs:
         if: steps.key.outputs.ready == 'true'
         working-directory: ios
         run: |
-          # Every upload needs a higher build number; the workflow run number always increases.
-          sed -i '' "s/^CURRENT_PROJECT_VERSION = .*/CURRENT_PROJECT_VERSION = ${{ github.run_number }}/" Config/Base.xcconfig
+          # Every upload needs a higher build number than any earlier one for this version.
+          # Same numbering as the Fleet release workflow (UTC date and time), so whichever
+          # workflow uploaded last is always the newest build in TestFlight.
+          BUILD=$(date -u +%Y%m%d.%H%M)
+          echo "BUILD=$BUILD" >> "$GITHUB_ENV"
+          sed -i '' "s/^CURRENT_PROJECT_VERSION = .*/CURRENT_PROJECT_VERSION = $BUILD/" Config/Base.xcconfig
           brew install xcodegen
           xcodegen generate
 
@@ -127,7 +131,7 @@ jobs:
             -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}" \
             2>&1 | tee upload.log | grep -E "error|Upload|EXPORT" || true
           grep -q "EXPORT SUCCEEDED" upload.log || { echo "::error::Upload failed; see upload.log"; tail -40 upload.log; exit 1; }
-          echo "Uploaded build ${{ github.run_number }} of Northlight (live API). It appears in TestFlight after Apple's processing (usually 10 to 30 minutes)." >> "$GITHUB_STEP_SUMMARY"
+          echo "Uploaded build $BUILD of Northlight (live API). It appears in TestFlight after Apple's processing (usually 10 to 30 minutes)." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Keep logs
         if: always() && steps.key.outputs.ready == 'true'
