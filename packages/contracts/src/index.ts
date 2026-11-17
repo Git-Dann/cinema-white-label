@@ -4,3 +4,4 @@ export * from './tenant';
 export * from './layout';
 export * from './seating';
 export * from './fleet';
+export * from './profile';

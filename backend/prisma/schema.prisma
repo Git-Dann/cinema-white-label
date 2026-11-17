@@ -537,6 +537,14 @@ model Customer {
   kind        CustomerKind @default(GUEST)
   email       String?
   displayName String?
+  /// Profile the customer gives in the app (Account > profile). All optional.
+  givenName          String?
+  familyName         String?
+  phone              String?
+  /// Offers and news by email; when it was last turned on, for consent records.
+  marketingOptIn     Boolean   @default(false)
+  marketingConsentAt DateTime?
+  profileUpdatedAt   DateTime?
   createdAt   DateTime     @default(now())
 
   holds      SeatHold[]

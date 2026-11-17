@@ -38,3 +38,45 @@ struct ProfileTests {
         #expect(store.load() == nil)
     }
 }
+
+@Suite("Customer profile")
+struct CustomerProfileTests {
+    @Test func tidiesLikeTheServer() {
+        let p = CustomerProfile(givenName: "  Dan ", familyName: "", email: " Dan@Example.com", phone: "07700 900123").tidied()
+        #expect(p.givenName == "Dan" && p.familyName == nil && p.email == "dan@example.com")
+        #expect(p.fullName == "Dan" && p.initials == "D")
+        #expect(CustomerProfile(givenName: "Dan", familyName: "lindsay").initials == "DL")
+        #expect(CustomerProfile(givenName: " ", email: "").isEmpty)
+        #expect(!CustomerProfile(phone: "07700 900123").isEmpty)
+    }
+
+    @Test func explainsWhatNeedsFixing() {
+        #expect(CustomerProfile(email: "dan@example.com", phone: "+44 7700 900123").problems().isEmpty)
+        #expect(CustomerProfile(email: "dan@").problems()[.email] != nil)
+        #expect(CustomerProfile(phone: "call me").problems()[.phone] != nil)
+        #expect(CustomerProfile(marketingOptIn: true).problems()[.marketingOptIn] == "Add an email address to get offers by email")
+        #expect(CustomerProfile(givenName: String(repeating: "a", count: 61)).problems()[.givenName] != nil)
+    }
+
+    @Test func sendsEveryFieldSoTheServerCanClearOne() throws {
+        let json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(ProfileBody(CustomerProfile(givenName: "Dan")))) as! [String: Any]
+        #expect(Set(json.keys) == ["givenName", "familyName", "email", "phone", "marketingOptIn"])
+        #expect(json["email"] is NSNull)
+    }
+
+    @Test func decodesTheServerCopy() throws {
+        let json = #"{"givenName":"Dan","familyName":null,"email":"dan@example.com","phone":null,"marketingOptIn":true,"updatedAt":"2026-11-17T15:00:00.000Z"}"#
+        let p = try APIClient.decoder.decode(CustomerProfile.self, from: Data(json.utf8))
+        #expect(p.givenName == "Dan" && p.marketingOptIn && p.updatedAt != nil)
+        #expect(p.details.updatedAt == nil)
+    }
+
+    @Test func keepsTheProfileOnThisDevice() throws {
+        let store = ProfileStore(directory: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
+        #expect(store.load() == .empty)
+        try store.save(CustomerProfile(givenName: " Dan ", email: "DAN@example.com"))
+        #expect(store.load().givenName == "Dan" && store.load().email == "dan@example.com")
+        store.clear()
+        #expect(store.load() == .empty)
+    }
+}

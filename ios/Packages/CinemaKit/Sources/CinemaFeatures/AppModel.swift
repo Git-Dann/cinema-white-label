@@ -35,6 +35,11 @@ public final class AppModel {
     /// The customer's own avatar photo, kept on this device only.
     public private(set) var profileImage: UIImage?
     private var photos: ProfilePhotoStore?
+    /// The customer's details, kept on this device and sent to the operator they book with.
+    public private(set) var profile: CustomerProfile = .empty
+    /// Set when the details were saved here but couldn't reach the operator yet.
+    public private(set) var profileSyncProblem: String?
+    private var profiles: ProfileStore?
 
     /// The newest version the customer said "Not now" to, so each version is suggested once.
     public private(set) var dismissedUpdateVersion: String? = UserDefaults.standard.string(forKey: AppModel.dismissedUpdateKey)
@@ -62,6 +67,9 @@ public final class AppModel {
         let photos = accountCacheDirectory.map(ProfilePhotoStore.init(directory:))
         self.photos = photos
         self.profileImage = photos?.load().flatMap(UIImage.init(data:))
+        let profiles = accountCacheDirectory.map(ProfileStore.init(directory:))
+        self.profiles = profiles
+        self.profile = profiles?.load() ?? .empty
         self.accountStore = store
         if let cached = store?.load() {
             loyalty = cached.loyalty
@@ -84,6 +92,42 @@ public final class AppModel {
     public func checkForUpdate() async {
         guard let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String else { return }
         if let status = try? await service.appStatus(version: version) { appStatus = status }
+    }
+
+    /// Saves the customer's details on this phone and sends them to the operator. Returns false,
+    /// saving nothing, if something needs fixing (see `CustomerProfile.problems()`).
+    @discardableResult
+    public func saveProfile(_ new: CustomerProfile) async -> Bool {
+        let p = new.tidied()
+        guard p.problems().isEmpty else { return false }
+        try? profiles?.save(p)
+        profile = p
+        await pushProfile()
+        return true
+    }
+
+    /// Removes the customer's details here and at the operator. Tickets and points stay.
+    public func removeProfile() async {
+        profiles?.clear()
+        profile = .empty
+        try? setProfilePhoto(nil)
+        do { _ = try await service.removeProfile(); profileSyncProblem = nil } catch {
+            profileSyncProblem = "Removed from this phone. \(config.tenant.name) couldn't be reached, so try again when you're online."
+        }
+    }
+
+    /// Makes sure this operator has the details kept on the phone (in the shared app, the first
+    /// time the customer books somewhere new). Quiet when offline.
+    public func syncProfile() async {
+        guard !profile.isEmpty else { return }
+        if let remote = try? await service.profile(), remote.details == profile.details { profileSyncProblem = nil; return }
+        await pushProfile()
+    }
+
+    private func pushProfile() async {
+        do { _ = try await service.saveProfile(profile); profileSyncProblem = nil } catch {
+            profileSyncProblem = "Saved on this phone. It will reach \(config.tenant.name) next time you're online."
+        }
     }
 
     /// Saves a photo for the avatar, resized so no full-size picture is kept. Nil removes it.
@@ -118,7 +162,8 @@ public final class AppModel {
         // Load rewards and membership up front so Account is ready before it is opened.
         async let account: Void = loadAccount()
         async let update: Void = checkForUpdate()
-        _ = await (config, content, tickets, account, update)
+        async let details: Void = syncProfile()
+        _ = await (config, content, tickets, account, update, details)
     }
 
     /// Refreshes tickets, retrying once after a moment (the API can be waking up), and

@@ -12,6 +12,8 @@ struct AvatarView: View {
     var size: CGFloat = 34
     var photo: UIImage?
     var tag: String?
+    /// Shown instead of the person symbol when there's a name but no photo.
+    var initials: String?
     @Environment(\.palette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var spin = false
@@ -32,6 +34,14 @@ struct AvatarView: View {
     @ViewBuilder private var face: some View {
         if let photo {
             Image(uiImage: photo).resizable().scaledToFill()
+        } else if let initials {
+            ZStack {
+                Circle().fill(palette.surfaceElevated)
+                Text(initials)
+                    .font(.system(size: size * 0.38, weight: .semibold, design: .rounded))
+                    .foregroundStyle(tier == .guest ? palette.textPrimary : palette.membership)
+                    .minimumScaleFactor(0.5)
+            }
         } else {
             ZStack {
                 Circle().fill(palette.surfaceElevated)
@@ -107,7 +117,7 @@ struct ProfileButton: View {
     var body: some View {
         let tier = AvatarTier(membership: app.membership, plans: app.membershipPlans)
         Button { showProfile() } label: {
-            AvatarView(tier: tier, size: size, photo: app.profileImage, tag: tier.tag(operatorWordmark: app.config.branding.wordmark))
+            AvatarView(tier: tier, size: size, photo: app.profileImage, tag: tier.tag(operatorWordmark: app.config.branding.wordmark), initials: app.profile.initials)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(tier.planName.map { "Account, \($0) member" } ?? "Account")

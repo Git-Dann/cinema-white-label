@@ -60,3 +60,85 @@ public struct ProfilePhotoStore: Sendable {
     public static let pixelSize = 360
     public enum PhotoError: Error, Equatable { case tooLarge }
 }
+
+/// What the customer tells us about themselves (`/me/profile`). Everything is optional: booking as a
+/// guest needs none of it. Mirrors `CustomerProfile` in packages/contracts/src/profile.ts.
+public struct CustomerProfile: Codable, Sendable, Hashable {
+    public var givenName: String?
+    public var familyName: String?
+    public var email: String?
+    public var phone: String?
+    /// Offers and news by email. Off unless the customer turns it on.
+    public var marketingOptIn: Bool
+    /// Set by the server when it saved them.
+    public var updatedAt: String?
+
+    public init(givenName: String? = nil, familyName: String? = nil, email: String? = nil, phone: String? = nil, marketingOptIn: Bool = false, updatedAt: String? = nil) {
+        self.givenName = givenName; self.familyName = familyName; self.email = email; self.phone = phone; self.marketingOptIn = marketingOptIn; self.updatedAt = updatedAt
+    }
+
+    public static let empty = CustomerProfile()
+
+    public enum Field: String, Sendable, CaseIterable { case givenName, familyName, email, phone, marketingOptIn }
+
+    public var fullName: String? {
+        let n = [givenName, familyName].compactMap { $0?.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.joined(separator: " ")
+        return n.isEmpty ? nil : n
+    }
+
+    /// "DL" for Dan Lindsay, for the avatar when there is no photo.
+    public var initials: String? {
+        let parts = [givenName, familyName].compactMap { $0?.trimmingCharacters(in: .whitespaces).first }.map { String($0).uppercased() }
+        return parts.isEmpty ? nil : parts.joined()
+    }
+
+    public var isEmpty: Bool { tidied() == CustomerProfile(marketingOptIn: false, updatedAt: tidied().updatedAt) }
+
+    /// Trimmed, empty strings as nil, email in lower case: the same as the server stores.
+    public func tidied() -> CustomerProfile {
+        func t(_ s: String?) -> String? {
+            guard let s = s?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty else { return nil }
+            return s
+        }
+        return CustomerProfile(givenName: t(givenName), familyName: t(familyName), email: t(email)?.lowercased(), phone: t(phone), marketingOptIn: marketingOptIn, updatedAt: updatedAt)
+    }
+
+    /// What's wrong, field by field, in words to show under the field. Empty when it can be saved.
+    public func problems() -> [Field: String] {
+        let p = tidied()
+        var out: [Field: String] = [:]
+        if (p.givenName?.count ?? 0) > 60 { out[.givenName] = "Use 60 characters or fewer" }
+        if (p.familyName?.count ?? 0) > 60 { out[.familyName] = "Use 60 characters or fewer" }
+        if let e = p.email, e.range(of: #"^[^\s@]+@[^\s@]+\.[^\s@]{2,}$"#, options: .regularExpression) == nil {
+            out[.email] = "Enter an email address like name@example.com"
+        }
+        if let ph = p.phone, ph.range(of: #"^\+?[0-9 ()-]{7,20}$"#, options: .regularExpression) == nil {
+            out[.phone] = "Enter a phone number"
+        }
+        if p.marketingOptIn && p.email == nil { out[.marketingOptIn] = "Add an email address to get offers by email" }
+        return out
+    }
+
+    /// The fields the customer can change, for comparing local and server copies.
+    public var details: CustomerProfile { var c = tidied(); c.updatedAt = nil; return c }
+}
+
+/// The profile kept on this device, so it follows the customer between cinemas in the shared app
+/// and is sent to whichever operator they book with.
+public struct ProfileStore: Sendable {
+    public let directory: URL
+    public init(directory: URL) { self.directory = directory }
+    private var url: URL { directory.appendingPathComponent("profile.json") }
+
+    public func load() -> CustomerProfile {
+        guard let data = try? Data(contentsOf: url), let p = try? JSONDecoder().decode(CustomerProfile.self, from: data) else { return .empty }
+        return p
+    }
+
+    public func save(_ profile: CustomerProfile) throws {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try JSONEncoder().encode(profile.tidied()).write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+    }
+
+    public func clear() { try? FileManager.default.removeItem(at: url) }
+}
