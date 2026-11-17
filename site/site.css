@@ -601,20 +601,6 @@ main > section:is(#who, #remote, #platform, #seats, #questions) { min-height: 0;
   mask-image: radial-gradient(calc(var(--mo-r) * 0.85) circle at var(--mo-x) var(--mo-y), #000 0%, rgb(0 0 0 / .7) 30%, rgb(0 0 0 / .35) 55%, rgb(0 0 0 / .1) 78%, transparent 100%);
 }
 
-/* hero lockup on scroll: as the hero leaves the screen the side phones fan out and tilt a little and the
-   centre phone rises, driven by the page's own scroll (no script). Only where scroll timelines exist,
-   from 1024px up, and never under reduced motion; elsewhere the phones stay as they are. */
-@supports (animation-timeline: scroll()) {
-  @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
-    .hero-phone { animation: linear both; animation-timeline: scroll(root); animation-range: 0 85vh; }
-    .hero-phone--main { animation-name: lock-main; }
-    .hero-phones__row > .hero-phone--side:first-child { animation-name: lock-left; }
-    .hero-phones__row > .hero-phone--side:last-child { animation-name: lock-right; }
-  }
-}
-@keyframes lock-main { to { translate: 0 -56px; scale: 1.04; } }
-@keyframes lock-left { to { translate: -64px 10px; rotate: -5deg; } }
-@keyframes lock-right { to { translate: 64px 10px; rotate: 5deg; } }
 
 /* ---------- closing: a visual demo panel, then a footer that maps the platform ---------- */
 footer.closing { min-height: 0 !important; }
@@ -810,10 +796,4 @@ main > #connect > .wrap > .connect__frame--shot { flex: none !important; height:
 .connect__frame--shot img { -webkit-mask: linear-gradient(#000 78%, transparent); mask: linear-gradient(#000 78%, transparent); }
 .connect__frame--shot > picture { display: block; }
 
-/* the Android design render: copy beside one phone, honest about its status */
-.android-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: clamp(24px, 5vw, 72px); align-items: center; margin: var(--s-6) 0 var(--s-7); padding: clamp(24px, 4vw, 48px); border-radius: var(--r-lg, 24px); background: radial-gradient(70% 90% at 80% 20%, #0f4c53 0%, #0a2a30 55%, #071419 100%); border: 1px solid rgb(255 255 255 / .08); }
-.android-row__copy { max-width: 520px; }
-.android-row__tag { width: max-content; }
-.android-row__shot img { display: block; width: 300px; height: auto; filter: drop-shadow(0 30px 50px rgb(0 0 0 / .55)); }
-@media (max-width: 639px) { .android-row { grid-template-columns: 1fr; justify-items: center; text-align: left; } .android-row__copy { justify-self: stretch; } .android-row__shot img { width: 220px; } }
 main > section#native.g2 > .wrap { grid-template-rows: auto auto; }
