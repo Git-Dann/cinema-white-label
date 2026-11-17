@@ -178,6 +178,14 @@ public extension Array where Element == MembershipPlan {
 
     /// The cheapest plan, for "from £x a month" copy.
     var cheapest: MembershipPlan? { self.min { $0.priceMinor < $1.priceMinor } }
+
+    /// The plans a member isn't on, cheapest first, for a compact "Other plans" list.
+    func others(than current: MembershipPlan?) -> [MembershipPlan] {
+        filter { $0.id != current?.id }.byPrice
+    }
+
+    /// Cheapest first, for a plain list of plans to choose from.
+    var byPrice: [MembershipPlan] { sorted { ($0.priceMinor, $0.name) < ($1.priceMinor, $1.name) } }
 }
 
 public enum MembershipOffer: Equatable, Sendable {

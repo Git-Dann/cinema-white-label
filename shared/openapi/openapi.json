@@ -3319,6 +3319,62 @@
           "Admin"
         ]
       }
+    },
+    "/v1/t/{tenant}/me/profile": {
+      "get": {
+        "operationId": "CustomerProfileController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Your details",
+        "tags": [
+          "Customer profile"
+        ]
+      },
+      "put": {
+        "operationId": "CustomerProfileController_put",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save your details (all fields, any can be empty)",
+        "tags": [
+          "Customer profile"
+        ]
+      },
+      "delete": {
+        "operationId": "CustomerProfileController_remove",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove your details",
+        "tags": [
+          "Customer profile"
+        ]
+      }
     }
   },
   "info": {

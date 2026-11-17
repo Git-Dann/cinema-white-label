@@ -98,21 +98,29 @@ struct MembershipSurface: View {
         shape.fill(palette.membership)
             .overlay {
                 RadialGradient(colors: [palette.membershipText.opacity(0.22), .clear], center: .topLeading, startRadius: 10, endRadius: 360)
-                    .clipShape(shape)
             }
             .overlay {
                 LinearGradient(stops: [.init(color: .clear, location: 0.35), .init(color: palette.membershipText.opacity(0.10), location: 0.5), .init(color: .clear, location: 0.65)],
                                startPoint: .topLeading, endPoint: .bottomTrailing)
-                    .clipShape(shape)
             }
             .overlay {
-                // Large faint rings, like light through a projector gate.
-                ZStack {
-                    Circle().stroke(palette.membershipText.opacity(0.08), lineWidth: 26).frame(width: 260, height: 260).offset(x: 150, y: 70)
-                    Circle().stroke(palette.membershipText.opacity(0.06), lineWidth: 14).frame(width: 150, height: 150).offset(x: 150, y: 70)
+                // Large faint rings, like light through a projector gate. Sized and placed from
+                // the card's own width, centred near the bottom-right corner, so they run off the
+                // right and bottom edges at any card size and are cut only by the card's corners.
+                GeometryReader { g in
+                    let w = g.size.width
+                    ZStack {
+                        Circle().stroke(palette.membershipText.opacity(0.08), lineWidth: w * 0.075)
+                            .frame(width: w * 0.78, height: w * 0.78)
+                        Circle().stroke(palette.membershipText.opacity(0.06), lineWidth: w * 0.04)
+                            .frame(width: w * 0.45, height: w * 0.45)
+                    }
+                    .position(x: w * 0.92, y: g.size.height - w * 0.1)
                 }
-                .clipShape(shape)
+                .accessibilityHidden(true)
             }
+            // One clip for the whole card, so nothing is cut short inside it.
+            .clipShape(shape)
     }
 }
 
@@ -154,7 +162,11 @@ struct MemberCard: View {
 
 // MARK: - Plans
 
-/// Full-screen membership plans: headline, paged plan cards, how it works and a sticky call to action.
+/// Full-screen membership plans.
+/// - Members: their card once, their benefits as a plain list, then any other plans as compact
+///   rows on the normal surface (not a second gold card), with the renew button pinned below.
+/// - Everyone else: the plans stacked cheapest first; tap one to choose it. The best-value plan
+///   is the gold one. Nothing sits half off screen.
 struct MembershipPlansView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.palette) private var palette
@@ -162,7 +174,14 @@ struct MembershipPlansView: View {
     @State private var buying: MembershipPlan?
 
     private var plans: [MembershipPlan] { app.membershipPlans }
-    private var current: MembershipPlan? { plans.first { $0.id == selected } ?? plans.first }
+    private var memberPlan: MembershipPlan? { app.membership?.isActive == true ? app.membership?.plan : nil }
+    /// The plan the button below acts on: the one tapped, else the member's own, else the best value.
+    private var current: MembershipPlan? {
+        plans.first { $0.id == selected }
+            ?? memberPlan.flatMap { m in plans.first { $0.id == m.id } }
+            ?? plans.first { $0.id == plans.featuredPlanID }
+            ?? plans.first
+    }
 
     var body: some View {
         ScrollView {
@@ -170,9 +189,12 @@ struct MembershipPlansView: View {
                 header
                 if let m = app.membership, m.isActive {
                     MemberCard(membership: m).pagePadding()
+                    benefits(m.plan)
+                    otherPlans(m.plan)
+                } else {
+                    planList
+                    howItWorks.pagePadding()
                 }
-                pager
-                howItWorks.pagePadding()
                 Text("Memberships don't renew automatically yet: buy each \(current?.interval == "year" ? "year" : "month") yourself. Discounts apply to bookings made while your membership is active.")
                     .font(.footnote).foregroundStyle(palette.textMuted).pagePadding()
             }
@@ -189,53 +211,113 @@ struct MembershipPlansView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("\(app.config.branding.wordmark.uppercased()) MEMBERSHIP").font(.caption.weight(.bold)).tracking(1.5).foregroundStyle(palette.membership)
-            Text(app.membership?.isActive == true ? "Your membership" : "More films.\nLess to pay.")
+            Text(memberPlan != nil ? "Your membership" : "More films.\nLess to pay.")
                 .font(.system(size: 36, weight: .heavy)).foregroundStyle(palette.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("Discounts apply automatically every time you book. Choose the plan that fits how often you go.")
+            Text(memberPlan != nil
+                 ? "Your discounts apply automatically every time you book."
+                 : "Discounts apply automatically every time you book. Choose the plan that fits how often you go.")
                 .font(.body).foregroundStyle(palette.textSecondary)
         }
         .pagePadding()
     }
 
-    private var pager: some View {
-        VStack(spacing: Spacing.m) {
-            // One card per swipe, always centred, with the neighbours peeking in
-            // evenly on both sides. Equal margins mean the last card can centre too,
-            // so a card is never left half off screen.
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Spacing.item) {
-                    ForEach(plans) { plan in
-                        PlanCard(plan: plan, featured: plan.id == plans.featuredPlanID, isCurrent: app.membership?.isActive == true && app.membership?.plan.id == plan.id)
-                            .containerRelativeFrame(.horizontal)
-                            .id(plan.id)
-                            .onTapGesture { withAnimation(.snappy) { selected = plan.id } }
-                    }
-                }
-                .scrollTargetLayout()
-            }
-            .safeAreaPadding(.horizontal, plans.count > 1 ? Spacing.page + 14 : Spacing.page)
-            .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
-            .scrollPosition(id: $selected, anchor: .center)
-            // Start on the featured plan once the cards are laid out (and again if the
-            // plans arrive after the screen opens), so the dots and button match the card.
-            .task(id: plans.map(\.id)) {
-                guard selected == nil || !plans.contains(where: { $0.id == selected }) else { return }
-                await Task.yield()
-                selected = plans.featuredPlanID ?? plans.first?.id
-            }
+    // MARK: Member
 
-            if plans.count > 1 {
-                HStack(spacing: 6) {
-                    ForEach(plans) { p in
-                        Capsule().fill(p.id == current?.id ? palette.membership : palette.divider)
-                            .frame(width: p.id == current?.id ? 20 : 6, height: 6)
+    /// What the member gets, as a plain list on the normal card surface.
+    private func benefits(_ plan: MembershipPlan) -> some View {
+        let items = plan.entitlements.benefitItems
+        return VStack(alignment: .leading, spacing: Spacing.m) {
+            Text("Your benefits").font(.title3.weight(.bold)).foregroundStyle(palette.textPrimary)
+            VStack(spacing: 0) {
+                ForEach(Array(items.enumerated()), id: \.element) { i, b in
+                    HStack(spacing: Spacing.s) {
+                        Image(systemName: b.symbol)
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(palette.membershipText)
+                            .frame(width: 36, height: 36)
+                            .background(palette.membership, in: Circle())
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(b.title).font(.headline).foregroundStyle(palette.textPrimary)
+                            Text(b.detail).font(.footnote).foregroundStyle(palette.textSecondary)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, Spacing.s)
+                    .accessibilityElement(children: .combine)
+                    if i < items.count - 1 {
+                        Rectangle().fill(palette.divider).frame(height: 1).padding(.leading, 36 + Spacing.s)
                     }
                 }
-                .animation(.snappy, value: current?.id)
-                .accessibilityHidden(true)
+            }
+            .cardStyle(padding: Spacing.m)
+        }
+        .pagePadding()
+    }
+
+    /// The plans the member isn't on, compact and neutral. Tapping one shows in the button below
+    /// what changing to it involves; tapping it again goes back to their own plan.
+    @ViewBuilder private func otherPlans(_ mine: MembershipPlan) -> some View {
+        let others = plans.others(than: mine)
+        if !others.isEmpty {
+            VStack(alignment: .leading, spacing: Spacing.m) {
+                Text("Other plans").font(.title3.weight(.bold)).foregroundStyle(palette.textPrimary)
+                ForEach(others) { p in
+                    otherPlanRow(p, mine: mine)
+                }
+            }
+            .pagePadding()
+        }
+    }
+
+    private func otherPlanRow(_ p: MembershipPlan, mine: MembershipPlan) -> some View {
+        let on = current?.id == p.id
+        return Button {
+            withAnimation(.snappy) { selected = on ? mine.id : p.id }
+        } label: {
+            HStack(alignment: .center, spacing: Spacing.m) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(p.name).font(.headline).foregroundStyle(palette.textPrimary)
+                    Text(p.entitlements.benefitItems.prefix(2).map(\.title).joined(separator: " · "))
+                        .font(.footnote).foregroundStyle(palette.textSecondary)
+                        .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: Spacing.s)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(p.priceLabel(formatters: app.formatters)).font(.subheadline.weight(.semibold)).foregroundStyle(palette.textPrimary)
+                    HStack(spacing: 4) {
+                        Text(on ? "Selected" : "See")
+                        Image(systemName: on ? "checkmark.circle.fill" : "chevron.right")
+                    }
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(palette.actionPrimary)
+                }
+            }
+            .cardStyle(padding: Spacing.m)
+            .overlay(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous)
+                .strokeBorder(on ? palette.actionPrimary : Color.clear, lineWidth: 2))
+        }
+        .buttonStyle(PressableCardStyle())
+        .accessibilityAddTraits(on ? .isSelected : [])
+        .accessibilityLabel("\(p.name), \(p.priceLabel(formatters: app.formatters))")
+    }
+
+    // MARK: Not a member
+
+    /// Every plan, cheapest first, stacked so each is seen whole. Tap one to choose it.
+    private var planList: some View {
+        VStack(spacing: Spacing.m) {
+            ForEach(plans.byPrice) { plan in
+                Button {
+                    withAnimation(.snappy) { selected = plan.id }
+                } label: {
+                    PlanCard(plan: plan, featured: plan.id == plans.featuredPlanID, isCurrent: false, selected: plan.id == current?.id)
+                }
+                .buttonStyle(PressableCardStyle())
             }
         }
+        .pagePadding()
     }
 
     private var howItWorks: some View {
@@ -284,6 +366,8 @@ struct PlanCard: View {
     let plan: MembershipPlan
     let featured: Bool
     let isCurrent: Bool
+    /// Shows a choice mark when the card is one of several to pick from; nil hides it.
+    var selected: Bool? = nil
     @Environment(AppModel.self) private var app
     @Environment(\.palette) private var palette
 
@@ -299,6 +383,12 @@ struct PlanCard: View {
                     planTag("YOUR PLAN")
                 } else if featured {
                     planTag("BEST VALUE")
+                }
+                if let selected {
+                    Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                        .font(.title2)
+                        .padding(.leading, Spacing.xs)
+                        .accessibilityHidden(true)
                 }
             }
             .foregroundStyle(ink)
@@ -334,17 +424,19 @@ struct PlanCard: View {
             Spacer(minLength: 0)
         }
         .padding(Spacing.xl)
-        .frame(maxWidth: .infinity, minHeight: 440, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .background {
             if featured {
                 MembershipSurface(cornerRadius: palette.cornerRadius.large)
             } else {
                 RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous).fill(palette.surfaceElevated)
-                    .overlay(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous).strokeBorder(palette.membership.opacity(0.35)))
+                    .overlay(RoundedRectangle(cornerRadius: palette.cornerRadius.large, style: .continuous)
+                        .strokeBorder(selected == true ? palette.membership : palette.membership.opacity(0.35), lineWidth: selected == true ? 2 : 1))
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(plan.name), \(plan.priceLabel(formatters: app.formatters))\(featured ? ", best value" : "")")
+        .accessibilityAddTraits(selected == true ? .isSelected : [])
     }
 
     private func planTag(_ text: String) -> some View {

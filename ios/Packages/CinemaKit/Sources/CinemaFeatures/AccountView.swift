@@ -1,4 +1,6 @@
 import SwiftUI
+import PhotosUI
+import UIKit
 import CinemaCore
 import CinemaDesign
 
@@ -13,25 +15,35 @@ struct AccountView: View {
     @State private var showHistory = false
     @State private var showPlans = false
 
+    /// Under the name: the plan for members, otherwise what's on file (or why to add it).
+    private func subtitle(_ tier: AvatarTier) -> String {
+        if let plan = tier.planName { return "\(plan) member" }
+        if let email = app.profile.email { return email }
+        return "Name, email and photo for your bookings"
+    }
+
     var body: some View {
         @Bindable var store = app.configStore
         List {
-            // Who you are here: the avatar, and the plan if you're a member.
+            // Who you are, as Settings shows your Apple Account: avatar, name, and a way in to edit.
             Section {
                 let tier = AvatarTier(membership: app.membership, plans: app.membershipPlans)
-                HStack(spacing: Spacing.m) {
-                    AvatarView(tier: tier, size: 56)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(tier.planName.map { "\($0) member" } ?? "Guest").font(.title3.weight(.bold)).foregroundStyle(palette.textPrimary)
-                        Text(tier.planName == nil ? "Book as a guest. Your tickets and points stay on this phone." : "Your discounts apply automatically when you book.")
-                            .font(.subheadline).foregroundStyle(palette.textSecondary)
+                NavigationLink { ProfileView() } label: {
+                    HStack(spacing: Spacing.m) {
+                        AvatarView(tier: tier, size: 60, photo: app.profileImage, tag: tier.tag(operatorWordmark: app.config.branding.wordmark), initials: app.profile.initials)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(app.profile.fullName ?? "Add your details")
+                                .font(.title3.weight(.semibold))
+                                .foregroundStyle(palette.textPrimary)
+                            Text(subtitle(tier))
+                                .font(.subheadline)
+                                .foregroundStyle(palette.textSecondary)
+                                .lineLimit(2)
+                        }
                     }
-                    Spacer(minLength: 0)
-                    BrandLogo(config: app.config).frame(height: 22).accessibilityHidden(true)
+                    .padding(.vertical, Spacing.xxs)
                 }
-                .accessibilityElement(children: .combine)
-                .listRowInsets(EdgeInsets(top: Spacing.xs, leading: 0, bottom: 0, trailing: 0))
-                .listRowBackground(Color.clear)
+                .accessibilityHint("Name, email, phone and photo")
             }
             if let program = app.loyalty.program {
                 Section {

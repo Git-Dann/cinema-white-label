@@ -9,13 +9,14 @@ import { CatalogueModule } from './catalogue/catalogue.module';
 import { CommonModule } from './common/common.module';
 import { HealthController } from './health.controller';
 import { DirectoryModule } from './directory/directory.module';
+import { CustomerProfileModule } from './customers/profile.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { MediaModule } from './media/media.module';
 import { TenantsModule } from './tenants/tenants.module';
 import { VenuesModule } from './venues/venues.module';
 
 @Module({
-  imports: [ScheduleModule.forRoot(), CommonModule, TenantsModule, CatalogueModule, MediaModule, VenuesModule, BookingModule, AnalyticsModule, AdminModule, PromotionsModule, IntegrationsModule, PulseModule, DirectoryModule],
+  imports: [ScheduleModule.forRoot(), CommonModule, TenantsModule, CatalogueModule, MediaModule, VenuesModule, BookingModule, AnalyticsModule, AdminModule, PromotionsModule, IntegrationsModule, PulseModule, DirectoryModule, CustomerProfileModule],
   controllers: [HealthController],
 })
 export class AppModule {}

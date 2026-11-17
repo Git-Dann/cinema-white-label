@@ -36,11 +36,19 @@ public protocol CinemaService: Sendable {
     func track(_ events: [AnalyticsEvent]) async throws
     /// Whether this app version is current, can update or must update. Nil when the service has no opinion.
     func appStatus(version: String) async throws -> AppStatus?
+    /// The customer's details held by this operator, saved, or removed.
+    func profile() async throws -> CustomerProfile
+    func saveProfile(_ profile: CustomerProfile) async throws -> CustomerProfile
+    func removeProfile() async throws -> CustomerProfile
 }
 
 public extension CinemaService {
     /// Demo and test services never ask anyone to update.
     func appStatus(version: String) async throws -> AppStatus? { nil }
+    /// Demo and test services keep nothing on a server: the device copy is the only one.
+    func profile() async throws -> CustomerProfile { .empty }
+    func saveProfile(_ profile: CustomerProfile) async throws -> CustomerProfile { profile.tidied() }
+    func removeProfile() async throws -> CustomerProfile { .empty }
 }
 
 /// Food, voucher and fulfilment choices sent with quotes and checkout.
@@ -173,6 +181,17 @@ public struct LiveCinemaService: CinemaService {
         _ = try await client.send("POST", "/analytics/events", body: Body(events: events), as: EmptyResponse.self)
     }
 
+    public func profile() async throws -> CustomerProfile { try await client.get("/me/profile", authenticated: true) }
+
+    public func saveProfile(_ profile: CustomerProfile) async throws -> CustomerProfile {
+        let p = profile.tidied()
+        return try await client.send("PUT", "/me/profile", body: ProfileBody(p), authenticated: true, as: CustomerProfile.self).value ?? p
+    }
+
+    public func removeProfile() async throws -> CustomerProfile {
+        try await client.send("DELETE", "/me/profile", authenticated: true, as: CustomerProfile.self).value ?? .empty
+    }
+
     public func appStatus(version: String) async throws -> AppStatus? {
         try await client.get("/app-status" + q(["platform": "ios", "version": version, "app": fleetBrand]))
     }
@@ -225,4 +244,19 @@ public final class InMemoryTokenStore: GuestTokenProvider.Store, @unchecked Send
     public init(_ value: String? = nil) { self.value = value }
     public func load() -> String? { lock.lock(); defer { lock.unlock() }; return value }
     public func save(_ token: String?) { lock.lock(); value = token; lock.unlock() }
+}
+
+/// The profile as the server expects it: every field present, empty ones as null (not left out).
+struct ProfileBody: Encodable, Sendable {
+    let profile: CustomerProfile
+    init(_ p: CustomerProfile) { profile = p.tidied() }
+    enum Keys: String, CodingKey { case givenName, familyName, email, phone, marketingOptIn }
+    func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: Keys.self)
+        try c.encode(profile.givenName, forKey: .givenName)
+        try c.encode(profile.familyName, forKey: .familyName)
+        try c.encode(profile.email, forKey: .email)
+        try c.encode(profile.phone, forKey: .phone)
+        try c.encode(profile.marketingOptIn, forKey: .marketingOptIn)
+    }
 }

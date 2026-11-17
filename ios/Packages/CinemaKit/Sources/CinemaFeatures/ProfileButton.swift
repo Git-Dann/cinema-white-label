@@ -1,53 +1,62 @@
 import SwiftUI
+import UIKit
 import CinemaCore
 import CinemaDesign
 
-/// How the customer's avatar is dressed: plain, a member ring, or the top plan's animated ring.
-enum AvatarTier: Equatable {
-    case guest
-    case member(planName: String)
-    /// The most expensive plan on sale, e.g. Premiere.
-    case premium(planName: String)
-
-    init(membership: Membership?, plans: [MembershipPlan]) {
-        guard let m = membership, m.isActive else { self = .guest; return }
-        let top = plans.max { $0.priceMinor < $1.priceMinor }
-        self = (plans.count > 1 && m.plan.id == top?.id) ? .premium(planName: m.plan.name) : .member(planName: m.plan.name)
-    }
-
-    var planName: String? {
-        switch self { case .guest: nil; case .member(let n), .premium(let n): n }
-    }
-}
-
-/// The customer's avatar. Members get a ring in the membership colour and a small
-/// badge; the top plan's ring slowly turns, catching the light. Guests have no
-/// name on file, so the avatar is the person symbol on a soft disc.
+/// The customer's avatar: their photo if they added one, otherwise the person symbol.
+/// Members get a ring in the operator's membership colour; the top plan (Premiere, Limitless and
+/// the like) gets a slowly turning sheen on the ring. From 44pt up, a small icon tag sits on the
+/// bottom of the ring (star for members, crown for the top plan); smaller avatars show a corner badge.
 struct AvatarView: View {
     let tier: AvatarTier
     var size: CGFloat = 34
+    var photo: UIImage?
+    var tag: String?
+    /// Shown instead of the person symbol when there's a name but no photo.
+    var initials: String?
     @Environment(\.palette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var spin = false
 
     var body: some View {
-        ZStack {
-            Circle().fill(palette.surfaceElevated)
-            Image(systemName: "person.fill")
-                .font(.system(size: size * 0.48, weight: .semibold))
-                .foregroundStyle(tier == .guest ? palette.textSecondary : palette.membership)
-                .offset(y: size * 0.04)
-        }
-        .clipShape(Circle())
-        .padding(tier == .guest ? 0 : ringWidth + 1.5)
-        .overlay { ring }
-        .overlay(alignment: .bottomTrailing) { badge }
-        .frame(width: size + (tier == .guest ? 0 : (ringWidth + 1.5) * 2), height: size + (tier == .guest ? 0 : (ringWidth + 1.5) * 2))
-        .onAppear { spin = true }
-        .accessibilityHidden(true)
+        face
+            .frame(width: size, height: size)
+            .clipShape(Circle())
+            .padding(tier == .guest ? 0 : ringWidth + gap)
+            .overlay { ring }
+            .overlay(alignment: .bottom) { if showsTag { tagView } }
+            .overlay(alignment: .bottomTrailing) { if !showsTag { badge } }
+            .padding(.bottom, showsTag ? tagHeight / 2 : 0)
+            .onAppear { spin = true }
+            .accessibilityHidden(true)
     }
 
-    private var ringWidth: CGFloat { max(2, size * 0.07) }
+    @ViewBuilder private var face: some View {
+        if let photo {
+            Image(uiImage: photo).resizable().scaledToFill()
+        } else if let initials {
+            ZStack {
+                Circle().fill(palette.surfaceElevated)
+                Text(initials)
+                    .font(.system(size: size * 0.38, weight: .semibold, design: .rounded))
+                    .foregroundStyle(tier == .guest ? palette.textPrimary : palette.membership)
+                    .minimumScaleFactor(0.5)
+            }
+        } else {
+            ZStack {
+                Circle().fill(palette.surfaceElevated)
+                Image(systemName: "person.fill")
+                    .font(.system(size: size * 0.48, weight: .semibold))
+                    .foregroundStyle(tier == .guest ? palette.textSecondary : palette.membership)
+                    .offset(y: size * 0.04)
+            }
+        }
+    }
+
+    private var ringWidth: CGFloat { max(2, size * 0.06) }
+    private var gap: CGFloat { max(1.5, size * 0.04) }
+    private var showsTag: Bool { tier != .guest && size >= 44 }
+    private var tagHeight: CGFloat { max(14, size * 0.3) }
 
     @ViewBuilder private var ring: some View {
         switch tier {
@@ -58,17 +67,30 @@ struct AvatarView: View {
         case .premium:
             Circle()
                 .strokeBorder(
-                    AngularGradient(colors: [palette.membership, palette.membership.opacity(0.35), palette.textPrimary.opacity(0.9), palette.membership, palette.membership.opacity(0.35), palette.membership],
+                    AngularGradient(colors: [palette.membership, palette.membership.opacity(0.45), palette.textPrimary.opacity(0.85), palette.membership, palette.membership.opacity(0.45), palette.membership],
                                     center: .center),
                     lineWidth: ringWidth)
                 .rotationEffect(.degrees(spin && !reduceMotion ? 360 : 0))
-                .animation(reduceMotion ? nil : .linear(duration: 6).repeatForever(autoreverses: false), value: spin)
+                .animation(reduceMotion ? nil : .linear(duration: 8).repeatForever(autoreverses: false), value: spin)
         }
+    }
+
+    /// A small capsule on the bottom of the ring, in the membership colours, cut out from the page
+    /// behind it: a star for members, a crown for the top plan. An icon, not the plan name, so it
+    /// always fits inside the avatar's width.
+    private var tagView: some View {
+        Image(systemName: tier.isPremium ? "crown.fill" : "star.fill")
+            .font(.system(size: tagHeight * 0.58, weight: .bold))
+            .foregroundStyle(palette.membershipText)
+            .frame(width: tagHeight * 1.9, height: tagHeight)
+            .background(palette.membership, in: Capsule())
+            .overlay(Capsule().strokeBorder(palette.background, lineWidth: max(1.5, size * 0.03)))
+            .offset(y: tagHeight / 2)
     }
 
     @ViewBuilder private var badge: some View {
         if tier != .guest {
-            Image(systemName: isPremium ? "crown.fill" : "star.fill")
+            Image(systemName: tier.isPremium ? "crown.fill" : "star.fill")
                 .font(.system(size: size * 0.24, weight: .bold))
                 .foregroundStyle(palette.membershipText)
                 .frame(width: size * 0.42, height: size * 0.42)
@@ -77,25 +99,31 @@ struct AvatarView: View {
                 .offset(x: size * 0.06, y: size * 0.06)
         }
     }
+}
 
-    private var isPremium: Bool { if case .premium = tier { true } else { false } }
+/// The avatar as a button that opens Account. Used in each tab's bar and in the Home header.
+struct ProfileButton: View {
+    var size: CGFloat = 34
+    @Environment(AppModel.self) private var app
+    @Environment(\.showProfile) private var showProfile
+
+    var body: some View {
+        let tier = AvatarTier(membership: app.membership, plans: app.membershipPlans)
+        Button { showProfile() } label: {
+            AvatarView(tier: tier, size: size, photo: app.profileImage, tag: tier.tag(operatorWordmark: app.config.branding.wordmark), initials: app.profile.initials)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(tier.planName.map { "Account, \($0) member" } ?? "Account")
+        .accessibilityHint("Rewards, membership and settings")
+    }
 }
 
 /// Top-right avatar that opens Account. Added to each tab's root screen.
 struct ProfileToolbar: ViewModifier {
-    @Environment(AppModel.self) private var app
-    @Environment(\.showProfile) private var showProfile
-
     func body(content: Content) -> some View {
-        let tier = AvatarTier(membership: app.membership, plans: app.membershipPlans)
         content.toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { showProfile() } label: { AvatarView(tier: tier) }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(tier.planName.map { "Account, \($0) member" } ?? "Account")
-                    .accessibilityHint("Rewards, membership and settings")
-            }
-            .sharedBackgroundVisibility(.hidden)
+            ToolbarItem(placement: .topBarTrailing) { ProfileButton() }
+                .sharedBackgroundVisibility(.hidden)
         }
     }
 }
