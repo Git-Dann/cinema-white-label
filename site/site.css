@@ -648,7 +648,7 @@ footer.closing { min-height: 0 !important; }
 
 /* ---------- footer: the name set huge at the page's foot, rising out of a teal glow ---------- */
 footer.closing { position: relative; overflow: hidden; padding-bottom: 0 !important; }
-footer.closing { background: radial-gradient(70% 520px at 50% 100%, #1b6b6f 0%, rgb(15 76 83 / .75) 30%, rgb(10 50 56 / .35) 58%, transparent 80%), var(--bg, #000) !important; }
+footer.closing { background: radial-gradient(70% 520px at 50% 100%, #1b6b6f 0%, rgb(15 76 83 / .75) 30%, rgb(10 50 56 / .35) 58%, transparent 80%) !important; }
 footer.closing > .wrap { position: relative; z-index: 1; }
 .footer__word.close__word {
   margin: var(--s-8) 0 -0.12em; text-align: center; line-height: .82; white-space: nowrap;
@@ -674,7 +674,7 @@ footer.closing > .wrap { position: relative; z-index: 1; }
   background-image:
     radial-gradient(44% 30% at 50% 68%, rgb(150 240 246 / .22) 0%, rgb(100 210 218 / .14) 30%, rgb(50 160 168 / .07) 60%, rgb(20 110 118 / .02) 85%, transparent 100%),
     radial-gradient(85% 33% at 50% 66%, rgb(26 128 136 / .5) 0%, rgb(20 104 112 / .38) 22%, rgb(13 78 86 / .24) 45%, rgb(8 52 58 / .11) 68%, rgb(4 26 30 / .03) 88%, transparent 100%),
-    linear-gradient(180deg, #000 0%, #000 12%, #010507 24%, #03141a 36%, #052228 48%, #07313a 58%, #08373f 66%, #062c33 75%, #041b20 84%, #020b0d 92%, #000 100%),
+    linear-gradient(180deg, #000 0%, #000 12%, #010507 24%, #03141a 36%, #052228 48%, #07313a 58%, #08373f 66%, #062c33 75%, rgb(4 27 32 / .9) 84%, rgb(2 11 13 / .55) 92%, transparent 100%),
     var(--g-noise-scr) !important;
   background-blend-mode: normal, normal, normal, screen !important;
 }
@@ -797,3 +797,40 @@ main > #connect > .wrap > .connect__frame--shot { flex: none !important; height:
 .connect__frame--shot > picture { display: block; }
 
 main > section#native.g2 > .wrap { grid-template-rows: auto auto; }
+
+/* hero lockup on scroll: as the hero leaves the screen the side phones fan out and tilt a little and the
+   centre phone rises, driven by the page's own scroll (no script). Only where scroll timelines exist,
+   from 1024px up, and never under reduced motion; elsewhere the phones stay as they are. */
+@supports (animation-timeline: scroll()) {
+  @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+    .hero-phone { animation: linear both; animation-timeline: scroll(root); animation-range: 0 85vh; }
+    .hero-phone--main { animation-name: lock-main; }
+    .hero-phones__row > .hero-phone--side:first-child { animation-name: lock-left; }
+    .hero-phones__row > .hero-phone--side:last-child { animation-name: lock-right; }
+  }
+}
+@keyframes lock-main { to { translate: 0 -56px; scale: 1.04; } }
+@keyframes lock-left { to { translate: -64px 10px; rotate: -5deg; } }
+@keyframes lock-right { to { translate: 64px 10px; rotate: 5deg; } }
+
+/* ---------- ambient light behind the page ----------
+   One fixed layer under all content, so it never has an edge: the black sections are transparent and show
+   it, while the hero, the dotted native section and the footer paint over it with their own grounds.
+   Two very large, very soft teal pools drift slowly (transform only), a light follows the pointer
+   (js/ambient.js eases --px/--py/--pa), and fine grain dithers the gradients so they never band.
+   Reduced motion: the pools hold still and there is no pointer light. */
+.ambient { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; contain: strict; }
+.ambient__pool { position: absolute; width: 90vmax; height: 90vmax; border-radius: 50%; will-change: transform;
+  background: radial-gradient(closest-side, rgb(30 120 126 / .20), rgb(22 96 104 / .12) 35%, rgb(12 64 72 / .05) 62%, transparent 100%); }
+.ambient__pool--a { left: -38vmax; top: -30vmax; animation: amb-a 48s ease-in-out infinite alternate; }
+.ambient__pool--b { right: -42vmax; bottom: -40vmax; opacity: .85; animation: amb-b 60s ease-in-out infinite alternate; }
+@keyframes amb-a { to { transform: translate3d(18vmax, 14vmax, 0) scale(1.08); } }
+@keyframes amb-b { to { transform: translate3d(-16vmax, -12vmax, 0) scale(.94); } }
+.ambient__light { position: absolute; left: 0; top: 0; width: 760px; height: 760px; margin: -380px 0 0 -380px; border-radius: 50%;
+  opacity: var(--pa, 0); transform: translate3d(var(--px, 50vw), var(--py, 50vh), 0); will-change: transform, opacity;
+  background: radial-gradient(closest-side, rgb(94 234 212 / .085), rgb(45 212 191 / .045) 38%, rgb(45 212 191 / .015) 66%, transparent 100%); }
+.ambient__grain { position: absolute; inset: -50%; background-image: var(--g-noise-soft); background-size: 240px; opacity: .045; mix-blend-mode: screen; }
+@media (prefers-reduced-motion: reduce) { .ambient__pool { animation: none; } .ambient__light { display: none; } }
+/* the hero and the footer let the ambient light through at their edges, so neither ends on a line */
+.hero.bg-deep { background-color: transparent !important; }
+.hero.bg-deep { -webkit-mask-image: linear-gradient(#000 calc(100% - 220px), rgb(0 0 0 / .6) calc(100% - 120px), transparent); mask-image: linear-gradient(#000 calc(100% - 220px), rgb(0 0 0 / .6) calc(100% - 120px), transparent); }
