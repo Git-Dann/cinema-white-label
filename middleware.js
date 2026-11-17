@@ -7,7 +7,7 @@
 const COOKIE = 'seatfold_gate';
 const UNLOCK = '/__unlock';
 const REMEMBER_SECONDS = 60 * 60 * 24 * 30;
-const PUBLIC = /^\/(?:fonts\/.+|favicon\.(?:ico|svg)|apple-touch-icon\.png|icon-(?:192|512)\.png|site\.webmanifest)$/;
+const PUBLIC = /^\/(?:fonts\/.+|favicon\.(?:ico|svg)|apple-touch-icon\.png|icon-(?:192|512)\.png|site\.webmanifest|og-image\.jpg)$/;
 
 const enc = new TextEncoder();
 
@@ -50,7 +50,24 @@ function gatePage({ next, error, remember }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="dark">
-<title>Seatfold</title>
+<title>Seatfold: your cinema’s own booking app</title>
+<meta name="description" content="Native iOS and Android booking apps in your brand, run from one portal, with every show forecast by Pulse. For national chains and independents.">
+<meta name="theme-color" content="#000000">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Seatfold">
+<meta property="og:url" content="https://www.seatfold.uk/">
+<meta property="og:title" content="Seatfold: your cinema’s own booking app">
+<meta property="og:description" content="Native iOS and Android booking apps in your brand, run from one portal, with every show forecast by Pulse. For national chains and independents.">
+<meta property="og:image" content="https://www.seatfold.uk/og-image.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Seatfold: your cinema’s own booking app. Three phones show the same booking app in three cinema brands.">
+<meta property="og:locale" content="en_GB">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Seatfold: your cinema’s own booking app">
+<meta name="twitter:description" content="Native iOS and Android booking apps in your brand, run from one portal, with every show forecast by Pulse.">
+<meta name="twitter:image" content="https://www.seatfold.uk/og-image.jpg">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon.ico" sizes="32x32">
 <style>
@@ -151,5 +168,6 @@ export default async function middleware(request) {
 
   if (token && same(readCookie(request, COOKIE), token)) return;
 
-  return gate(401, { next: safeNext(url.pathname + url.search), error: false, remember: false });
+  // 200 so link-preview bots read the meta tags; still noindex.
+  return gate(200, { next: safeNext(url.pathname + url.search), error: false, remember: false });
 }
