@@ -13,6 +13,9 @@ public struct SharedAppView: View {
     /// API base URL, for operator logos in the picker.
     let mediaBaseURL: URL
     @State private var app: AppModel?
+    @State private var welcome: Bool
+    /// Set when the customer chose "Find cinemas near me" on the welcome screen.
+    @State private var startNearby = false
 
     public init(directory: any DirectoryService, choices: OperatorChoiceStore, mediaBaseURL: URL, makeApp: @escaping @MainActor (TenantConfig) -> AppModel) {
         self.directory = directory
@@ -21,6 +24,7 @@ public struct SharedAppView: View {
         self.makeApp = makeApp
         // Reopen the last operator straight away, in their theme, even offline.
         _app = State(initialValue: choices.slug.flatMap(choices.seed(for:)).map(makeApp))
+        _welcome = State(initialValue: !choices.hasSeenWelcome)
     }
 
     public var body: some View {
@@ -31,13 +35,100 @@ public struct SharedAppView: View {
                     choices.clear()
                     self.app = nil
                 })
+        } else if welcome {
+            WelcomeView(
+                findNearby: { finishWelcome(nearby: true) },
+                search: { finishWelcome(nearby: false) }
+            )
         } else {
-            OperatorPickerView(directory: directory) { config in
+            OperatorPickerView(directory: directory, startNearby: startNearby) { config in
                 try choices.choose(config)
                 app = makeApp(config)
             }
             .environment(\.mediaBaseURL, mediaBaseURL)
         }
+    }
+}
+
+extension SharedAppView {
+    fileprivate func finishWelcome(nearby: Bool) {
+        choices.markWelcomeSeen()
+        startNearby = nearby
+        withAnimation(.smooth) { welcome = false }
+    }
+}
+
+/// First launch of the shared app: what it is, in three lines, then straight to finding a cinema.
+struct WelcomeView: View {
+    let findNearby: () -> Void
+    let search: () -> Void
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Spacer(minLength: 24)
+            SeatfoldMark()
+                .frame(width: 64, height: 64)
+                .accessibilityHidden(true)
+                .padding(.bottom, 28)
+            Text("Your local cinema, in one app")
+                .font(.largeTitle.bold())
+                .foregroundStyle(palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.bottom, 32)
+            VStack(alignment: .leading, spacing: 24) {
+                point("mappin.and.ellipse", "Find cinemas near you", "Independent and local cinemas, nearest first.")
+                point("paintpalette", "Each cinema looks like itself", "Pick one and the app takes on its brand, films and offers.")
+                point("ticket", "Your tickets stay with you", "Change cinema any time. Tickets for each one are kept.")
+            }
+            Spacer(minLength: 32)
+            VStack(spacing: 12) {
+                Button("Find cinemas near me", action: findNearby)
+                    .buttonStyle(PrimaryButtonStyle())
+                Button("Search by town or postcode", action: search)
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .tint(palette.textPrimary)
+            }
+        }
+        .padding(.horizontal, 28)
+        .padding(.bottom, 16)
+        .frame(maxWidth: 520)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(palette.background.ignoresSafeArea())
+    }
+
+    private func point(_ symbol: String, _ title: String, _ detail: String) -> some View {
+        HStack(alignment: .top, spacing: 16) {
+            Image(systemName: symbol)
+                .font(.title2)
+                .foregroundStyle(palette.actionPrimary)
+                .frame(width: 32)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.headline).foregroundStyle(palette.textPrimary)
+                Text(detail).font(.subheadline).foregroundStyle(palette.textSecondary).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// The Seatfold mark (three seats and a screen block), drawn in the theme's action colour.
+struct SeatfoldMark: View {
+    @Environment(\.palette) private var palette
+    var body: some View {
+        GeometryReader { g in
+            let u = g.size.width / 24
+            ZStack(alignment: .topLeading) {
+                Circle().frame(width: 9 * u, height: 9 * u).offset(x: 2 * u, y: 2 * u)
+                Circle().frame(width: 9 * u, height: 9 * u).offset(x: 13 * u, y: 2 * u)
+                Circle().frame(width: 9 * u, height: 9 * u).offset(x: 2 * u, y: 13 * u)
+                RoundedRectangle(cornerRadius: 1.5 * u, style: .continuous).frame(width: 9 * u, height: 9 * u).offset(x: 13 * u, y: 13 * u)
+            }
+            .foregroundStyle(palette.actionPrimary)
+        }
+        .aspectRatio(1, contentMode: .fit)
     }
 }
 
@@ -57,6 +148,8 @@ extension EnvironmentValues {
 
 struct OperatorPickerView: View {
     let directory: any DirectoryService
+    /// Ask for the location straight away (the customer chose "near me" on the welcome screen).
+    var startNearby = false
     let onChosen: (TenantConfig) throws -> Void
     @Environment(\.palette) private var palette
     @State private var query = ""
@@ -67,21 +160,18 @@ struct OperatorPickerView: View {
     @State private var problem: String?
     @State private var location = LocationProvider()
     @State private var coordinate: (Double, Double)?
+    @State private var locating = false
 
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    Text("Book at independent and local cinemas. Pick yours and the app takes on its look, films and offers.")
-                        .font(.subheadline)
-                        .foregroundStyle(palette.textSecondary)
-                        .listRowBackground(Color.clear)
                     Button {
                         Task { await useLocation() }
                     } label: {
-                        Label(coordinate == nil ? "Show cinemas near me" : "Sorted by distance", systemImage: "location")
+                        Label(coordinate == nil ? "Show cinemas near me" : "Nearest first", systemImage: coordinate == nil ? "location" : "location.fill")
                     }
-                    .disabled(coordinate != nil)
+                    .disabled(coordinate != nil || locating)
                 }
                 if failed {
                     Section {
@@ -110,6 +200,7 @@ struct OperatorPickerView: View {
                 if !query.isEmpty { try? await Task.sleep(for: .milliseconds(300)) }
                 await load()
             }
+            .task { if startNearby { await useLocation() } }
             .alert("Couldn't open this cinema", isPresented: Binding(get: { problem != nil }, set: { if !$0 { problem = nil } })) {
                 Button("OK", role: .cancel) {}
             } message: { Text(problem ?? "") }
@@ -144,6 +235,8 @@ struct OperatorPickerView: View {
     }
 
     private func useLocation() async {
+        locating = true
+        defer { locating = false }
         guard let loc = await location.currentLocation() else { return }
         coordinate = (loc.coordinate.latitude, loc.coordinate.longitude)
         await load()

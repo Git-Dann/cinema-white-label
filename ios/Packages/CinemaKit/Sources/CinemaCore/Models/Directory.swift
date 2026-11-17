@@ -83,6 +83,11 @@ public struct OperatorChoiceStore: @unchecked Sendable {
 
     public var slug: String? { defaults.string(forKey: Self.key) }
 
+    /// The welcome screen shows once, on first launch of the shared app.
+    public var hasSeenWelcome: Bool { defaults.bool(forKey: Self.welcomeKey) }
+    public func markWelcomeSeen() { defaults.set(true, forKey: Self.welcomeKey) }
+    public static let welcomeKey = "seatfold.welcomeSeen"
+
     /// Saves the choice and its configuration. Rejects a configuration the app couldn't show.
     public func choose(_ config: TenantConfig) throws {
         if let reason = TenantConfigStore.rejectionReason(config, expectedTenant: config.tenant.slug) {

@@ -48,6 +48,10 @@ struct SharedAppTests {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let store = OperatorChoiceStore(defaults: defaults, directory: dir, shared: group)
         #expect(store.slug == nil)
+        // First launch shows the welcome once.
+        #expect(!store.hasSeenWelcome)
+        store.markWelcomeSeen()
+        #expect(store.hasSeenWelcome)
 
         // An operator whose config isn't in the app: the saved copy is used next launch.
         var other = try Fixtures.config("kestrel")
@@ -63,6 +67,8 @@ struct SharedAppTests {
 
         store.clear()
         #expect(store.slug == nil && group.string(forKey: OperatorChoiceStore.key) == nil)
+        // Changing cinema doesn't bring the welcome back.
+        #expect(store.hasSeenWelcome)
         // Switching back is instant: the saved configuration stays.
         #expect(store.seed(for: "riverside") != nil)
     }
