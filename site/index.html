@@ -106,11 +106,11 @@
           </div>
         </div>
       </div>
-      <div class="nav__item"><a class="nav__link" href="#journey">Booking</a></div>
-      <div class="nav__item"><a class="nav__link" href="#plan">Planning</a></div>
-      <div class="nav__item"><a class="nav__link" href="#seats">Seating</a></div>
-      <div class="nav__item"><a class="nav__link" href="#native">App</a></div>
+      <div class="nav__item"><a class="nav__link" href="#journey">App</a></div>
+      <div class="nav__item"><a class="nav__link" href="#portal">Portal</a></div>
+      <div class="nav__item"><a class="nav__link" href="#plan">Forecasting</a></div>
       <div class="nav__item"><a class="nav__link" href="#connect">AI insights</a></div>
+      <div class="nav__item"><a class="nav__link" href="#pricing">Pricing</a></div>
       <div class="nav__item"><a class="nav__link" href="#questions">Questions</a></div>
     </nav>
     <div class="nav__actions">
@@ -133,13 +133,18 @@
   <section class="hero hero--centred bg-deep" aria-labelledby="hero-h">
     <div class="wrap"><div class="hero-text">
       <div class="hero__c">
-        <a class="pill" href="#plan"><span>New: Pulse</span><span class="muted">every show forecast, with the staff and food it needs</span></a>
+        <a class="pill" href="#plan"><span>Forecast every show</span><span class="muted">with the staff and food it needs</span></a>
         <h1 id="hero-h">Your cinema’s <span class="hero__own">own</span> booking app</h1>
         <p class="hero__lead">Sell seats, food and drink in native iOS and Android apps with your name on them. Run it from one portal, see every show forecast before it plays, and own the data on every booking. For a national chain or a single screen.</p>
         <div class="btn-row">
           <a class="btn btn--primary" href="mailto:hello@seatfold.uk?subject=Seatfold%20demo">Book a demo<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a>
           <a class="btn btn--secondary" href="#journey">See the booking flow</a>
         </div>
+        <ul class="hero__facts">
+          <li>Works alongside your ticketing system</li>
+          <li>Every feature in every plan</li>
+          <li><a href="#pricing">From £99 a month</a></li>
+        </ul>
       </div>
       <div class="hero__window hero-phones" data-moment="cursor-spotlight" data-moment-opts='{"rest": [0.5, 0.18], "radius": 620}'>
         <div class="hero-phones__row">
@@ -241,127 +246,12 @@
     </div>
   </section>
 
-  <!-- APP-FRAME: the operator portal, big. List: the release history (window). Open: the draft release
-       with its theme, palette and the WCAG contrast checks (checklist loops). -->
-  <section class="section" id="portal" aria-labelledby="portal-h">
-    <div class="wrap">
-      <div class="grid">
-        <h2 id="portal-h" class="span-6">Your team runs the app. <span class="muted">No supplier ticket, no app store wait.</span></h2>
-        <div class="span-6 start-7 stack-4">
-          <p class="t-lead">Try it: pick an operator, a theme or your own brand colour. The phone updates at once, and all 23 colour pairs are checked against WCAG 2.2 AA before anything goes live.</p>
-          <a class="link" href="#remote">See what changes without a release</a>
-        </div>
-      </div>
-      <div class="ui app fill" role="region" aria-label="Try the Seatfold operator portal: choose an operator, a theme and an appearance, and the phone and contrast checks update" data-ui-pause-host>
-        <div class="app__pane app__pane--list">
-          <div class="ui ui-panel ui-win" data-ui="window" data-open="Draft" data-work="Checking" data-done="Ready">
-            <div class="ui-win__bar">
-              <span class="ui-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-              <span class="ui-win__crumb"><span class="mark mark--ui" data-mark="dots" aria-hidden="true"></span>Northlight <i>/</i> <b>Releases</b></span>
-              <span class="ui-spacer"></span>
-              <span class="ui-win__search" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg><span class="ui-win__ph">Search</span><span class="ui-kbd">/</span></span>
-            </div>
-            <div class="ui-win__body">
-              <nav class="ui-win__side" aria-hidden="true">
-                <span class="ui-win__nav"><svg class="ui-icon" viewBox="0 0 16 16"><path d="M2.5 13.5v-6l5.5-4 5.5 4v6z"/></svg>Overview</span>
-                <span class="ui-win__nav"><svg class="ui-icon" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11"/></svg>Branding</span>
-                <span class="ui-win__nav is-on"><svg class="ui-icon" viewBox="0 0 16 16"><path d="M3 4h10M3 8h10M3 12h6"/></svg>Releases<em>15</em></span>
-                <span class="ui-win__nav"><svg class="ui-icon" viewBox="0 0 16 16"><path d="M8 14s4.5-4.2 4.5-7.5a4.5 4.5 0 0 0-9 0C3.5 9.8 8 14 8 14z"/><circle cx="8" cy="6.5" r="1.5"/></svg>Cinemas<em>4</em></span>
-                <span class="ui-win__nav"><svg class="ui-icon" viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><path d="M5 6.5h6M5 9.5h6"/></svg>Layouts</span>
-                <span class="ui-win__label">Sell</span>
-                <span class="ui-win__nav"><span class="ui-win__hash">#</span>Seat prices</span>
-                <span class="ui-win__nav"><span class="ui-win__hash">#</span>Food and drink</span>
-                <span class="ui-win__nav"><span class="ui-win__hash">#</span>Vouchers</span>
-                <span class="ui-win__nav"><span class="ui-win__hash">#</span>Promotions</span>
-              </nav>
-              <div class="ui-win__main">
-                <div class="ui-win__cols" aria-hidden="true"><span>By</span><span>Release</span><span>Status</span><span>Age</span></div>
-                <ul class="ui-win__rows">
-                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="1">MO</span><span class="ui-win__who">Version 15</span><span class="ui-win__sub">Christmas offers on the home screen</span><span class="ui-win__st" data-st>Draft</span><span class="ui-win__age">4m</span></li>
-                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="3">JP</span><span class="ui-win__who">Version 14</span><span class="ui-win__sub">Midnight theme, new teal palette</span><span class="ui-win__st is-you" data-st>Live</span><span class="ui-win__age">2d</span></li>
-                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="4">MO</span><span class="ui-win__who">Version 13</span><span class="ui-win__sub">Leeds Riverside seat delivery on</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">6d</span></li>
-                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="2">SK</span><span class="ui-win__who">Version 12</span><span class="ui-win__sub">High Contrast theme offered</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">9d</span></li>
-                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="5">JP</span><span class="ui-win__who">Version 11</span><span class="ui-win__sub">Rolled back to version 9</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">12d</span></li>
-                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="1">MO</span><span class="ui-win__who">Version 10</span><span class="ui-win__sub">Autumn artwork, splash screen</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">13d</span></li>
-                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="3">SK</span><span class="ui-win__who">Version 9</span><span class="ui-win__sub">Kids’ club section added</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">3w</span></li>
-                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="4">MO</span><span class="ui-win__who">Version 8</span><span class="ui-win__sub">Booking fee set to £1.90</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">4w</span></li>
-                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="2">JP</span><span class="ui-win__who">Version 7</span><span class="ui-win__sub">Opening night offer, scheduled</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">5w</span></li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="app__pane app__pane--open">
-          <div class="rel" data-theme-demo>
-            <div class="rel__head">
-              <div><p class="rel__title">Version 15</p><p class="rel__sub">Draft · <span data-demo-label>Northlight, Midnight Cinema</span></p></div>
-              <span class="ui-spacer"></span>
-              <span class="rel__btn">Preview</span><span class="rel__btn rel__btn--primary" data-demo-publish>Ready to publish</span>
-            </div>
-            <div class="rel__body">
-              <div class="rel__col">
-                <p class="rel__label" id="demo-op">Operator</p>
-                <div class="rel__chips" role="group" aria-labelledby="demo-op">
-                  <button type="button" class="rel__chip is-on" data-op="northlight" aria-pressed="true"><i style="--c:#2DD4BF"></i>Northlight</button>
-                  <button type="button" class="rel__chip" data-op="kestrel" aria-pressed="false"><i style="--c:#FF5A6A"></i>Kestrel</button>
-                  <label class="rel__chip rel__chip--pick" data-op="custom"><input type="color" value="#F2D04B" data-demo-colour aria-label="Pick your brand colour">Your colour</label>
-                </div>
-                <p class="rel__label" id="demo-theme">Theme</p>
-                <div class="rel__chips" role="group" aria-labelledby="demo-theme">
-                  <button type="button" class="rel__chip" data-theme="classic" aria-pressed="false">Classic</button>
-                  <button type="button" class="rel__chip is-on" data-theme="midnight" aria-pressed="true">Midnight</button>
-                  <button type="button" class="rel__chip" data-theme="premium" aria-pressed="false">Premium</button>
-                  <button type="button" class="rel__chip" data-theme="light" aria-pressed="false">Light</button>
-                  <button type="button" class="rel__chip" data-theme="highContrast" aria-pressed="false">High Contrast</button>
-                </div>
-                <p class="rel__label" id="demo-ap">Appearance</p>
-                <div class="rel__chips" role="group" aria-labelledby="demo-ap">
-                  <button type="button" class="rel__chip" data-ap="light" aria-pressed="false" disabled>Light</button>
-                  <button type="button" class="rel__chip is-on" data-ap="dark" aria-pressed="true">Dark</button>
-                </div>
-                <div class="rel__checks" aria-live="polite">
-                  <div class="rel__checks-head"><span>Contrast, WCAG 2.2 AA</span><b data-demo-count>23 of 23 pass</b></div>
-                  <div class="rel__bar"><i data-demo-bar style="--k:1"></i></div>
-                  <ul class="rel__list" data-demo-checks>
-                    <li class="is-pass"><span>Primary text on background</span><code>18.0:1</code></li>
-                    <li class="is-pass"><span>Muted text on surface</span><code>6.1:1</code></li>
-                    <li class="is-pass"><span>Primary button label</span><code>10.6:1</code></li>
-                    <li class="is-pass"><span>Selected seat</span><code>10.6:1</code></li>
-                    <li class="is-pass"><span>Held seat</span><code>6.1:1</code></li>
-                  </ul>
-                </div>
-              </div>
-              <div class="rel__preview">
-                <div class="device device--mini demo-phone">
-                  <div class="demo" data-demo-screen role="img" aria-label="The app's home screen in the chosen operator, theme and appearance">
-                    <p class="demo__status"><span>11:35</span><span>&#9679;&#9679;&#9679;</span></p>
-                    <p class="demo__brand" data-demo-brand>Northlight</p>
-                    <p class="demo__venue"><i></i>Leeds Riverside</p>
-                    <p class="demo__h">Featured</p>
-                    <p class="demo__sub">Big screen picks this week</p>
-                    <div class="demo__card">
-                      <img src="img/ember-protocol-poster-120.jpg" alt="" width="120" height="180" loading="lazy">
-                      <div><p class="demo__film">Ember Protocol</p><p class="demo__meta">12A · 2h 21m · IMAX</p><span class="demo__btn">Book tickets</span></div>
-                    </div>
-                    <p class="demo__h">Pick seats</p>
-                    <p class="demo__seats" aria-hidden="true"><i class="s-free"></i><i class="s-sel"></i><i class="s-sel"></i><i class="s-held"></i><i class="s-sold"></i><i class="s-prem"></i><i class="s-free"></i></p>
-                    <p class="demo__tabs"><b>Home</b><span>Films</span><span>Cinemas</span><span>Tickets</span></p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- JOURNEY: the dealt moment, pinned-chapters (two screens live). Three real captures from the
        Northlight build, one per step. Still under reduced motion and on a phone. -->
   <section class="section" id="journey" data-moment="pinned-chapters" aria-labelledby="journey-h">
     <div class="wrap mo-pc__grid">
       <div class="mo-pc__text">
-        <h2 id="journey-h">Seats, food and tickets in one booking. <span class="muted">Bigger orders, shorter queues.</span></h2>
+        <h2 id="journey-h"><span class="pillar">Sell</span>Seats, food and tickets in one booking. <span class="muted">Bigger orders, shorter queues.</span></h2>
         <ol class="mo-pc__steps">
           <li class="mo-pc__step">
             <h3>Pick seats on the cinema’s own map</h3>
@@ -381,96 +271,6 @@
         </ol>
       </div>
       <div class="mo-pc__visuals frame"></div>
-    </div>
-  </section>
-
-  <!-- REMOTE: the calm section, a comparison table (docs/feature-parity.md, Remote vs build-time). -->
-  <section class="section" id="remote" aria-labelledby="remote-h">
-    <div class="wrap">
-      <div class="section-head">
-        <h2 id="remote-h">Change almost everything live. <span class="muted">Only your icon needs a new build.</span></h2>
-        <p>Prices, menus, seat maps, offers and branding reach customers the next time they open the app. Only your icon and store listing need a release.</p>
-      </div>
-      <div class="grid fill remote-grid">
-      <div class="cmp span-6" role="table" aria-label="What you can change from the portal and what needs a new app build">
-        <div class="cmp__row cmp__row--head" role="row">
-          <span role="columnheader">What you change</span>
-          <span role="columnheader">From the portal</span>
-          <span role="columnheader">New app build</span>
-        </div>
-        <div class="cmp__row" role="row"><span role="cell">Logo, wordmark, theme and palette</span><span class="cmp__yes" role="cell">Live<span class="sr-only">: included</span></span><span class="cmp__no" role="cell">Not needed</span></div>
-        <div class="cmp__row" role="row"><span role="cell">Home screen sections, offers and splash artwork</span><span class="cmp__yes" role="cell">Live</span><span class="cmp__no" role="cell">Not needed</span></div>
-        <div class="cmp__row" role="row"><span role="cell">Ticket prices, vouchers, points and memberships</span><span class="cmp__yes" role="cell">Live</span><span class="cmp__no" role="cell">Not needed</span></div>
-        <div class="cmp__row" role="row"><span role="cell">Seat categories, icons, colours and seat rules</span><span class="cmp__yes" role="cell">Live</span><span class="cmp__no" role="cell">Not needed</span></div>
-        <div class="cmp__row" role="row"><span role="cell">Auditorium layouts and food menus</span><span class="cmp__yes" role="cell">Live</span><span class="cmp__no" role="cell">Not needed</span></div>
-        <div class="cmp__row" role="row"><span role="cell">App icon and App Store or Google Play name</span><span class="cmp__no" role="cell">Not possible</span><span class="cmp__yes cmp__yes--build" role="cell"><span class="cmp__d">Yes</span><span class="cmp__m">New build</span></span></div>
-        <div class="cmp__row" role="row"><span role="cell">Wallet pass type and payment merchant ID</span><span class="cmp__no" role="cell">Not possible</span><span class="cmp__yes cmp__yes--build" role="cell"><span class="cmp__d">Yes</span><span class="cmp__m">New build</span></span></div>
-      </div>
-      <div class="frame frame--fill remote-shot span-6 start-7">
-        <div class="device device--remote device--back" role="img" aria-label="The film page for Ember Protocol in the Northlight app: artwork, certificate and Book Tickets, all set from the portal"><img src="img/app-film-detail-660.webp" srcset="img/app-film-detail-360.webp 360w, img/app-film-detail-660.webp 660w, img/app-film-detail.webp 1320w" sizes="(max-width: 1279px) 170px, 260px" alt="" width="1320" height="2868" loading="lazy"></div>
-        <div class="device device--remote device--front" role="img" aria-label="The account screen in the Northlight app: 1,524 reward points worth £7 off, and a membership from £6.99 a month with 25% off tickets and no booking fees"><img src="img/app-account-660.webp" srcset="img/app-account-360.webp 360w, img/app-account-660.webp 660w, img/app-account.webp 1320w" sizes="(max-width: 1279px) 170px, 260px" alt="" width="1320" height="2868" loading="lazy"></div>
-      </div>
-      </div>
-    </div>
-  </section>
-
-
-  <!-- PLAN: Pulse seen by three roles. Real 3x captures of the portal (demo history, badged
-       there), switched by the kit's tabs. -->
-  <section class="section" id="plan" aria-labelledby="plan-h">
-    <div class="wrap">
-      <div class="grid plan__head">
-        <h2 id="plan-h" class="span-7">Know how full every show will be. <span class="muted">Then staff it, stock it and price it.</span></h2>
-        <div class="span-4 start-9 stack-4 plan__intro">
-          <p>Pulse, Seatfold’s forecasting engine, predicts every show from your own bookings, the time and day, how films hold up and what people are reading and saying. Each person sees what it means for them.</p>
-          <div class="tabs plan__tabs" role="tablist" aria-label="Who is looking">
-            <button class="tab" type="button" role="tab" id="plan-t1" aria-controls="plan-p1" aria-selected="true">Head office</button>
-            <button class="tab" type="button" role="tab" id="plan-t2" aria-controls="plan-p2" aria-selected="false">Venue manager</button>
-            <button class="tab" type="button" role="tab" id="plan-t3" aria-controls="plan-p3" aria-selected="false">Floor staff</button>
-          </div>
-        </div>
-      </div>
-      <div class="plan__panes fill">
-        <div class="grid plan__pane" role="tabpanel" id="plan-p1" aria-labelledby="plan-t1">
-          <div class="span-3 stack-4 plan__copy">
-            <h3>Forecasts you can check</h3>
-            <p>Every show forecast with a range, scored against weeks it had not seen. Pulse learns what is different about each of your cinemas, days and films, and says so in plain English.</p>
-          </div>
-          <div class="span-9 plan__shot"><img src="img/portal-pulse-1920.webp" srcset="img/portal-pulse-960.webp 960w, img/portal-pulse-1920.webp 1920w, img/portal-pulse.webp 3840w" sizes="(max-width: 1023px) 100vw, 940px" width="1920" height="1230" loading="lazy" alt="Pulse in the portal: how full a typical UK screen is, how accurate Pulse has been a week, a day and three hours out, and audience interest by film"></div>
-        </div>
-        <div class="grid plan__pane" role="tabpanel" id="plan-p2" aria-labelledby="plan-t2" hidden>
-          <div class="span-3 stack-4 plan__copy">
-            <h3>Today, for one cinema</h3>
-            <p>Who is on shift from your rota app, tills and ushers needed each half hour against who is on, and the food to prepare. When people start talking about a film, it tells you before the queue does.</p>
-          </div>
-          <div class="span-9 plan__shot"><img src="img/portal-today-1920.webp" srcset="img/portal-today-960.webp 960w, img/portal-today-1920.webp 1920w, img/portal-today.webp 3840w" sizes="(max-width: 1023px) 100vw, 940px" width="1920" height="1230" loading="lazy" alt="Today in the portal: shows and seats sold, the team on shift from Planday, and a Pulse alert that talk about a film has doubled this week"></div>
-        </div>
-        <div class="grid plan__pane" role="tabpanel" id="plan-p3" aria-labelledby="plan-t3" hidden>
-          <div class="span-3 stack-4 plan__copy">
-            <h3>Your shifts, and nothing else</h3>
-            <p>Each person’s shifts straight from the rota app, what is still to come tonight, the team briefing and what is coming up. No forecasts, no revenue.</p>
-          </div>
-          <div class="span-9 plan__shot"><img src="img/portal-mw-1920.webp" srcset="img/portal-mw-960.webp 960w, img/portal-mw-1920.webp 1920w, img/portal-mw.webp 3840w" sizes="(max-width: 1023px) 100vw, 940px" width="1920" height="1230" loading="lazy" alt="My week in the portal: one person’s shifts from Planday, tonight’s shows, the team briefing and an upcoming opening"></div>
-        </div>
-      </div>
-      <p class="t-small muted plan__note">Shown on demo history with fictional films, labelled as such in the portal. With your account, Pulse learns from your own shows. Rotas connect from Planday, Deputy, RotaCloud or any tool through the API.</p>
-    </div>
-  </section>
-
-  <!-- PLATFORM: what sits underneath, for whoever signs off the technology. Six plain cards. -->
-  <section class="section" id="platform" aria-labelledby="platform-h">
-    <div class="wrap">
-      <div class="section-head">
-        <h2 id="platform-h">Built properly underneath. <span class="muted">For whoever signs off the technology.</span></h2>
-      </div>
-      <div class="grid platform">
-        <div class="card span-4"><span class="plat__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h16v5H4zM4 14h16v5H4z"/><path d="M8 7.5h.01M8 16.5h.01"/></svg></span><h3>The server decides, not the phone</h3><p>Seats are held on the server while a customer pays, totals are worked out there, and a payment that is retried is never taken twice.</p></div>
-        <div class="card span-4"><span class="plat__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/></svg></span><h3>Every operator kept apart</h3><p>Each chain’s data is separated on every request. Each cinema in it keeps its own screens, menus and prices.</p></div>
-        <div class="card span-4"><span class="plat__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M6 8.5v7M8.3 7.2 15.7 11M8.3 16.8l7.4-3.8"/></svg></span><h3>Changes are versioned releases</h3><p>Branding and settings go out as releases you can schedule and roll back. A published seat map never changes under a booking.</p></div>
-        <div class="card span-4"><span class="plat__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M12 3a9 9 0 0 1 0 18"/></svg></span><h3>Accessible before it goes live</h3><p>Every colour pair in a theme is checked against WCAG 2.2 AA before it can publish, and the app works with screen readers and larger text.</p></div>
-        <div class="card span-4"><span class="plat__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4h-4"/></svg></span><h3>Films ready to book</h3><p>Titles, certificates, artwork, cast and Parents Guide advice on every film page, from your distributor or film data feed.</p></div>
-        <div class="card span-4"><span class="plat__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 5l-3 14"/></svg></span><h3>An open, documented API</h3><p>Scoped keys for your partners, signed webhooks for every booking and refund, and an OpenAPI reference. Your ticketing system connects through an adapter.</p></div>
-      </div>
     </div>
   </section>
 
@@ -600,6 +400,193 @@
     </div>
   </section>
 
+  <!-- APP-FRAME: the operator portal, big. List: the release history (window). Open: the draft release
+       with its theme, palette and the WCAG contrast checks (checklist loops). -->
+  <section class="section" id="portal" aria-labelledby="portal-h">
+    <div class="wrap">
+      <div class="grid">
+        <h2 id="portal-h" class="span-6"><span class="pillar">Run</span>Your team runs the app. <span class="muted">No supplier ticket, no app store wait.</span></h2>
+        <div class="span-6 start-7 stack-4">
+          <p class="t-lead">Try it: pick a cinema, a theme or your own brand colour. The phone updates at once, and every colour is checked for readability before anything goes live.</p>
+          <a class="link" href="#remote">See what changes without a release</a>
+        </div>
+      </div>
+      <div class="ui app fill" role="region" aria-label="Try the Seatfold operator portal: choose an operator, a theme and an appearance, and the phone and contrast checks update" data-ui-pause-host>
+        <div class="app__pane app__pane--list">
+          <div class="ui ui-panel ui-win" data-ui="window" data-open="Draft" data-work="Checking" data-done="Ready">
+            <div class="ui-win__bar">
+              <span class="ui-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="ui-win__crumb"><span class="mark mark--ui" data-mark="dots" aria-hidden="true"></span>Northlight <i>/</i> <b>Releases</b></span>
+              <span class="ui-spacer"></span>
+              <span class="ui-win__search" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg><span class="ui-win__ph">Search</span><span class="ui-kbd">/</span></span>
+            </div>
+            <div class="ui-win__body">
+              <nav class="ui-win__side" aria-hidden="true">
+                <span class="ui-win__nav"><svg class="ui-icon" viewBox="0 0 16 16"><path d="M2.5 13.5v-6l5.5-4 5.5 4v6z"/></svg>Overview</span>
+                <span class="ui-win__nav"><svg class="ui-icon" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11"/></svg>Branding</span>
+                <span class="ui-win__nav is-on"><svg class="ui-icon" viewBox="0 0 16 16"><path d="M3 4h10M3 8h10M3 12h6"/></svg>Releases<em>15</em></span>
+                <span class="ui-win__nav"><svg class="ui-icon" viewBox="0 0 16 16"><path d="M8 14s4.5-4.2 4.5-7.5a4.5 4.5 0 0 0-9 0C3.5 9.8 8 14 8 14z"/><circle cx="8" cy="6.5" r="1.5"/></svg>Cinemas<em>4</em></span>
+                <span class="ui-win__nav"><svg class="ui-icon" viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><path d="M5 6.5h6M5 9.5h6"/></svg>Layouts</span>
+                <span class="ui-win__label">Sell</span>
+                <span class="ui-win__nav"><span class="ui-win__hash">#</span>Seat prices</span>
+                <span class="ui-win__nav"><span class="ui-win__hash">#</span>Food and drink</span>
+                <span class="ui-win__nav"><span class="ui-win__hash">#</span>Vouchers</span>
+                <span class="ui-win__nav"><span class="ui-win__hash">#</span>Promotions</span>
+              </nav>
+              <div class="ui-win__main">
+                <div class="ui-win__cols" aria-hidden="true"><span>By</span><span>Release</span><span>Status</span><span>Age</span></div>
+                <ul class="ui-win__rows">
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="1">MO</span><span class="ui-win__who">Version 15</span><span class="ui-win__sub">Christmas offers on the home screen</span><span class="ui-win__st" data-st>Draft</span><span class="ui-win__age">4m</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="3">JP</span><span class="ui-win__who">Version 14</span><span class="ui-win__sub">Midnight theme, new teal palette</span><span class="ui-win__st is-you" data-st>Live</span><span class="ui-win__age">2d</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="4">MO</span><span class="ui-win__who">Version 13</span><span class="ui-win__sub">Leeds Riverside seat delivery on</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">6d</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="2">SK</span><span class="ui-win__who">Version 12</span><span class="ui-win__sub">High Contrast theme offered</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">9d</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="5">JP</span><span class="ui-win__who">Version 11</span><span class="ui-win__sub">Rolled back to version 9</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">12d</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="1">MO</span><span class="ui-win__who">Version 10</span><span class="ui-win__sub">Autumn artwork, splash screen</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">13d</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="3">SK</span><span class="ui-win__who">Version 9</span><span class="ui-win__sub">Kids’ club section added</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">3w</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="4">MO</span><span class="ui-win__who">Version 8</span><span class="ui-win__sub">Booking fee set to £1.90</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">4w</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="2">JP</span><span class="ui-win__who">Version 7</span><span class="ui-win__sub">Opening night offer, scheduled</span><span class="ui-win__st is-done" data-st>Replaced</span><span class="ui-win__age">5w</span></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="app__pane app__pane--open">
+          <div class="rel" data-theme-demo>
+            <div class="rel__head">
+              <div><p class="rel__title">Version 15</p><p class="rel__sub">Draft · <span data-demo-label>Northlight, Midnight Cinema</span></p></div>
+              <span class="ui-spacer"></span>
+              <span class="rel__btn">Preview</span><span class="rel__btn rel__btn--primary" data-demo-publish>Ready to publish</span>
+            </div>
+            <div class="rel__body">
+              <div class="rel__col">
+                <p class="rel__label" id="demo-op">Operator</p>
+                <div class="rel__chips" role="group" aria-labelledby="demo-op">
+                  <button type="button" class="rel__chip is-on" data-op="northlight" aria-pressed="true"><i style="--c:#2DD4BF"></i>Northlight</button>
+                  <button type="button" class="rel__chip" data-op="kestrel" aria-pressed="false"><i style="--c:#FF5A6A"></i>Kestrel</button>
+                  <label class="rel__chip rel__chip--pick" data-op="custom"><input type="color" value="#F2D04B" data-demo-colour aria-label="Pick your brand colour">Your colour</label>
+                </div>
+                <p class="rel__label" id="demo-theme">Theme</p>
+                <div class="rel__chips" role="group" aria-labelledby="demo-theme">
+                  <button type="button" class="rel__chip" data-theme="classic" aria-pressed="false">Classic</button>
+                  <button type="button" class="rel__chip is-on" data-theme="midnight" aria-pressed="true">Midnight</button>
+                  <button type="button" class="rel__chip" data-theme="premium" aria-pressed="false">Premium</button>
+                  <button type="button" class="rel__chip" data-theme="light" aria-pressed="false">Light</button>
+                  <button type="button" class="rel__chip" data-theme="highContrast" aria-pressed="false">High Contrast</button>
+                </div>
+                <p class="rel__label" id="demo-ap">Appearance</p>
+                <div class="rel__chips" role="group" aria-labelledby="demo-ap">
+                  <button type="button" class="rel__chip" data-ap="light" aria-pressed="false" disabled>Light</button>
+                  <button type="button" class="rel__chip is-on" data-ap="dark" aria-pressed="true">Dark</button>
+                </div>
+                <div class="rel__checks" aria-live="polite">
+                  <div class="rel__checks-head"><span>Contrast, WCAG 2.2 AA</span><b data-demo-count>23 of 23 pass</b></div>
+                  <div class="rel__bar"><i data-demo-bar style="--k:1"></i></div>
+                  <ul class="rel__list" data-demo-checks>
+                    <li class="is-pass"><span>Primary text on background</span><code>18.0:1</code></li>
+                    <li class="is-pass"><span>Muted text on surface</span><code>6.1:1</code></li>
+                    <li class="is-pass"><span>Primary button label</span><code>10.6:1</code></li>
+                    <li class="is-pass"><span>Selected seat</span><code>10.6:1</code></li>
+                    <li class="is-pass"><span>Held seat</span><code>6.1:1</code></li>
+                  </ul>
+                </div>
+              </div>
+              <div class="rel__preview">
+                <div class="device device--mini demo-phone">
+                  <div class="demo" data-demo-screen role="img" aria-label="The app's home screen in the chosen operator, theme and appearance">
+                    <p class="demo__status"><span>11:35</span><span>&#9679;&#9679;&#9679;</span></p>
+                    <p class="demo__brand" data-demo-brand>Northlight</p>
+                    <p class="demo__venue"><i></i>Leeds Riverside</p>
+                    <p class="demo__h">Featured</p>
+                    <p class="demo__sub">Big screen picks this week</p>
+                    <div class="demo__card">
+                      <img src="img/ember-protocol-poster-120.jpg" alt="" width="120" height="180" loading="lazy">
+                      <div><p class="demo__film">Ember Protocol</p><p class="demo__meta">12A · 2h 21m · IMAX</p><span class="demo__btn">Book tickets</span></div>
+                    </div>
+                    <p class="demo__h">Pick seats</p>
+                    <p class="demo__seats" aria-hidden="true"><i class="s-free"></i><i class="s-sel"></i><i class="s-sel"></i><i class="s-held"></i><i class="s-sold"></i><i class="s-prem"></i><i class="s-free"></i></p>
+                    <p class="demo__tabs"><b>Home</b><span>Films</span><span>Cinemas</span><span>Tickets</span></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REMOTE: the calm section, a comparison table (docs/feature-parity.md, Remote vs build-time). -->
+  <section class="section" id="remote" aria-labelledby="remote-h">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="remote-h">Change almost everything live. <span class="muted">Only your icon needs a new build.</span></h2>
+        <p>Prices, menus, seat maps, offers and branding reach customers the next time they open the app. Only your icon and store listing need a release.</p>
+      </div>
+      <div class="grid fill remote-grid">
+      <div class="cmp span-6" role="table" aria-label="What you can change from the portal and what needs a new app build">
+        <div class="cmp__row cmp__row--head" role="row">
+          <span role="columnheader">What you change</span>
+          <span role="columnheader">From the portal</span>
+          <span role="columnheader">New app build</span>
+        </div>
+        <div class="cmp__row" role="row"><span role="cell">Logo, wordmark, theme and palette</span><span class="cmp__yes" role="cell">Live<span class="sr-only">: included</span></span><span class="cmp__no" role="cell">Not needed</span></div>
+        <div class="cmp__row" role="row"><span role="cell">Home screen sections, offers and splash artwork</span><span class="cmp__yes" role="cell">Live</span><span class="cmp__no" role="cell">Not needed</span></div>
+        <div class="cmp__row" role="row"><span role="cell">Ticket prices, vouchers, points and memberships</span><span class="cmp__yes" role="cell">Live</span><span class="cmp__no" role="cell">Not needed</span></div>
+        <div class="cmp__row" role="row"><span role="cell">Seat categories, icons, colours and seat rules</span><span class="cmp__yes" role="cell">Live</span><span class="cmp__no" role="cell">Not needed</span></div>
+        <div class="cmp__row" role="row"><span role="cell">Auditorium layouts and food menus</span><span class="cmp__yes" role="cell">Live</span><span class="cmp__no" role="cell">Not needed</span></div>
+        <div class="cmp__row" role="row"><span role="cell">App icon and App Store or Google Play name</span><span class="cmp__no" role="cell">Not possible</span><span class="cmp__yes cmp__yes--build" role="cell"><span class="cmp__d">Yes</span><span class="cmp__m">New build</span></span></div>
+        <div class="cmp__row" role="row"><span role="cell">Wallet pass type and payment merchant ID</span><span class="cmp__no" role="cell">Not possible</span><span class="cmp__yes cmp__yes--build" role="cell"><span class="cmp__d">Yes</span><span class="cmp__m">New build</span></span></div>
+      </div>
+      <div class="frame frame--fill remote-shot span-6 start-7">
+        <div class="device device--remote device--back" role="img" aria-label="The film page for Ember Protocol in the Northlight app: artwork, certificate and Book Tickets, all set from the portal"><img src="img/app-film-detail-660.webp" srcset="img/app-film-detail-360.webp 360w, img/app-film-detail-660.webp 660w, img/app-film-detail.webp 1320w" sizes="(max-width: 1279px) 170px, 260px" alt="" width="1320" height="2868" loading="lazy"></div>
+        <div class="device device--remote device--front" role="img" aria-label="The account screen in the Northlight app: 1,524 reward points worth £7 off, and a membership from £6.99 a month with 25% off tickets and no booking fees"><img src="img/app-account-660.webp" srcset="img/app-account-360.webp 360w, img/app-account-660.webp 660w, img/app-account.webp 1320w" sizes="(max-width: 1279px) 170px, 260px" alt="" width="1320" height="2868" loading="lazy"></div>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLAN: Pulse seen by three roles. Real 3x captures of the portal (demo history, badged
+       there), switched by the kit's tabs. -->
+  <section class="section" id="plan" aria-labelledby="plan-h">
+    <div class="wrap">
+      <div class="grid plan__head">
+        <h2 id="plan-h" class="span-7"><span class="pillar">Plan</span>Know how full every show will be. <span class="muted">Then staff it, stock it and price it.</span></h2>
+        <div class="span-4 start-9 stack-4 plan__intro">
+          <p>Pulse, Seatfold’s forecasting engine, predicts every show from your own bookings, the time and day, how films hold up and what people are reading and saying. Each person sees what it means for them.</p>
+          <div class="tabs plan__tabs" role="tablist" aria-label="Who is looking">
+            <button class="tab" type="button" role="tab" id="plan-t1" aria-controls="plan-p1" aria-selected="true">Head office</button>
+            <button class="tab" type="button" role="tab" id="plan-t2" aria-controls="plan-p2" aria-selected="false">Venue manager</button>
+            <button class="tab" type="button" role="tab" id="plan-t3" aria-controls="plan-p3" aria-selected="false">Floor staff</button>
+          </div>
+        </div>
+      </div>
+      <div class="plan__panes fill">
+        <div class="grid plan__pane" role="tabpanel" id="plan-p1" aria-labelledby="plan-t1">
+          <div class="span-3 stack-4 plan__copy">
+            <h3>Forecasts you can check</h3>
+            <p>Every show forecast with a range, scored against weeks it had not seen. Pulse learns what is different about each of your cinemas, days and films, and says so in plain English.</p>
+          </div>
+          <div class="span-9 plan__shot"><img src="img/portal-pulse-1920.webp" srcset="img/portal-pulse-960.webp 960w, img/portal-pulse-1920.webp 1920w, img/portal-pulse.webp 3840w" sizes="(max-width: 1023px) 100vw, 940px" width="1920" height="1230" loading="lazy" alt="Pulse in the portal: how full a typical UK screen is, how accurate Pulse has been a week, a day and three hours out, and audience interest by film"></div>
+        </div>
+        <div class="grid plan__pane" role="tabpanel" id="plan-p2" aria-labelledby="plan-t2" hidden>
+          <div class="span-3 stack-4 plan__copy">
+            <h3>Today, for one cinema</h3>
+            <p>Who is on shift from your rota app, tills and ushers needed each half hour against who is on, and the food to prepare. When people start talking about a film, it tells you before the queue does.</p>
+          </div>
+          <div class="span-9 plan__shot"><img src="img/portal-today-1920.webp" srcset="img/portal-today-960.webp 960w, img/portal-today-1920.webp 1920w, img/portal-today.webp 3840w" sizes="(max-width: 1023px) 100vw, 940px" width="1920" height="1230" loading="lazy" alt="Today in the portal: shows and seats sold, the team on shift from Planday, and a Pulse alert that talk about a film has doubled this week"></div>
+        </div>
+        <div class="grid plan__pane" role="tabpanel" id="plan-p3" aria-labelledby="plan-t3" hidden>
+          <div class="span-3 stack-4 plan__copy">
+            <h3>Your shifts, and nothing else</h3>
+            <p>Each person’s shifts straight from the rota app, what is still to come tonight, the team briefing and what is coming up. No forecasts, no revenue.</p>
+          </div>
+          <div class="span-9 plan__shot"><img src="img/portal-mw-1920.webp" srcset="img/portal-mw-960.webp 960w, img/portal-mw-1920.webp 1920w, img/portal-mw.webp 3840w" sizes="(max-width: 1023px) 100vw, 940px" width="1920" height="1230" loading="lazy" alt="My week in the portal: one person’s shifts from Planday, tonight’s shows, the team briefing and an upcoming opening"></div>
+        </div>
+      </div>
+      <p class="t-small muted plan__note">Shown on demo history with fictional films, labelled as such in the portal. With your account, Pulse learns from your own shows. Rotas connect from Planday, Deputy, RotaCloud or any tool through the API.</p>
+    </div>
+  </section>
+
   <!-- CONNECT: the AI layer (live) over Pulse, and the doors that are open today: the partner API and webhooks. -->
   <section class="section" id="connect" aria-labelledby="connect-h">
     <div class="wrap">
@@ -621,6 +608,62 @@
     </div>
   </section>
 
+  <!-- PRICING: plain monthly prices, every feature in every plan, and a founding offer for the first independents. -->
+  <section class="section" id="pricing" aria-labelledby="pricing-h">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="pricing-h">Simple pricing. <span class="muted">Every feature in every plan, no per-ticket fees.</span></h2>
+        <p>One monthly price per cinema, so your ticket prices stay yours. Prices exclude VAT.</p>
+      </div>
+      <div class="grid price-grid">
+        <article class="card span-4 price">
+          <p class="t-label price__who">Independent</p>
+          <p class="price__amt"><b>£99</b><span>a month, billed yearly</span></p>
+          <p class="price__alt">Or £119 a month rolling, with a £395 setup fee</p>
+          <ul class="price__list"><li>One cinema, up to four screens</li><li>Your own iOS and Android apps</li><li>Portal, seat maps, food and drink</li><li>Pulse forecasting and AI insights</li></ul>
+        </article>
+        <article class="card span-4 price price--lead">
+          <p class="t-label price__who">Small chain</p>
+          <p class="price__amt"><b>£119</b><span>per cinema a month</span></p>
+          <p class="price__alt">Two to fifteen cinemas, no setup fee on a yearly plan</p>
+          <ul class="price__list"><li>The whole platform at every cinema</li><li>Every site under one account</li><li>Head office, manager and staff views</li><li>Onboarding for each cinema</li></ul>
+        </article>
+        <article class="card span-4 price">
+          <p class="t-label price__who">Large chain</p>
+          <p class="price__amt"><b>£1,250</b><span>a month for 20 cinemas</span></p>
+          <p class="price__alt">Then £50 per extra cinema, set up with your team</p>
+          <ul class="price__list"><li>The whole platform at every cinema</li><li>Connection to your ticketing system set up for you</li><li>A named contact through rollout</li><li>Priority support</li></ul>
+        </article>
+      </div>
+      <div class="founding">
+        <div class="founding__copy">
+          <p class="pill founding__tag">Founding cinemas</p>
+          <h3>The first ten independents pay £69 a month, fixed for two years.</h3>
+          <p>In return we ask for feedback while we shape the product with you.</p>
+        </div>
+        <a class="btn btn--primary" href="mailto:hello@seatfold.uk?subject=Seatfold%20founding%20cinema">Ask about a founding place</a>
+      </div>
+      <p class="t-small muted price__note">Already have your own app? Pulse forecasting is available on its own at £40 per cinema a month.</p>
+    </div>
+  </section>
+
+  <!-- PLATFORM: what sits underneath, for whoever signs off the technology. Six plain cards. -->
+  <section class="section" id="platform" aria-labelledby="platform-h">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="platform-h">Built properly underneath. <span class="muted">For whoever signs off the technology.</span></h2>
+      </div>
+      <div class="grid platform">
+        <div class="card span-4"><span class="plat__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h16v5H4zM4 14h16v5H4z"/><path d="M8 7.5h.01M8 16.5h.01"/></svg></span><h3>The server decides, not the phone</h3><p>Seats are held on the server while a customer pays, totals are worked out there, and a payment that is retried is never taken twice.</p></div>
+        <div class="card span-4"><span class="plat__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/></svg></span><h3>Every operator kept apart</h3><p>Each chain’s data is separated on every request. Each cinema in it keeps its own screens, menus and prices.</p></div>
+        <div class="card span-4"><span class="plat__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M6 8.5v7M8.3 7.2 15.7 11M8.3 16.8l7.4-3.8"/></svg></span><h3>Changes are versioned releases</h3><p>Branding and settings go out as releases you can schedule and roll back. A published seat map never changes under a booking.</p></div>
+        <div class="card span-4"><span class="plat__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M12 3a9 9 0 0 1 0 18"/></svg></span><h3>Accessible before it goes live</h3><p>Every colour pair in a theme is checked against WCAG 2.2 AA before it can publish, and the app works with screen readers and larger text.</p></div>
+        <div class="card span-4"><span class="plat__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4h-4"/></svg></span><h3>Films ready to book</h3><p>Titles, certificates, artwork, cast and Parents Guide advice on every film page, from your distributor or film data feed.</p></div>
+        <div class="card span-4"><span class="plat__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 5l-3 14"/></svg></span><h3>An open, documented API</h3><p>Scoped keys for your partners, signed webhooks for every booking and refund, and an OpenAPI reference. Your ticketing system connects through an adapter.</p></div>
+      </div>
+    </div>
+  </section>
+
   <section class="section" id="questions" aria-labelledby="questions-h">
     <div class="wrap">
       <div class="section-head section-head--split">
@@ -631,6 +674,7 @@
         <a class="link" href="mailto:hello@seatfold.uk?subject=Question%20about%20Seatfold">Email us a question</a>
       </div>
       <div class="faq faq--2">
+          <div class="faq__item"><h3>Do we have to replace our ticketing system?</h3><p>No. Seatfold is your customer app and portal. It connects through an adapter, written once we have licensed access to your system.</p></div>
           <div class="faq__item"><h3>Is it a native app or a web view?</h3><p>Native on iOS and Android, built with each platform’s own design system. The seat map is drawn on the phone.</p></div>
           <div class="faq__item"><h3>Do we get our own App Store and Google Play listings?</h3><p>Yes. Each operator gets its own apps with its own name and icon. Everything else changes from the portal.</p></div>
           <div class="faq__item"><h3>Is it only for big chains?</h3><p>No. A single-screen independent gets the same app, portal and seat maps as a national chain. Chains also get head office planning and roles for every site.</p></div>
@@ -639,7 +683,6 @@
           <div class="faq__item"><h3>Can customers order food to their seat?</h3><p>Yes, at venues that turn on seat delivery. Food goes into the same booking as the tickets, priced by the server.</p></div>
           <div class="faq__item"><h3>Who owns the booking data?</h3><p>You do. Every step from first tap to payment is yours: films viewed, seats picked, food added and drop-outs. Personal details are stripped, and customers can opt out.</p></div>
           <div class="faq__item"><h3>Do you support loyalty and memberships?</h3><p>Yes. Customers earn points on every booking and can join a paid membership in the app, with the plans and benefits you set in the portal. Gift cards come next.</p></div>
-          <div class="faq__item"><h3>Do we have to replace our ticketing system?</h3><p>No. Seatfold is your customer app and portal. It connects through an adapter, written once we have licensed access to your system.</p></div>
           <div class="faq__item"><h3>How does the app take payments?</h3><p>Checkout runs in a test mode today. Apple Pay and Google Pay arrive through a payment provider once your merchant account is set up.</p></div>
       </div>
     </div>
