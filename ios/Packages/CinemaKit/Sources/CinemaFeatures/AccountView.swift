@@ -1,4 +1,6 @@
 import SwiftUI
+import PhotosUI
+import UIKit
 import CinemaCore
 import CinemaDesign
 
@@ -11,6 +13,8 @@ struct AccountView: View {
     @Environment(\.switchOperator) private var switchOperator
     @Environment(\.dismiss) private var dismiss
     @State private var showHistory = false
+    /// Your photo stays on this phone; it is never uploaded.
+    @State private var photoItem: PhotosPickerItem?
     @State private var showPlans = false
 
     var body: some View {
@@ -20,7 +24,11 @@ struct AccountView: View {
             Section {
                 let tier = AvatarTier(membership: app.membership, plans: app.membershipPlans)
                 HStack(spacing: Spacing.m) {
-                    AvatarView(tier: tier, size: 56)
+                    PhotosPicker(selection: $photoItem, matching: .images) {
+                        AvatarView(tier: tier, size: 56, photo: app.profileImage, tag: tier.tag(operatorWordmark: app.config.branding.wordmark))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(app.profileImage == nil ? "Add a photo" : "Change your photo")
                     VStack(alignment: .leading, spacing: 2) {
                         Text(tier.planName.map { "\($0) member" } ?? "Guest").font(.title3.weight(.bold)).foregroundStyle(palette.textPrimary)
                         Text(tier.planName == nil ? "Book as a guest. Your tickets and points stay on this phone." : "Your discounts apply automatically when you book.")
@@ -29,9 +37,27 @@ struct AccountView: View {
                     Spacer(minLength: 0)
                     BrandLogo(config: app.config).frame(height: 22).accessibilityHidden(true)
                 }
-                .accessibilityElement(children: .combine)
                 .listRowInsets(EdgeInsets(top: Spacing.xs, leading: 0, bottom: 0, trailing: 0))
                 .listRowBackground(Color.clear)
+            } footer: {
+                HStack(spacing: Spacing.m) {
+                    PhotosPicker(app.profileImage == nil ? "Add a photo" : "Change photo", selection: $photoItem, matching: .images)
+                    if app.profileImage != nil {
+                        Button("Remove", role: .destructive) { try? app.setProfilePhoto(nil) }
+                    }
+                    Spacer(minLength: 0)
+                }
+                .font(.footnote.weight(.semibold))
+                .padding(.top, Spacing.xs)
+            }
+            .onChange(of: photoItem) { _, item in
+                guard let item else { return }
+                Task {
+                    if let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) {
+                        try? app.setProfilePhoto(image)
+                    }
+                    photoItem = nil
+                }
             }
             if let program = app.loyalty.program {
                 Section {

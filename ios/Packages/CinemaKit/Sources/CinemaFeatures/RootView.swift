@@ -20,7 +20,7 @@ public struct RootView: View {
     public var body: some View {
         TabView(selection: $tab) {
             Tab("Home", systemImage: "house.fill", value: AppTab.home) {
-                NavigationStack { HomeView().profileToolbar() }
+                NavigationStack { HomeView() }
             }
             Tab("Films", systemImage: "film.stack", value: AppTab.films) {
                 NavigationStack { FilmsView().profileToolbar() }

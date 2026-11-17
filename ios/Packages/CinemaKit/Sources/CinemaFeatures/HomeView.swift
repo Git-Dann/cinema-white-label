@@ -8,13 +8,14 @@ import CinemaDesign
 struct HomeView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.palette) private var palette
+    @Environment(\.headingWeight) private var headingWeight
     @State private var showingVenuePicker = false
     @State private var voucherToShow: VoucherCode?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.section) {
-                cinemaChip
+                header
                 if let error = app.loadError {
                     InfoBanner(.error, error, actionTitle: "Retry") { Task { await app.loadContent() } }.pagePadding()
                 }
@@ -27,27 +28,55 @@ struct HomeView: View {
             .padding(.bottom, Spacing.section)
         }
         .background(palette.background)
+        // Solid status-bar strip so films scrolling up don't run under the clock.
+        .overlay(alignment: .top) { palette.background.frame(height: 0).ignoresSafeArea(edges: .top) }
+        // Home draws its own header (name, cinema and avatar on one line), so the bar is hidden.
+        // The title still names the back button on pushed screens.
         .navigationTitle(app.config.branding.wordmark)
-        .toolbarTitleDisplayMode(.inlineLarge)
+        .toolbar(.hidden, for: .navigationBar)
         .refreshable { await app.loadContent(); await app.tickets.refresh(using: app.service) }
         .sheet(isPresented: $showingVenuePicker) { VenuePickerSheet() }
         .sheet(item: $voucherToShow) { VoucherCodeSheet(voucher: $0) }
         .navigationDestination(for: Film.self) { FilmDetailView(film: $0) }
     }
 
-    private var cinemaChip: some View {
-        Button { showingVenuePicker = true } label: {
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: "mappin.circle.fill").foregroundStyle(palette.actionPrimary)
-                Text(app.selectedVenue?.shortName(operatorWordmark: app.config.branding.wordmark) ?? "Choose a cinema")
-                    .font(.subheadline.weight(.semibold))
-                Image(systemName: "chevron.down").font(.caption.weight(.bold))
+    /// The operator's name with the chosen cinema beside it, on the same baseline, and the avatar
+    /// on the right. A long name puts the cinema on the line below instead of squashing either.
+    private var header: some View {
+        HStack(alignment: .center, spacing: Spacing.s) {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) { title; venueButton }
+                VStack(alignment: .leading, spacing: 0) { title; venueButton }
             }
-            .foregroundStyle(palette.textPrimary)
-            .padding(.horizontal, Spacing.m).frame(minHeight: Spacing.tap)
-            .glassEffect(.regular.interactive(), in: Capsule())
+            Spacer(minLength: 0)
+            ProfileButton(size: 44)
         }
         .pagePadding()
+    }
+
+    private var title: some View {
+        Text(app.config.branding.wordmark)
+            .font(.largeTitle.weight(headingWeight))
+            .foregroundStyle(palette.textPrimary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private var venueButton: some View {
+        Button { showingVenuePicker = true } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(app.selectedVenue?.shortName(operatorWordmark: app.config.branding.wordmark) ?? "Choose a cinema")
+                    .font(.title3.weight(.medium))
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.footnote.weight(.bold))
+            }
+            .foregroundStyle(palette.textSecondary)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
         .accessibilityLabel("Cinema: \(app.selectedVenue?.name ?? "none selected")")
         .accessibilityHint("Changes your cinema")
     }

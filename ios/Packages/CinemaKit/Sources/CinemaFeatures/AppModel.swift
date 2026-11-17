@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import CinemaCore
+import UIKit
 
 /// App-wide state shared by the five tabs. Created once at launch.
 @MainActor
@@ -31,6 +32,10 @@ public final class AppModel {
     public private(set) var isLoading = false
     /// The server's view of this app version (fleet policy). Nil until checked, or when offline.
     public private(set) var appStatus: AppStatus?
+    /// The customer's own avatar photo, kept on this device only.
+    public private(set) var profileImage: UIImage?
+    private var photos: ProfilePhotoStore?
+
     /// The newest version the customer said "Not now" to, so each version is suggested once.
     public private(set) var dismissedUpdateVersion: String? = UserDefaults.standard.string(forKey: AppModel.dismissedUpdateKey)
     private static let dismissedUpdateKey = "dismissedUpdateVersion"
@@ -54,6 +59,9 @@ public final class AppModel {
                 appGroup: String = Bundle.main.infoDictionary?["AppGroup"] as? String ?? "") {
         self.isDemo = isDemo
         let store = accountCacheDirectory.map { AccountSnapshotStore(cacheDirectory: $0, tenantSlug: configStore.config.tenant.slug) }
+        let photos = accountCacheDirectory.map(ProfilePhotoStore.init(directory:))
+        self.photos = photos
+        self.profileImage = photos?.load().flatMap(UIImage.init(data:))
         self.accountStore = store
         if let cached = store?.load() {
             loyalty = cached.loyalty
@@ -76,6 +84,20 @@ public final class AppModel {
     public func checkForUpdate() async {
         guard let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String else { return }
         if let status = try? await service.appStatus(version: version) { appStatus = status }
+    }
+
+    /// Saves a photo for the avatar, resized so no full-size picture is kept. Nil removes it.
+    public func setProfilePhoto(_ image: UIImage?) throws {
+        guard let photos else { return }
+        guard let image else { photos.remove(); profileImage = nil; return }
+        let side = CGFloat(ProfilePhotoStore.pixelSize)
+        let scale = min(1, side / max(image.size.width, image.size.height))
+        let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let format = UIGraphicsImageRendererFormat(); format.scale = 1
+        let resized = UIGraphicsImageRenderer(size: size, format: format).image { _ in image.draw(in: CGRect(origin: .zero, size: size)) }
+        guard let jpeg = resized.jpegData(compressionQuality: 0.8) else { return }
+        try photos.save(jpeg)
+        profileImage = resized
     }
 
     public func dismissUpdate() {
