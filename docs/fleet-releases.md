@@ -95,9 +95,27 @@ Apple's year has a fixed shape, so the fleet plans for it:
 
 Because every operator runs the same code, a new Apple feature is built once and reaches everyone through the same workflow. Per-operator work is limited to App Review for each app.
 
-## Small independents: one shared app
+## The shared Seatfold app
 
-An operator with one or two screens may not want an Apple Developer account. Guideline 4.2.6 allows one app that hosts many clients, so a single **Seatfold Cinemas** app (cinema picker first, then each cinema's own theme) would cover them with no account, review or fee on their side. It is not built yet; it needs a cinema picker before the tenant is chosen.
+Built. One App Store app, **Seatfold Cinemas** (`fleet/brands/seatfold.json`, `mode: shared`), lists every operator that opts in. The customer picks a cinema and the whole app takes on that operator's theme, films, offers and memberships. Apple guideline 4.2.6 names this "picker" model as the way a template provider may publish one app for many clients.
+
+| | Own branded app | Seatfold app |
+|---|---|---|
+| Apple Developer account | The operator's (£79 a year) | Ours |
+| App Review | Per operator, per release | Once per release for everyone |
+| Home-screen icon and name | The operator's | Seatfold |
+| Inside the app | Operator's theme | Operator's theme, once chosen |
+| Best for | Chains and brands with loyal customers | Independents, and showing the platform |
+
+How it works:
+
+- Operators opt in from **Connections › Customer apps** in the portal (operator admins only). `GET /v1/directory` lists opted-in operators that have published their brand, nearest first when the customer shares a location, and searches operator, cinema, town and postcode.
+- The app (`APP_MODE = shared`) opens on the picker. Choosing an operator fetches and validates their configuration, saves it, and opens the normal app in their theme. Next launch reopens it straight away, even offline (`OperatorChoiceStore` in CinemaCore).
+- Account › **Change cinema** goes back to the picker. Tickets, sessions and saved themes are kept per operator, so switching back is instant.
+- The update check sends `app=seatfold`, so the shared app is judged by its own fleet entry, not the operator chosen in it.
+- The **Seatfold Demo** scheme runs the picker on the bundled Northlight and Kestrel configurations with no backend. It is the quickest way to show white-label theming: pick one, then change cinema and the same app re-themes.
+
+An operator can be in both: their own app for regulars and the Seatfold app for discovery.
 
 ## Later
 

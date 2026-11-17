@@ -137,8 +137,7 @@ public struct BrandLogo: View {
         }
         .accessibilityLabel(config.tenant.name)
         .task(id: scheme) {
-            let path = scheme == .dark ? config.branding.logoDarkUrl : config.branding.logoLightUrl
-            guard let path, let url = URL(string: path, relativeTo: base)?.absoluteURL else { return }
+            guard let url = LogoChoice.url(light: config.branding.logoLightUrl, dark: config.branding.logoDarkUrl, isDark: scheme == .dark, base: base) else { return }
             image = await ImagePipeline.shared.image(for: url)
         }
     }

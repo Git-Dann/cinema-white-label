@@ -58,7 +58,9 @@ public struct BasketExtras: Codable, Sendable, Hashable {
 
 public struct LiveCinemaService: CinemaService {
     public let client: APIClient
-    public init(client: APIClient) { self.client = client }
+    /// The fleet brand of this app (Info.plist FleetBrand), so the shared app is judged as itself.
+    public let fleetBrand: String?
+    public init(client: APIClient, fleetBrand: String? = nil) { self.client = client; self.fleetBrand = fleetBrand }
 
     private func q(_ items: [String: String?]) -> String {
         var c = URLComponents()
@@ -172,7 +174,7 @@ public struct LiveCinemaService: CinemaService {
     }
 
     public func appStatus(version: String) async throws -> AppStatus? {
-        try await client.get("/app-status" + q(["platform": "ios", "version": version]))
+        try await client.get("/app-status" + q(["platform": "ios", "version": version, "app": fleetBrand]))
     }
 }
 

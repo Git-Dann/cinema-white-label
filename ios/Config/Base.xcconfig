@@ -10,6 +10,9 @@ API_BASE_URL = https:/$()/cinema-api-flame.vercel.app/
 // API_BASE_URL = http:/$()/localhost:3000/
 // YES builds run on bundled fictional data with no backend (see Northlight-Demo.xcconfig).
 DEMO_MODE = NO
+// Set per app by the generated brand xcconfig (fleet/brands).
+APP_MODE = branded
+FLEET_BRAND =
 
 // ---------------------------------------------------------------------------
 // Signing (set once). CI builds unsigned and ignores these.

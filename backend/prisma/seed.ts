@@ -74,7 +74,7 @@ async function main() {
   for (const t of TENANTS) {
     console.log(`Seeding ${t.name}…`);
     const tenant = await prisma.tenant.create({
-      data: { slug: t.slug, name: t.name, bookingFeeMinor: t.bookingFeeMinor, maxTicketsPerBooking: 10, holdDurationSeconds: 480, orphanSeatPolicy: 'warn', companionPolicy: t.companionPolicy, cancellationCutoffMinutes: 60 },
+      data: { slug: t.slug, name: t.name, bookingFeeMinor: t.bookingFeeMinor, maxTicketsPerBooking: 10, holdDurationSeconds: 480, orphanSeatPolicy: 'warn', companionPolicy: t.companionPolicy, cancellationCutoffMinutes: 60, listedInSeatfoldApp: true },
     });
     const palette = await prisma.brandPalette.create({
       data: { tenantId: tenant.id, name: t.palette.name, accentLight: t.palette.accent.light, accentDark: t.palette.accent.dark, secondaryLight: t.palette.secondary.light, secondaryDark: t.palette.secondary.dark, approved: true },

@@ -44,6 +44,11 @@ export const BrandManifest = z
     secretSuffix: z.string().regex(/^[A-Z][A-Z0-9_]*$/),
     /** Builds that run on bundled fictional data, for sales demos. */
     demoMode: z.boolean().default(false),
+    /**
+     * branded: one operator's own app. shared: the Seatfold app, which lists every operator that
+     * opts in and takes on each one's theme once chosen (guideline 4.2.6 picker model).
+     */
+    mode: z.enum(['branded', 'shared']).default('branded'),
   })
   .strict();
 export type BrandManifest = z.infer<typeof BrandManifest>;
@@ -140,10 +145,26 @@ export function xcconfigFor(b: BrandManifest): string {
     `// Generated from fleet/brands/${b.slug}.json by scripts/fleet.mjs. Edit the brand file, not this.`,
     `APP_BUNDLE_ID = ${b.bundleId}`,
     `APP_NAME = ${b.appName}`,
-    `TENANT_SLUG = ${b.slug}`,
+    // The shared app has no fixed operator: the customer picks one.
+    `TENANT_SLUG = ${b.mode === 'shared' ? '' : b.slug}`,
+    `APP_MODE = ${b.mode}`,
+    `FLEET_BRAND = ${b.slug}`,
     `DEVELOPMENT_TEAM = ${b.appleTeamId}`,
     `ASSETCATALOG_COMPILER_APPICON_NAME = ${b.appIcon}`,
     `DEMO_MODE = ${b.demoMode ? 'YES' : 'NO'}`,
     '',
   ].join('\n');
 }
+
+/** One operator in the shared Seatfold app's picker (`GET /v1/directory`). */
+export const DirectoryEntry = z.object({
+  slug: z.string(),
+  name: z.string(),
+  wordmark: z.string(),
+  logoLightUrl: z.string().nullable(),
+  logoDarkUrl: z.string().nullable(),
+  accent: z.object({ light: z.string(), dark: z.string() }),
+  /** Nearest first when the customer shared a location; otherwise by name. */
+  venues: z.array(z.object({ name: z.string(), city: z.string(), distanceKm: z.number().nullable() })),
+});
+export type DirectoryEntry = z.infer<typeof DirectoryEntry>;

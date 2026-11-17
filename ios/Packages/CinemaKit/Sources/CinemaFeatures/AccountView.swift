@@ -8,6 +8,8 @@ struct AccountView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.palette) private var palette
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.switchOperator) private var switchOperator
+    @Environment(\.dismiss) private var dismiss
     @State private var showHistory = false
     @State private var showPlans = false
 
@@ -59,9 +61,18 @@ struct AccountView: View {
                          : "Themes follow your device's light and dark setting unless the theme is designed for one appearance.")
                 }
             }
-            Section("Your cinemas") {
+            Section {
                 if app.favouriteVenues.isEmpty { Text("Tap the house next to a cinema to add it here.").foregroundStyle(palette.textMuted) }
                 ForEach(app.favouriteVenues) { Text($0.name) }
+                // Shared Seatfold app only: back to the list of cinema operators.
+                if let switchOperator {
+                    Button {
+                        dismiss()
+                        switchOperator()
+                    } label: { Label("Change cinema", systemImage: "arrow.left.arrow.right") }
+                }
+            } header: { Text("Your cinemas") } footer: {
+                if switchOperator != nil { Text("You're booking with \(app.config.tenant.name). Your tickets stay saved if you change.") }
             }
             Section {
                 Toggle("Share anonymous usage data", isOn: Binding(

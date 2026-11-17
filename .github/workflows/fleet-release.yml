@@ -136,12 +136,15 @@ jobs:
         working-directory: ios
         run: |
           sed -i '' "s/^CURRENT_PROJECT_VERSION = .*/CURRENT_PROJECT_VERSION = $BUILD/" Config/Base.xcconfig
-          brew install xcodegen
-          xcodegen generate
           # The brand's xcconfig (generated from fleet/brands) sets bundle ID, name, team and icon.
+          # It replaces the configuration the archive scheme uses, so it applies to the app and
+          # widget only. (xcodebuild -xcconfig would also apply to the Swift packages and change
+          # their language mode.)
           XC="Config/$(echo "${SLUG:0:1}" | tr a-z A-Z)${SLUG:1}.xcconfig"
           test -f "$XC" || { echo "::error::$XC missing; run node scripts/fleet.mjs generate"; exit 1; }
-          echo "BRAND_XCCONFIG=$XC" >> "$GITHUB_ENV"
+          [ "$XC" = "Config/Northlight.xcconfig" ] || cp "$XC" Config/Northlight.xcconfig
+          brew install xcodegen
+          xcodegen generate
           TEAM=$(sed -n 's/^DEVELOPMENT_TEAM = //p' "$XC")
           cp ExportOptions.plist "$RUNNER_TEMP/ExportOptions.plist"
           plutil -replace teamID -string "$TEAM" "$RUNNER_TEMP/ExportOptions.plist"
@@ -159,7 +162,6 @@ jobs:
           set -o pipefail
           xcodebuild archive \
             -project Cinema.xcodeproj -scheme Northlight -configuration "Northlight Release" \
-            -xcconfig "$BRAND_XCCONFIG" \
             -destination "generic/platform=iOS" -archivePath "$RUNNER_TEMP/$SLUG.xcarchive" \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$ASC_KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \

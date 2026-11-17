@@ -22,5 +22,5 @@ None added. The fleet tool is plain Node using the contracts package; the workfl
 
 - **All apps in our account.** Simpler to run, but against 4.2.6 for live apps. Kept only for our demo apps.
 - **Fastlane.** Mature, but a Ruby toolchain for what `xcodebuild` and the App Store Connect API already do. Revisit if screenshot and metadata automation grows.
-- **One shared picker app for everyone.** Allowed by 4.2.6 and cheapest, but operators want their own brand on the home screen. Planned as an option for small independents only.
+- **One shared picker app for everyone.** Allowed by 4.2.6 and cheapest, but operators want their own brand on the home screen. Built as the Seatfold app alongside branded apps (see docs/fleet-releases.md), for independents and for demos.
 - **Code push or remote UI.** Ruled out by 2.5.2 for anything that adds features.

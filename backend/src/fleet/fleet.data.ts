@@ -13,7 +13,8 @@ export const FLEET_BRANDS: BrandManifest[] = [
     "ring": "internal",
     "status": "live",
     "secretSuffix": "GITWORK",
-    "demoMode": false
+    "demoMode": false,
+    "mode": "branded"
   },
   {
     "slug": "northlight",
@@ -26,7 +27,22 @@ export const FLEET_BRANDS: BrandManifest[] = [
     "ring": "internal",
     "status": "live",
     "secretSuffix": "GITWORK",
-    "demoMode": false
+    "demoMode": false,
+    "mode": "branded"
+  },
+  {
+    "slug": "seatfold",
+    "appName": "Seatfold",
+    "storeName": "Seatfold Cinemas",
+    "bundleId": "uk.co.gitwork.seatfold.cinemas",
+    "appleTeamId": "B27Y4M6S3Y",
+    "appStoreId": null,
+    "appIcon": "AppIcon-Seatfold",
+    "ring": "internal",
+    "status": "live",
+    "secretSuffix": "GITWORK",
+    "demoMode": false,
+    "mode": "shared"
   }
 ];
 
